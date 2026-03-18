@@ -14,7 +14,7 @@ body:
     id: proposal
     attributes:
       label: Proposal
-      value: _What’s the idea? Describe how it could work at a high level._
+      value: _What's the idea? Describe how it could work at a high level._
   - type: textarea
     id: alternatives
     attributes:
@@ -25,3 +25,27 @@ body:
     attributes:
       label: Impact
       value: _Who will benefit from this? How does it make things better?_
+  - type: textarea
+    id: pre_flight
+    attributes:
+      label: Pre-flight checklist
+      value: |
+        _Work through each of these items before implementation. Skip with
+        intent — if an item doesn't apply, note why in here._
+
+        - [ ] **Boundary & context** — belongs in an existing context, or a
+              new one created following the _How to add a new Phoenix context_
+              steps in `CLAUDE.md`
+        - [ ] **Database migration** — new tables/columns generated with
+              `mix ecto.gen.migration` using `binary_id` keys
+        - [ ] **Authentication & authorisation** — correct router scope
+              chosen (`:require_authenticated_user`, `:require_kingdom`, or
+              public)
+        - [ ] **Feature flag** — rolls out gradually behind a
+              `KingdoneCore.FeatureFlags` flag enabled via `/dev/flags`; or
+              noted in the PR description why a flag is not needed
+        - [ ] **Background jobs** — deferred/retried work uses an Oban worker
+        - [ ] **Tests** — LiveView integration tests with `PhoenixTest`;
+              context unit tests; both flag states covered if feature-flagged
+        - [ ] **IEx helpers** — `.iex.exs` updated for any new schemas
+        - [ ] **CLAUDE.md** — new patterns or conventions documented
