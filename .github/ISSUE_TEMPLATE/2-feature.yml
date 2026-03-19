@@ -38,9 +38,12 @@ body:
               steps in `CLAUDE.md`
         - [ ] **Database migration** — new tables/columns generated with
               `mix ecto.gen.migration` using `binary_id` keys
-        - [ ] **Authentication & authorisation** — correct router scope
-              chosen (`:require_authenticated_user`, `:require_kingdom`, or
-              public)
+        - [ ] **Authentication** — correct router scope chosen
+              (`:require_authenticated_user`, `:require_kingdom`, or public)
+        - [ ] **Authorisation** — does this affect existing actions or
+              introduce new ones? Who can perform them?
+        - [ ] **Admin pages** — Backpex config updated in `/admin` with any
+              new resources or fields added to existing resources
         - [ ] **Feature flag** — rolls out gradually behind a
               `KingdoneCore.FeatureFlags` flag enabled via `/dev/flags`; or
               noted in the PR description why a flag is not needed
