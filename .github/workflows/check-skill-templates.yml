@@ -2,14 +2,8 @@ name: Check
 
 on:
   pull_request:
-    paths:
-      - ".github/ISSUE_TEMPLATE/[0-9]*.yml"
-      - ".claude/skills/0k-create-issue/templates/[0-9]*.yml"
   push:
     branches: [main]
-    paths:
-      - ".github/ISSUE_TEMPLATE/[0-9]*.yml"
-      - ".claude/skills/0k-create-issue/templates/[0-9]*.yml"
 
 jobs:
   Check:
