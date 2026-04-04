@@ -61,7 +61,7 @@ product. It drives what gets built and when.
 | Status       | Meaning                                                                 |
 | ------------ | ----------------------------------------------------------------------- |
 | `Backlog`    | Pitch has been captured but not yet shaped                              |
-| `Shaping`    | The pitch is being refined — problem, appetite, and solution being defined |
+| `Shaping`    | The pitch is being refined — problem, appetite, and solution are being defined |
 | `Betting`    | The pitch is ready and being considered for the next cycle              |
 | `Building`   | The pitch has been bet on and is actively being built                   |
 | `Validating` | The work is done and is being validated before closing                  |
