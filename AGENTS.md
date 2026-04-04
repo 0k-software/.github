@@ -14,8 +14,8 @@ The only artifacts here are GitHub Issue Templates located in
 
 ## Issue Template System
 
-Templates are numbered to control display order in GitHub's issue picker.
-Blank issue creation is disabled (`config.yml`).
+Templates are numbered to control display order in GitHub's issue picker. Blank
+issue creation is disabled (`config.yml`).
 
 | Template            | Purpose                                        |
 | ------------------- | ---------------------------------------------- |
@@ -29,6 +29,7 @@ Blank issue creation is disabled (`config.yml`).
 ## Project-Specific Tech Stack (referenced in templates)
 
 The templates are tailored for an **Elixir/Phoenix** stack:
+
 - **Phoenix** — web framework and contexts (boundary architecture)
 - **Ecto** — database migrations and schemas
 - **Oban** — background jobs
@@ -45,10 +46,10 @@ After cloning, run:
 make setup
 ```
 
-This copies the project hooks from `.git-hooks/` into `.git/hooks/`
-(pre-commit checks that skill template copies stay in sync with the source
-issue templates). This runs automatically on Claude Code session start via
-the `SessionStart` hook in `.claude/settings.json`.
+This copies the project hooks from `.git-hooks/` into `.git/hooks/` (pre-commit
+checks that skill template copies stay in sync with the source issue
+templates). This runs automatically on Claude Code session start via the
+`SessionStart` hook in `.claude/settings.json`.
 
 ## Skills
 
@@ -65,7 +66,8 @@ make install-skills
   display order.
 - The pre-flight checklist in `2-feature.yml` reflects the team's standard
   development workflow — keep it in sync with actual practices.
-- `6-kickoff.yml` is for project-level planning; `2-feature.yml`'s checklist
-  is for individual feature implementation.
+- `6-kickoff.yml` is for project-level planning; `2-feature.yml`'s checklist is
+  for individual feature implementation.
 
-[gh-community-health]: https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/creating-a-default-community-health-file
+[gh-community-health]:
+  https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/creating-a-default-community-health-file

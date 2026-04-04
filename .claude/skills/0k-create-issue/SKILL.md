@@ -1,14 +1,16 @@
 ---
 name: 0k-create-issue
-description: Create a GitHub issue in an 0k-software org repo using the standardized issue templates (pitch, feature, task, bug, enhancement, kickoff).
+description:
+  Create a GitHub issue in an 0k-software org repo using the standardized issue
+  templates (pitch, feature, task, bug, enhancement, kickoff).
 argument-hint: <description of the issue>
 ---
 
 # Create Issue from Template
 
-You are helping the user create a GitHub issue in an **0k-software** organization
-repository. All issues MUST use one of the organization's standardized templates.
-Do NOT create free-form issues.
+You are helping the user create a GitHub issue in an **0k-software**
+organization repository. All issues MUST use one of the organization's
+standardized templates. Do NOT create free-form issues.
 
 ## Instructions
 
@@ -16,17 +18,17 @@ Do NOT create free-form issues.
 2. **Identify the target repo.** Derive it from the current working directory's
    git remote (look for an `0k-software/` remote). If the current directory is
    not an 0k-software repo, ask the user which repo to use.
-3. **Determine the issue type** from the description. Read all template files in
-   `${CLAUDE_SKILL_DIR}/templates/` — each file's `name` and `description`
+3. **Determine the issue type** from the description. Read all template files
+   in `${CLAUDE_SKILL_DIR}/templates/` — each file's `name` and `description`
    fields describe the issue type it covers. Match the user's intent to the
    best fitting template. If ambiguous, present the user with the options and
    ask them to pick.
-4. **Read the chosen template file** to understand the exact fields and structure
-   required for that issue type.
-5. **Gather the required fields** for that template. Fill in every field you can
-   infer from the user's description. For fields you cannot infer, ask the
-   user — do NOT leave template placeholders or italic prompt text in the
-   final issue.
+4. **Read the chosen template file** to understand the exact fields and
+   structure required for that issue type.
+5. **Gather the required fields** for that template. Fill in every field you
+   can infer from the user's description. For fields you cannot infer, ask the
+   user — do NOT leave template placeholders or italic prompt text in the final
+   issue.
 6. **Create the issue** using the GitHub MCP tools (preferred) or `gh` CLI.
    - Use the `type` property from the chosen template file as the issue type.
    - Construct a clear, concise title (do NOT include emoji prefixes — GitHub
@@ -40,9 +42,9 @@ Do NOT create free-form issues.
 The template `.yml` files are GitHub Issue Form definitions. Convert them to a
 markdown issue body as follows:
 
-- **`textarea`** fields → `## {label}` heading followed by the content.
-  The `value` in the template is placeholder/prompt text — replace it with
-  real content, never include it verbatim.
+- **`textarea`** fields → `## {label}` heading followed by the content. The
+  `value` in the template is placeholder/prompt text — replace it with real
+  content, never include it verbatim.
 - **`dropdown`** fields → `## {label}` heading followed by the selected value.
 - **`checkboxes`** fields → `## {label}` heading followed by the checkbox list.
 - **`markdown`** fields → skip (these are instructions, not issue content).
