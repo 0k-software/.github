@@ -42,12 +42,13 @@ There are two scopes:
 
 ## Projects
 
-Every repo has its own GitHub Projects. All project names follow the convention:
+We use organization-owned GitHub Projects, typically with one set of projects
+per repo or product. All project names follow the convention:
 
 > **emoji [Product name] Project name** — e.g. `🗺️ [Kingdone] Roadmap`
 
-Each repo should have at minimum two standard projects: the **Roadmap** and the
-**Triage** project.
+Each repo or product should have at minimum two standard projects: the
+**Roadmap** and **Triage** projects.
 
 ### Roadmap
 
