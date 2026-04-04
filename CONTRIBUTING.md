@@ -129,7 +129,8 @@ During triage, the team reviews backlog items and decides:
   current cycle through the triage project.
 - **Group and pitch** — the issue is not urgent; group it with related issues
   and create a new pitch in the Roadmap. The triage issues can be linked as
-  sub-issues of the new pitch right away.
+  sub-issues of the new pitch right away, and should be removed from Triage
+  once linked.
 
 [roadmap-project]: https://github.com/orgs/0k-software/projects/9
 [triage-project]: https://github.com/orgs/0k-software/projects/11
