@@ -13,7 +13,7 @@ There are two scopes:
 - **Repo-level discussions** — for topics that impact a specific project or
   product. Open these in the relevant repository.
 - **Org-level discussions** — for topics that span the whole organization.
-  Open these in the [`.github` repository][org-discussions].
+  Open these in the [organization Discussions][org-discussions].
 
 ### Categories
 
