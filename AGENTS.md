@@ -37,6 +37,27 @@ The templates are tailored for an **Elixir/Phoenix** stack:
 - **AGENTS.md** — AI assistant context files (referenced as a documentation)
 - **CLAUDE.md** — A symlink to **AGENTS.md**
 
+## Setup
+
+After cloning, run:
+
+```
+make setup
+```
+
+This configures git to use the project hooks in `.git-hooks/` (pre-commit
+checks that skill template copies stay in sync with the source issue
+templates).
+
+## Skills
+
+Claude Code skills live in `.claude/skills/`. To install them globally
+(`~/.claude/skills/`) so they're available across all projects:
+
+```
+make install-skills
+```
+
 ## Editing Guidelines
 
 - Maintain the numeric prefix naming convention for templates to preserve
