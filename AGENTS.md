@@ -45,9 +45,10 @@ After cloning, run:
 make setup
 ```
 
-This configures git to use the project hooks in `.git-hooks/` (pre-commit
-checks that skill template copies stay in sync with the source issue
-templates).
+This copies the project hooks from `.git-hooks/` into `.git/hooks/`
+(pre-commit checks that skill template copies stay in sync with the source
+issue templates). This runs automatically on Claude Code session start via
+the `SessionStart` hook in `.claude/settings.json`.
 
 ## Skills
 
