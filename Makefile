@@ -1,7 +1,18 @@
+GIT_HOOKS_SRC := .git-hooks
+GIT_HOOKS_DST := .git/hooks
+
+HOOK_FILES := $(wildcard $(GIT_HOOKS_SRC)/*)
+
 .PHONY: setup
 setup:
-	git config core.hooksPath .git-hooks
-	@echo "Git hooks installed from .git-hooks/"
+	@mkdir -p $(GIT_HOOKS_DST)
+	@for hook in $(HOOK_FILES); do \
+		name=$$(basename "$$hook"); \
+		cp "$$hook" "$(GIT_HOOKS_DST)/$$name"; \
+		chmod +x "$(GIT_HOOKS_DST)/$$name"; \
+		echo "Installed hook: $$name"; \
+	done
+	@echo "Git hooks installed to $(GIT_HOOKS_DST)/"
 
 ISSUE_TEMPLATE_SRC := .github/ISSUE_TEMPLATE
 SKILL_TEMPLATES_DST := .claude/skills/0k-create-issue/templates
