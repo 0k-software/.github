@@ -7,9 +7,7 @@ echo "Running pre-commit checks..."
 
 "$repo_root/bin/check-skill-templates"
 
-if command -v prettier &>/dev/null; then
-  prettier --check "**/*.md"
-elif command -v npx &>/dev/null; then
+if command -v npx &>/dev/null; then
   npx --yes prettier --check "**/*.md"
 else
   echo "Warning: prettier not found, skipping format check"
