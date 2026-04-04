@@ -1,0 +1,55 @@
+name: Check skill templates in sync
+
+on:
+  pull_request:
+    paths:
+      - ".github/ISSUE_TEMPLATE/[0-9]*.yml"
+      - ".claude/skills/0k-create-issue/templates/[0-9]*.yml"
+  push:
+    branches: [main]
+    paths:
+      - ".github/ISSUE_TEMPLATE/[0-9]*.yml"
+      - ".claude/skills/0k-create-issue/templates/[0-9]*.yml"
+
+jobs:
+  check-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check templates are in sync
+        run: |
+          src=".github/ISSUE_TEMPLATE"
+          dst=".claude/skills/0k-create-issue/templates"
+
+          out_of_sync=false
+
+          # Check every numbered template in src has an identical copy in dst
+          for f in "$src"/[0-9]*.yml; do
+            name="$(basename "$f")"
+            if [ ! -f "$dst/$name" ]; then
+              echo "::error::Missing from skill templates: $name"
+              out_of_sync=true
+            elif ! diff -q "$f" "$dst/$name" > /dev/null 2>&1; then
+              echo "::error::Out of sync: $name"
+              diff --unified "$f" "$dst/$name" || true
+              out_of_sync=true
+            fi
+          done
+
+          # Check dst doesn't have stale files that no longer exist in src
+          for f in "$dst"/[0-9]*.yml; do
+            name="$(basename "$f")"
+            if [ ! -f "$src/$name" ]; then
+              echo "::error::Stale skill template (no longer in ISSUE_TEMPLATE): $name"
+              out_of_sync=true
+            fi
+          done
+
+          if [ "$out_of_sync" = true ]; then
+            echo ""
+            echo "Skill templates are out of sync. Run 'make sync-skill-templates' and commit the result."
+            exit 1
+          fi
+
+          echo "All skill templates are in sync."
