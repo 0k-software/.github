@@ -37,3 +37,100 @@ There are two scopes:
   _Ideas_ or _Q&A_ instead if you want feedback.
 
 [org-discussions]: https://github.com/orgs/0k-software/discussions
+
+---
+
+## Projects
+
+Every repo has its own GitHub Projects. All project names follow the convention:
+
+> **emoji [Product name] Project name** — e.g. `🗺️ [Kingdone] Roadmap`
+
+Each repo should have at minimum two standard projects: the **Roadmap** and the
+**Triage** project.
+
+### Roadmap
+
+The Roadmap project holds all pitches and is the central planning board for the
+product. It drives what gets built and when.
+
+[→ Roadmap project][roadmap-project]
+
+#### Statuses
+
+| Status       | Meaning                                                                 |
+| ------------ | ----------------------------------------------------------------------- |
+| `Backlog`    | Pitch has been captured but not yet shaped                              |
+| `Shaping`    | The pitch is being refined — problem, appetite, and solution being defined |
+| `Betting`    | The pitch is ready and being considered for the next cycle              |
+| `Building`   | The pitch has been bet on and is actively being built                   |
+| `Validating` | The work is done and is being validated before closing                  |
+| `Done`       | The pitch is complete                                                   |
+
+#### Process
+
+1. New pitches are created using the **Pitch** issue template and land in
+   `Backlog`.
+2. During shaping, the pitch moves to `Shaping`. The team refines the problem,
+   defines the appetite, and proposes a solution.
+3. Once shaped, the pitch moves to `Betting` and is considered for the next
+   cycle.
+4. When a pitch is selected and work begins, it moves to `Building`. At this
+   point:
+   - A new project is created for the pitch using the
+     [[TEMPLATE] 🏗️ Project][project-template] as a template.
+   - A **Kickoff** issue is created (using the Kickoff template) as the first
+     sub-issue of the pitch.
+   - The pitch issue itself is added to the new project — this ensures all
+     new sub-issues are automatically included in it.
+   - All issues for this pitch are tracked as sub-issues of the pitch issue.
+5. When building is complete, the pitch moves to `Validating`.
+6. Once validated, it moves to `Done`.
+
+#### Project template statuses
+
+New pitch projects are created from the [[TEMPLATE] 🏗️ Project][project-template]
+and use these statuses:
+
+| Status            | Meaning                                        |
+| ----------------- | ---------------------------------------------- |
+| `Backlog`         | Issue captured, not yet refined                |
+| `Refining`        | Being broken down or clarified                 |
+| `Ready`           | Ready to be picked up                          |
+| `In progress`     | Actively being worked on                       |
+| `In review`       | Under code review or QA                        |
+| `Ready to deploy` | Approved and waiting for deployment            |
+| `Done`            | Deployed and complete                          |
+
+### Triage
+
+The Triage project collects all repo issues that are not pitches and don't yet
+belong to a project — bugs, ad-hoc tasks, and small enhancements land here
+automatically.
+
+[→ Triage project][triage-project]
+
+#### Statuses
+
+| Status            | Meaning                                        |
+| ----------------- | ---------------------------------------------- |
+| `Backlog`         | Captured, not yet triaged                      |
+| `Ready`           | Triaged and ready to be worked on              |
+| `In progress`     | Actively being worked on                       |
+| `In review`       | Under code review or QA                        |
+| `Ready to deploy` | Approved and waiting for deployment            |
+| `Done`            | Deployed and complete                          |
+
+#### Process
+
+During triage, the team reviews backlog items and decides:
+
+- **Act now** — the issue is urgent; move it to `Ready` and handle it in the
+  current cycle through the triage project.
+- **Group and pitch** — the issue is not urgent; group it with related issues
+  and create a new pitch in the Roadmap. The triage issues can be linked as
+  sub-issues of the new pitch right away.
+
+[roadmap-project]: https://github.com/orgs/0k-software/projects/9
+[triage-project]: https://github.com/orgs/0k-software/projects/11
+[project-template]: https://github.com/orgs/0k-software/projects/6
