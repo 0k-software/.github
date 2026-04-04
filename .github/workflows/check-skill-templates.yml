@@ -15,4 +15,4 @@ jobs:
         run: bin/check-skill-templates
 
       - name: Check formatting (Prettier)
-        run: npx --yes prettier --check "**/*.md"
+        run: npx --yes prettier@3.3.3 --check "**/*.md"
