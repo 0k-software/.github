@@ -12,7 +12,7 @@ on:
       - ".claude/skills/0k-create-issue/templates/[0-9]*.yml"
 
 jobs:
-  check-sync:
+  Check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
