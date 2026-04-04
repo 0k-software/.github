@@ -1,3 +1,8 @@
+.PHONY: setup
+setup:
+	git config core.hooksPath .git-hooks
+	@echo "Git hooks installed from .git-hooks/"
+
 ISSUE_TEMPLATE_SRC := .github/ISSUE_TEMPLATE
 SKILL_TEMPLATES_DST := .claude/skills/0k-create-issue/templates
 SKILLS_SRC := .claude/skills
