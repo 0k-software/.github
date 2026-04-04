@@ -1,0 +1,40 @@
+name: 🚀 Kickoff
+description: Pre-flight checklist for starting a new project or feature initiative.
+title: 🚀 Project Kickoff Checklist
+type: "Task"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        # 🚀 Project Kickoff — Pre-Flight Checklist
+
+        Before writing the first line of code, let’s make sure all systems are good.  
+        
+        This checklist is meant to guide devs through the *thinking phase* of the project — 
+        ensuring they have clarity on the problem, scope, architecture, risks, and rollout strategy.
+
+        After reading the project pitch, go through this checklist and make sure there are tasks
+        created in the project for handling each of these.
+
+  - type: checkboxes
+    id: preflight-checklist
+    attributes:
+      label: ✅ Pre-Flight Checklist
+      description: Review each topic before proceeding to implementation.
+      options:
+        - label: 1. **Feature flag plan** - Will this ship behind a flag or toggle?
+        - label: 2. **Observability** - Logging, metrics, tracing defined?
+        - label: 3. **Testing** - Unit, integration, end-to-end test strategy decided?
+        - label: 4. **Rollout strategy** - Phased release, canary, or big-bang?
+        - label: 5. **Data migrations** - Any schema changes required? How will rollback in case necessary?
+        - label: 6. **Dependencies** - Any services, APIs, or teams to coordinate with?
+        - label: 7. **Security & permissions** - Are secrets, tokens, and access scopes reviewed?
+        - label: 8. **Documentation** - Does this need new or updated docs?
+        - label: 9. **Performance considerations** - Any known hotspots or load risks?
+        - label: 10. **Failure scenarios** - What happens if this goes wrong? Is there an alert or fallback?
+        - label: 11. **Tech debt** - Any refactors or cleanup bundled into this effort?
+        - label: 12. **UX/UI review** - Mockups, flows, or acceptance criteria validated?
+        - label: 13. **Localization / Accessibility** - Any requirements to cover?
+        - label: 14. **Compliance / Legal** - GDPR, data retention, or license implications?
+        - label: 15. **Validation** - Anything to make the validation possible/easier?
+        - label: 16. **Follow-up** - Anything post delivery needed from devs? Monitoring, things to revisit, future improvements?
