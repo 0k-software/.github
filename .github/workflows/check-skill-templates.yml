@@ -1,4 +1,4 @@
-name: Check skill templates in sync
+name: Check
 
 on:
   pull_request:
