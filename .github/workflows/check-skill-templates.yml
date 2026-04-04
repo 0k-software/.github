@@ -13,3 +13,6 @@ jobs:
 
       - name: Check templates are in sync
         run: bin/check-skill-templates
+
+      - name: Check formatting (Prettier)
+        run: npx --yes prettier --check "**/*.md"
