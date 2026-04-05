@@ -1,16 +1,17 @@
 ---
 name: 0k-commit
-description: Generate a Conventional Commit message from staged changes
+description:
+  Stage all changes (staged, unstaged, and untracked) and generate a
+  Conventional Commit message
 ---
 
-Generate a git commit message for the staged changes, then open the editor for
-the user to review and confirm.
+Stage everything and generate a git commit message, then commit.
 
 Here's the context provided by the user: "$ARGUMENTS". If provided, treat it as
 the reason/motivation behind the changes and use it to write the commit body.
 
-1. Run `git add .` to stage all changes.
-2. Run `git diff --no-ext-diff --staged` to get the diff to be commited.
+1. Run `git add .` to stage all changes (staged, unstaged, and untracked).
+2. Run `git diff --no-ext-diff --staged` to get the diff to be committed.
 3. Write a commit message following `Commit message` instructions in
    `AGENTS.md`/`CLAUDE.md`. If none, base yourself from
    `git log -1 --pretty=%B`.
