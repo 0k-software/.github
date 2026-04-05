@@ -80,8 +80,7 @@ For each group of related change requests:
 
 1. Read the files involved to understand the full context.
 2. Implement the requested change(s).
-3. Stage only the affected files and run `/0k-commit` with the change request
-   context as the argument.
+3. Run `/0k-commit` with the change request context as the argument.
 4. Push the branch:
    ```
    git push
