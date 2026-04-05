@@ -1,40 +1,40 @@
 ---
 name: 0k-plan
 description:
-  Manage a GH issue implementation plan — `init <url>`, `next`, `add <desc>`,
+  Manage a GH issue implementation plan — `init {url}`, `next`, `add {desc}`,
   `execute`
 ---
 
 ## PLAN.md format
 
 ```
-# Plan: <issue title>
+# Plan: {issue title}
 
-**Issue:** <url>
+**Issue:** {url}
 
 ## Summary
-<brief description of what the issue is about>
+{brief description of what the issue is about}
 
 ## Approach
-<overall implementation strategy>
+{overall implementation strategy}
 
 ## Steps
 
-- [ ] [Step 1: <title>](#step-1-title)
-- [ ] [Step 2: <title>](#step-2-title)
+- [ ] [Step 1: {title}](#step-1-title)
+- [ ] [Step 2: {title}](#step-2-title)
 - ...
 
 ---
 
-## Step 1: <title>
+## Step 1: {title}
 
-<detailed description of what to implement and how>
+{detailed description of what to implement and how}
 
 ---
 
-## Step 2: <title>
+## Step 2: {title}
 
-<detailed description of what to implement and how>
+{detailed description of what to implement and how}
 ```
 
 Each step is an atomic commit — the smallest change that passes the project's
@@ -48,9 +48,9 @@ Completed steps have `- [x]` in the TOC checklist.
 
 Based on `$ARGUMENTS`, run one of the following:
 
-### `init <gh-url>`
+### `init {gh-url}`
 
-Plan the GH issue at `<gh-url>`. Fetch the issue details, then create PLAN.md
+Plan the GH issue at `{gh-url}`. Fetch the issue details, then create PLAN.md
 following the format above. Include the link, a summary of the issue, the
 overall approach, a TOC checklist with anchor links, and a detailed section for
 each step describing what to implement and how.
@@ -68,13 +68,13 @@ unchecked steps — if the deviation affects them, carefully update their
 descriptions to stay accurate and consistent with the current state of the
 codebase.
 
-### `add <description>`
+### `add {description}`
 
 Read PLAN.md to understand the existing step format and numbering. Insert a new
-step following the same format at the position requested in the `<description>`
+step following the same format at the position requested in the `{description}`
 (if no position is given, assume it should be appended at the end). The step
 should be atomic and clearly describe what will be committed. Use
-`<description>` as the basis for the step content.
+`{description}` as the basis for the step content.
 
 ### `execute`
 
