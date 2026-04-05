@@ -3,6 +3,9 @@ GIT_HOOKS_DST := .git/hooks
 
 HOOK_FILES := $(wildcard $(GIT_HOOKS_SRC)/*)
 
+.PHONY: all
+all: setup install-skills
+
 .PHONY: setup
 setup:
 	@mkdir -p $(GIT_HOOKS_DST)
