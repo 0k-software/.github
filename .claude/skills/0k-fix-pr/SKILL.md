@@ -7,8 +7,9 @@ description:
 
 Address all **unresolved** review comments on a pull request.
 
-`$ARGUMENTS` is a PR number or URL. If empty, detect the PR for the current
-branch.
+`$ARGUMENTS` is a PR number or URL. If empty, find the open PR for the current
+branch (prefer the GitHub MCP tools; fall back to
+`gh pr view --json number -q .number`).
 
 ---
 
