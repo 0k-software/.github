@@ -87,7 +87,10 @@ For each group of related change requests:
 
 1. Read the files involved to understand the full context.
 2. Implement the requested change(s) — and **only** those changes.
-3. Run `/0k-commit` with the change request context as the argument.
+3. Commit: run `git add .`, then `git diff --no-ext-diff --staged`, write a
+   Conventional Commit message scoped to the change, and run
+   `git commit -m "..."`. Do **not** stop or display anything — proceed
+   immediately to the push.
 4. Push the branch:
    ```
    git push
