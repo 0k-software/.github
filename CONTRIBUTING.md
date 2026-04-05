@@ -12,19 +12,19 @@ There are two scopes:
 
 - **Repo-level discussions** — for topics that impact a specific project or
   product. Open these in the relevant repository.
-- **Org-level discussions** — for topics that span the whole organization.
-  Open these in the [organization Discussions][org-discussions].
+- **Org-level discussions** — for topics that span the whole organization. Open
+  these in the [organization Discussions][org-discussions].
 
 ### Categories
 
-| Category       | Purpose                                                    | Where to use      |
-| -------------- | ---------------------------------------------------------- | ----------------- |
-| Announcements  | Share updates that others should be aware of               | Org or repo       |
-| Decisions      | Discuss options and document a decision once reached       | Org or repo       |
-| Ideas          | Propose new features or directions before they become work | Org or repo       |
-| Polls          | Take a vote from the team on a question                    | Org or repo       |
-| Q&A            | Ask the team for help or clarification                     | Org or repo       |
-| Show and Tell  | Show off something you've built or learned                 | Org or repo       |
+| Category      | Purpose                                                    | Where to use |
+| ------------- | ---------------------------------------------------------- | ------------ |
+| Announcements | Share updates that others should be aware of               | Org or repo  |
+| Decisions     | Discuss options and document a decision once reached       | Org or repo  |
+| Ideas         | Propose new features or directions before they become work | Org or repo  |
+| Polls         | Take a vote from the team on a question                    | Org or repo  |
+| Q&A           | Ask the team for help or clarification                     | Org or repo  |
+| Show and Tell | Show off something you've built or learned                 | Org or repo  |
 
 ### Guidelines
 
@@ -59,14 +59,14 @@ product. It drives what gets built and when.
 
 #### Statuses
 
-| Status       | Meaning                                                                 |
-| ------------ | ----------------------------------------------------------------------- |
-| `Backlog`    | Pitch has been captured but not yet shaped                              |
+| Status       | Meaning                                                                        |
+| ------------ | ------------------------------------------------------------------------------ |
+| `Backlog`    | Pitch has been captured but not yet shaped                                     |
 | `Shaping`    | The pitch is being refined — problem, appetite, and solution are being defined |
-| `Betting`    | The pitch is ready and being considered for the next cycle              |
-| `Building`   | The pitch has been bet on and is actively being built                   |
-| `Validating` | The work is done and is being validated before closing                  |
-| `Done`       | The pitch is complete                                                   |
+| `Betting`    | The pitch is ready and being considered for the next cycle                     |
+| `Building`   | The pitch has been bet on and is actively being built                          |
+| `Validating` | The work is done and is being validated before closing                         |
+| `Done`       | The pitch is complete                                                          |
 
 #### Process
 
@@ -78,30 +78,30 @@ product. It drives what gets built and when.
    cycle.
 4. When a pitch is selected and work begins, it moves to `Building`. At this
    point:
-   - A new project is created for the pitch using the
-     [[TEMPLATE] 🏗️ Project][project-template] as a template.
+   - A new project is created for the pitch using the [[TEMPLATE] 🏗️
+     Project][project-template] as a template.
    - A **Kickoff** issue is created (using the Kickoff template) as the first
      sub-issue of the pitch.
-   - The pitch issue itself is added to the new project — this ensures all
-     new sub-issues are automatically included in it.
+   - The pitch issue itself is added to the new project — this ensures all new
+     sub-issues are automatically included in it.
    - All issues for this pitch are tracked as sub-issues of the pitch issue.
 5. When building is complete, the pitch moves to `Validating`.
 6. Once validated, it moves to `Done`.
 
 #### Project template statuses
 
-New pitch projects are created from the [[TEMPLATE] 🏗️ Project][project-template]
-and use these statuses:
+New pitch projects are created from the [[TEMPLATE] 🏗️
+Project][project-template] and use these statuses:
 
-| Status            | Meaning                                        |
-| ----------------- | ---------------------------------------------- |
-| `Backlog`         | Issue captured, not yet refined                |
-| `Refining`        | Being broken down or clarified                 |
-| `Ready`           | Ready to be picked up                          |
-| `In progress`     | Actively being worked on                       |
-| `In review`       | Under code review or QA                        |
-| `Ready to deploy` | Approved and waiting for deployment            |
-| `Done`            | Deployed and complete                          |
+| Status            | Meaning                             |
+| ----------------- | ----------------------------------- |
+| `Backlog`         | Issue captured, not yet refined     |
+| `Refining`        | Being broken down or clarified      |
+| `Ready`           | Ready to be picked up               |
+| `In progress`     | Actively being worked on            |
+| `In review`       | Under code review or QA             |
+| `Ready to deploy` | Approved and waiting for deployment |
+| `Done`            | Deployed and complete               |
 
 ### Triage
 
@@ -113,14 +113,14 @@ automatically.
 
 #### Statuses
 
-| Status            | Meaning                                        |
-| ----------------- | ---------------------------------------------- |
-| `Backlog`         | Captured, not yet triaged                      |
-| `Ready`           | Triaged and ready to be worked on              |
-| `In progress`     | Actively being worked on                       |
-| `In review`       | Under code review or QA                        |
-| `Ready to deploy` | Approved and waiting for deployment            |
-| `Done`            | Deployed and complete                          |
+| Status            | Meaning                             |
+| ----------------- | ----------------------------------- |
+| `Backlog`         | Captured, not yet triaged           |
+| `Ready`           | Triaged and ready to be worked on   |
+| `In progress`     | Actively being worked on            |
+| `In review`       | Under code review or QA             |
+| `Ready to deploy` | Approved and waiting for deployment |
+| `Done`            | Deployed and complete               |
 
 #### Process
 
