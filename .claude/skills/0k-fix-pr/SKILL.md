@@ -53,9 +53,10 @@ Classify every unresolved thread into one of two categories:
 | **Question**       | The reviewer is asking something, no code change implied         | Answer on GitHub, then **stop and wait** for user input |
 | **Change request** | The reviewer asks for a code change, refactor, rename, fix, etc. | Implement the change                                    |
 
-Group related change requests that touch the same area or are logically
-connected — these will share a single commit. Keep commits as small as
-possible: one commit per logically independent change.
+**Default: one commit per thread.** Only merge two threads into the same commit
+when their changes are truly inseparable (e.g. renaming a symbol that must be
+updated in multiple files atomically). When in doubt, keep them separate. Never
+batch unrelated changes just because they are small.
 
 ## Step 3 — Handle questions
 
@@ -78,10 +79,14 @@ tell the user you answered the questions and are waiting for further feedback.
 
 ## Step 4 — Implement change requests
 
+Process each group **one at a time** — implement, commit, and push before
+moving to the next group. Do **not** accumulate multiple groups into one
+commit.
+
 For each group of related change requests:
 
 1. Read the files involved to understand the full context.
-2. Implement the requested change(s).
+2. Implement the requested change(s) — and **only** those changes.
 3. Run `/0k-commit` with the change request context as the argument.
 4. Push the branch:
    ```
