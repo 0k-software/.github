@@ -1,8 +1,8 @@
 ---
 name: 0k-rebase
 description:
-  Rebase current branch onto another — `/rebase` asks on conflicts, `/rebase!`
-  auto-resolves them
+  Rebase current branch onto another — `/0k-rebase` asks on conflicts,
+  `/0k-rebase!` auto-resolves them
 ---
 
 Rebase the current branch on top of a target branch, handling pre-commit hook
@@ -10,14 +10,14 @@ failures automatically.
 
 ## Invocation modes
 
-- **`/rebase [branch]`** — interactive: ask the user to resolve conflicts.
-- **`/rebase! [branch]`** — autonomous: resolve conflicts without asking.
+- **`/0k-rebase [branch]`** — interactive: ask the user to resolve conflicts.
+- **`/0k-rebase! [branch]`** — autonomous: resolve conflicts without asking.
 
 Parse `$ARGUMENTS` to determine the mode and target branch:
 
-1. If the skill was invoked as `/rebase!`, set **force mode = true**. The `!`
-   may appear as the first character of `$ARGUMENTS` (i.e. `$ARGUMENTS` starts
-   with `!`). Strip the `!` before parsing the branch name.
+1. If the skill was invoked as `/0k-rebase!`, set **force mode = true**. The
+   `!` may appear as the first character of `$ARGUMENTS` (i.e. `$ARGUMENTS`
+   starts with `!`). Strip the `!` before parsing the branch name.
 2. Whatever remains after stripping is the **target branch**. If empty, detect
    the default branch with
    `git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'`,
@@ -66,7 +66,7 @@ Nothing to do — rebase continues automatically.
        combined
 4. **Wait for the user's decision** before proceeding.
 
-**If force mode (`/rebase!`):**
+**If force mode (`/0k-rebase!`):**
 
 3. Determine the best resolution by analyzing the intent of both sides:
    - If the current commit's change is the primary goal (e.g., a feature or

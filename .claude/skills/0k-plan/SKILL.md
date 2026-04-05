@@ -1,7 +1,8 @@
 ---
 name: 0k-plan
 description:
-  Manage a GH task plan — `init <url>`, `next`, `add <desc>`, `execute`
+  Manage a GH issue implementation plan — `init <url>`, `next`, `add <desc>`,
+  `execute`
 ---
 
 ## PLAN.md format
@@ -36,8 +37,8 @@ description:
 <detailed description of what to implement and how>
 ```
 
-Each step is an atomic commit — the smallest change that passes the project
-checks (tests, linters, type checks) configured in CLAUDE.md/AGENTS.md.
+Each step is an atomic commit — the smallest change that passes the project's
+git pre-commit hooks.
 
 Completed steps have `- [x]` in the TOC checklist.
 
@@ -56,9 +57,8 @@ each step describing what to implement and how.
 
 ### `next`
 
-Read PLAN.md and implement the next unchecked step. Run the project checks
-configured in CLAUDE.md/AGENTS.md and fix any failures. Once they pass, mark
-the step as done (`- [x]`) in the PLAN.md TOC and run `/commit` with the step
+Read PLAN.md and implement the next unchecked step. Once done, mark the step as
+done (`- [x]`) in the PLAN.md TOC and run `/0k-commit` with the step
 title/description as context.
 
 If the implementation required any deviation from the original step description
@@ -84,8 +84,8 @@ Run every remaining step in PLAN.md, one after another, until none are left.
 
 1. Read PLAN.md and find the first unchecked (`- [ ]`) step.
 2. If no unchecked step exists → stop and report "Plan complete."
-3. Otherwise, execute that step exactly as `/plan next` would (implement, run
-   checks, fix failures, mark done, commit, update plan if needed).
+3. Otherwise, execute that step exactly as `/0k-plan next` would (implement,
+   mark done, commit, update plan if needed).
 4. Go back to step 1.
 
 **Important:** Do NOT stop after a single step. The whole point of `execute` is

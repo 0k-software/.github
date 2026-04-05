@@ -8,7 +8,7 @@ description:
 Address all **unresolved** review comments on a pull request.
 
 `$ARGUMENTS` is a PR number or URL. If empty, detect the PR for the current
-branch with `gh pr view --json number -q .number`.
+branch.
 
 ---
 
@@ -16,20 +16,32 @@ branch with `gh pr view --json number -q .number`.
 
 1. Derive `<owner>/<repo>` and `<pr-number>` from the argument or current
    branch.
-2. Fetch **all** comments:
+2. Fetch **all** review threads. Prefer the GitHub MCP tools
+   (`mcp__github__pull_request_read` or similar) to retrieve PR review threads
+   and their resolution state. If MCP tools are unavailable, fall back to the
+   `gh` CLI with the GraphQL API to get `isResolved`:
    ```
-   gh api --paginate "repos/<owner>/<repo>/pulls/<pr-number>/reviews"
+   gh api graphql -f query='
+     query($owner:String!, $repo:String!, $pr:Int!) {
+       repository(owner:$owner, name:$repo) {
+         pullRequest(number:$pr) {
+           reviewThreads(first:100) {
+             nodes {
+               isResolved
+               comments(first:100) {
+                 nodes { id databaseId path line body author { login } }
+               }
+             }
+           }
+         }
+       }
+     }' -f owner="<owner>" -f repo="<repo>" -F pr="<pr-number>"
    ```
-   and
-   ```
-   gh api --paginate "repos/<owner>/<repo>/pulls/<pr-number>/comments"
-   ```
-3. **Discard** every comment whose review thread is resolved (check the
-   `gh api "repos/<owner>/<repo>/pulls/<pr-number>/comments"` field
-   `"resolved"` or query the GraphQL API if needed). Keep only unresolved
+3. **Discard** every thread where `isResolved` is `true`. Keep only unresolved
    threads.
-4. For each remaining comment, record: `id`, `path`, `line`/`start_line`,
-   `body`, `in_reply_to_id` (to group threads), and `diff_hunk` for context.
+4. For each remaining thread, record all comments in order. The **last comment
+   in the thread** takes precedence — if a later reply changes or overrides the
+   original request, follow the latest instruction.
 
 ## Step 2 — Classify and group
 
@@ -49,10 +61,12 @@ For every question thread:
 
 1. Read the relevant code to understand the context.
 2. Draft a clear, concise answer.
-3. Post the reply using:
+3. Post the reply using the GitHub MCP tools
+   (`mcp__github__add_reply_to_pull_request_comment` or similar). If MCP tools
+   are unavailable, fall back to:
    ```
-   gh api "repos/<owner>/<repo>/pulls/<pr-number>/comments/<comment-id>/replies" \
-     -f body="<answer>"
+   gh api "repos/<owner>/<repo>/pulls/<pr-number>/comments" \
+     -f body="<answer>" -F in_reply_to=<comment-id>
    ```
 4. Display each question and the answer you posted so the user can review.
 
@@ -65,27 +79,22 @@ For each group of related change requests:
 
 1. Read the files involved to understand the full context.
 2. Implement the requested change(s).
-3. Run the project checks configured in `CLAUDE.md`/`AGENTS.md` (tests,
-   linters, type checks) and fix any failures.
-4. Stage only the affected files and commit following the commit conventions in
-   `CLAUDE.md`/`AGENTS.md`. If none exist, base yourself on
-   `git log -1 --pretty=%B`.
-   - **NEVER ADD** `Co-Authored-By` footer note.
-   - Keep commits as small as possible: one commit per logically independent
-     change. Multiple related comments may share one commit.
-5. Push the branch:
+3. Stage only the affected files and run `/0k-commit` with the change request
+   context as the argument.
+4. Push the branch:
    ```
    git push
    ```
-6. Get the commit URL from the push output or via:
+5. Get the commit URL from the push output or via the GitHub MCP tools. If MCP
+   tools are unavailable:
    ```
    gh api "repos/<owner>/<repo>/commits/<sha>" --jq .html_url
    ```
-7. Reply to **each** addressed comment on GitHub with a link to the commit and
-   a short explanation of what was done:
+6. Reply to **each** addressed comment on GitHub (prefer MCP tools, fall back
+   to `gh` CLI):
    ```
-   gh api "repos/<owner>/<repo>/pulls/<pr-number>/comments/<comment-id>/replies" \
-     -f body="<reply>"
+   gh api "repos/<owner>/<repo>/pulls/<pr-number>/comments" \
+     -f body="<reply>" -F in_reply_to=<comment-id>
    ```
 
 ## Step 5 — Report
