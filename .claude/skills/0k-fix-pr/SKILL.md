@@ -54,7 +54,8 @@ Classify every unresolved thread into one of two categories:
 | **Change request** | The reviewer asks for a code change, refactor, rename, fix, etc. | Implement the change                                    |
 
 Group related change requests that touch the same area or are logically
-connected — these will share a single commit.
+connected — these will share a single commit. Keep commits as small as
+possible: one commit per logically independent change.
 
 ## Step 3 — Handle questions
 
