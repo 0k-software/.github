@@ -42,33 +42,53 @@ migrations separate").
 
 ## Step 2 — Understand what changed
 
-Get the full picture:
+Get the full picture of the branch as a whole:
 
 ```
 git log --oneline <base-ref>..HEAD
 git diff --stat <base-ref>..HEAD
 ```
 
-Read through every commit subject. Look for signals of noise:
+Then read the **actual diff of every individual commit** (oldest to newest):
+
+```
+git log --reverse -p <base-ref>..HEAD
+```
+
+Look for noise at two levels:
+
+**Commit subject signals** — titles that hint at intermediate work:
 
 - "fix", "fixup", "oops", "wip", "tmp", "revert", "undo", "typo", "tweak",
   "cleanup" in the subject
-- Multiple commits touching the same file back and forth
-- Commits that partially revert an earlier commit on the same branch
+
+**Content signals** — lines or files that cancel out across commits:
+
+- A file introduced in one commit and deleted in a later one (net effect: never
+  existed — both commits are pure noise for that file)
+- Lines added in one commit and removed in a later one (those lines never need
+  to appear in any clean commit)
+- A function or block written, then rewritten from scratch (only the final
+  version matters)
+- Multiple commits touching the same lines of the same file (only the last
+  state is meaningful)
+
+The goal is to understand **what the branch actually does in its final state**,
+ignoring everything that was tried and thrown away along the way.
 
 Display a summary of what you found before proposing anything:
 
 ```
 Current history (7 commits):
   abc1234  feat: add user auth
-  def5678  wip: still broken
+  def5678  wip: still broken        ← content later overwritten in 789abcd
   789abcd  fix: actually fix auth
   012ef34  feat: add admin panel
-  345gh67  oops revert wrong thing
+  345gh67  oops revert wrong thing  ← net-zero: changes cancelled by 678ij90
   678ij90  re-add the right thing
-  901kl23  fix typo in admin panel
+  901kl23  fix typo in admin panel  ← folds into 012ef34
 
-Net diff: 430 lines across 5 files
+Net diff: 430 lines across 5 files (vs 680 lines across all 7 commits)
 ```
 
 ## Step 3 — Propose a clean commit structure
