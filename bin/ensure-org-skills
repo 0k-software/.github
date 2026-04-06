@@ -24,6 +24,7 @@ set -uo pipefail
 GITHUB_ORG="0k-software"
 GITHUB_REPO=".github"
 BRANCH="main"
+API_BASE="https://api.github.com/repos/$GITHUB_ORG/$GITHUB_REPO"
 RAW_BASE="https://raw.githubusercontent.com/$GITHUB_ORG/$GITHUB_REPO/$BRANCH"
 SKILLS_DIR=".claude/skills"
 
@@ -32,47 +33,56 @@ if git remote -v 2>/dev/null | grep -qF "0k-software/.github"; then
   exit 0
 fi
 
-# Skill name -> space-separated list of files (relative to the skill directory)
-declare -A SKILL_FILES
-SKILL_FILES["0k-commit"]="SKILL.md"
-SKILL_FILES["0k-rebase"]="SKILL.md"
-SKILL_FILES["0k-plan"]="SKILL.md"
-SKILL_FILES["0k-fix-pr"]="SKILL.md"
-SKILL_FILES["0k-create-issue"]="SKILL.md templates/1-pitch.yml templates/2-feature.yml templates/3-task.yml templates/4-bug.yml templates/5-enhancement.yml templates/6-kickoff.yml"
-
-fetch() {
-  curl -fsSL "$1" 2>/dev/null
+# Discover all skill files via the GitHub git trees API (one recursive call).
+# Files always have an extension; directory tree entries don't — use that to filter.
+tree_json=$(curl -fsSL "$API_BASE/git/trees/$BRANCH?recursive=1" 2>/dev/null) || {
+  echo "warn: could not reach GitHub API, skipping org skills check" >&2
+  exit 0
 }
+
+skill_paths=$(printf '%s\n' "$tree_json" \
+  | grep -o '"path":"\.claude/skills/0k-[^"]*"' \
+  | sed 's/"path":"//;s/"$//' \
+  | grep '\.')
+
+if [ -z "$skill_paths" ]; then
+  echo "warn: no skills found in 0k-software/.github" >&2
+  exit 0
+fi
+
+# Collect unique skill names
+skill_names=$(printf '%s\n' "$skill_paths" \
+  | sed 's|\.claude/skills/\([^/]*\)/.*|\1|' \
+  | sort -u)
 
 install_skill() {
   local skill="$1"
-  # shellcheck disable=SC2086
-  for file in ${SKILL_FILES[$skill]}; do
-    local local_path="$SKILLS_DIR/$skill/$file"
-    local remote_url="$RAW_BASE/$SKILLS_DIR/$skill/$file"
-    mkdir -p "$(dirname "$local_path")"
-    if ! fetch "$remote_url" > "$local_path"; then
-      echo "  warn: failed to fetch $skill/$file" >&2
-      rm -f "$local_path"
+  local paths
+  paths=$(printf '%s\n' "$skill_paths" | grep "^\\.claude/skills/$skill/")
+  while IFS= read -r path; do
+    mkdir -p "$(dirname "$path")"
+    if ! curl -fsSL "$RAW_BASE/$path" > "$path" 2>/dev/null; then
+      echo "  warn: failed to fetch $path" >&2
+      rm -f "$path"
     fi
-  done
+  done <<< "$paths"
 }
 
 missing=()
 outdated=()
 
-for skill in "${!SKILL_FILES[@]}"; do
+while IFS= read -r skill; do
   local_md="$SKILLS_DIR/$skill/SKILL.md"
 
   if [ ! -f "$local_md" ]; then
     missing+=("$skill")
   else
-    remote_md=$(fetch "$RAW_BASE/$SKILLS_DIR/$skill/SKILL.md") || continue
+    remote_md=$(curl -fsSL "$RAW_BASE/$SKILLS_DIR/$skill/SKILL.md" 2>/dev/null) || continue
     if [ "$remote_md" != "$(cat "$local_md")" ]; then
       outdated+=("$skill")
     fi
   fi
-done
+done <<< "$skill_names"
 
 if [ ${#missing[@]} -gt 0 ]; then
   echo "Installing org skills:"
