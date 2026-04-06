@@ -43,6 +43,14 @@ install-skills: sync-skill-templates
 	done
 	@echo "Installed $(words $(SKILL_DIRS)) skill(s) to $(SKILLS_HOME)/"
 
+SKILLS_ZIP := skills.zip
+
+.PHONY: package-skills
+package-skills: sync-skill-templates
+	@rm -f $(SKILLS_ZIP)
+	@cd $(SKILLS_SRC) && zip -r ../../$(SKILLS_ZIP) $(notdir $(SKILL_DIRS))
+	@echo "Packaged $(words $(SKILL_DIRS)) skill(s) into $(SKILLS_ZIP)"
+
 .PHONY: uninstall-skills
 uninstall-skills:
 	@for dir in $(SKILL_DIRS); do \
