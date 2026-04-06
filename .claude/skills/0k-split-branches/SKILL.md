@@ -14,23 +14,26 @@ migrations together").
 
 ---
 
-## Step 1 — Gather information
+## Step 1 — Prepare
 
 1. Verify the working tree is clean (`git status --porcelain`). If dirty, abort
    and tell the user to commit or stash first.
-2. Detect the base branch:
+2. The base branch is always `master`. Enforce that the current branch is
+   already rebased on top of it — run:
    ```
-   git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'
+   git fetch origin master
+   git merge-base --is-ancestor origin/master HEAD
    ```
-   Fall back to `main` if the command fails.
-3. Fetch the base branch: `git fetch origin <base>`.
-4. Get the current branch name: `git rev-parse --abbrev-ref HEAD`.
-5. List all commits to be split:
+   If the check fails (exit code non-zero), abort and tell the user:
+   > "Your branch is not rebased on top of `master`. Run `/0k-rebase master`
+   > first, then try again."
+3. Get the current branch name: `git rev-parse --abbrev-ref HEAD`.
+4. List all commits to be split:
    ```
-   git log --oneline origin/<base>..HEAD
+   git log --oneline origin/master..HEAD
    ```
    If there are no commits, abort with "Nothing to split — branch is up to date
-   with `<base>`."
+   with `master`."
 
 ## Step 2 — Measure each commit
 
@@ -90,6 +93,8 @@ Proposed split (3 branches from `feature/my-big-feature`):
     • 345gh67 feat: add audit log
 
 Each branch builds on top of the previous one (stacked PRs).
+The original branch `feature/my-big-feature` will no longer be needed —
+close any open PR for it after the split.
 Proceed? [y/N]
 ```
 
@@ -103,7 +108,7 @@ For each bucket (1 through N):
 1. Determine the branch name: `<current-branch>-<N>` (e.g.
    `feature/my-big-feature-1`).
 2. Check out the correct starting point:
-   - Bucket 1 starts from `origin/<base>`.
+   - Bucket 1 starts from `origin/master`.
    - Bucket N (N > 1) starts from the tip of bucket N-1's branch.
 3. Create and check out the new branch:
    ```
@@ -117,38 +122,49 @@ For each bucket (1 through N):
 
    If cherry-pick produces a conflict, stop and report:
    - Which commit conflicted
-   - Which files are conflicting Ask the user to resolve the conflict, stage
-     the files, and run `git cherry-pick --continue`, then tell you when done
-     so you can proceed.
+   - Which files are conflicting
+
+   Ask the user to resolve the conflict, stage the files, and run
+   `git cherry-pick --continue`, then tell you when done so you can proceed.
 
 5. After all commits in the bucket are applied, verify line count:
    ```
-   git diff --shortstat origin/<base-for-this-branch>..HEAD
+   git diff --shortstat origin/master..HEAD
    ```
    Report the actual line count for the branch.
 
 After all buckets are done, check out the **last branch** created.
 
-## Step 5 — Report
+## Step 5 — Push and open PRs
 
-Display a summary:
+Push all split branches and open a stacked PR chain:
+
+For each branch (1 through N), in order:
+
+1. Push the branch:
+   ```
+   git push -u origin <branch-name>
+   ```
+2. Open a PR targeting the correct base:
+   - Branch 1 targets `master`.
+   - Branch N (N > 1) targets branch N-1.
+
+   Use the GitHub MCP tool to create the PR. Title it with the branch name and
+   include a short description summarising the commits it contains. In the PR
+   body, note that it is part of a stacked series and link to the other PRs in
+   the chain once they are created.
+
+After all PRs are created, display a summary:
 
 ```
-Split complete — 3 branches created from `feature/my-big-feature`:
+Split complete — 3 PRs opened from `feature/my-big-feature`:
 
-  feature/my-big-feature-1  (420 lines)  ← base: main
-  feature/my-big-feature-2  (340 lines)  ← base: feature/my-big-feature-1
-  feature/my-big-feature-3  (290 lines)  ← base: feature/my-big-feature-2
+  PR #101  feature/my-big-feature-1  (420 lines)  ← targets: master
+  PR #102  feature/my-big-feature-2  (340 lines)  ← targets: feature/my-big-feature-1
+  PR #103  feature/my-big-feature-3  (290 lines)  ← targets: feature/my-big-feature-2
 
-Currently on: feature/my-big-feature-3
+Merge in order. Rebase later branches as earlier ones land.
 
-Next steps:
-  1. Push and open a PR for feature/my-big-feature-1 targeting `main`.
-  2. Push and open a PR for feature/my-big-feature-2 targeting
-     `feature/my-big-feature-1`.
-  3. Push and open a PR for feature/my-big-feature-3 targeting
-     `feature/my-big-feature-2`.
-  4. Merge in order, rebasing later branches as earlier ones land.
+The original branch `feature/my-big-feature` is no longer needed.
+Close any open PR for it.
 ```
-
-Do **not** push any branch unless the user explicitly asks.
