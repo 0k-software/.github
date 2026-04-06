@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+#
+# ensure-org-skills: Install missing 0k-software org skills; warn about outdated ones.
+#
+# Run as a Claude Code SessionStart hook in any 0k-software project by adding this
+# to the project's .claude/settings.json:
+#
+#   {
+#     "hooks": {
+#       "SessionStart": [{
+#         "hooks": [{
+#           "type": "command",
+#           "command": "bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/ensure-org-skills)"
+#         }]
+#       }]
+#     }
+#   }
+#
+# Missing skills are installed automatically. Outdated skills are flagged with
+# instructions so developers can update manually (no silent overwrites).
+#
+set -uo pipefail
+
+GITHUB_ORG="0k-software"
+GITHUB_REPO=".github"
+BRANCH="main"
+RAW_BASE="https://raw.githubusercontent.com/$GITHUB_ORG/$GITHUB_REPO/$BRANCH"
+SKILLS_DIR=".claude/skills"
+
+# Skip when running inside the source repo itself
+if git remote -v 2>/dev/null | grep -qF "0k-software/.github"; then
+  exit 0
+fi
+
+# Skill name -> space-separated list of files (relative to the skill directory)
+declare -A SKILL_FILES
+SKILL_FILES["0k-commit"]="SKILL.md"
+SKILL_FILES["0k-rebase"]="SKILL.md"
+SKILL_FILES["0k-plan"]="SKILL.md"
+SKILL_FILES["0k-fix-pr"]="SKILL.md"
+SKILL_FILES["0k-create-issue"]="SKILL.md templates/1-pitch.yml templates/2-feature.yml templates/3-task.yml templates/4-bug.yml templates/5-enhancement.yml templates/6-kickoff.yml"
+
+fetch() {
+  curl -fsSL "$1" 2>/dev/null
+}
+
+install_skill() {
+  local skill="$1"
+  # shellcheck disable=SC2086
+  for file in ${SKILL_FILES[$skill]}; do
+    local local_path="$SKILLS_DIR/$skill/$file"
+    local remote_url="$RAW_BASE/$SKILLS_DIR/$skill/$file"
+    mkdir -p "$(dirname "$local_path")"
+    if ! fetch "$remote_url" > "$local_path"; then
+      echo "  warn: failed to fetch $skill/$file" >&2
+      rm -f "$local_path"
+    fi
+  done
+}
+
+missing=()
+outdated=()
+
+for skill in "${!SKILL_FILES[@]}"; do
+  local_md="$SKILLS_DIR/$skill/SKILL.md"
+
+  if [ ! -f "$local_md" ]; then
+    missing+=("$skill")
+  else
+    remote_md=$(fetch "$RAW_BASE/$SKILLS_DIR/$skill/SKILL.md") || continue
+    if [ "$remote_md" != "$(cat "$local_md")" ]; then
+      outdated+=("$skill")
+    fi
+  fi
+done
+
+if [ ${#missing[@]} -gt 0 ]; then
+  echo "Installing org skills:"
+  for skill in "${missing[@]}"; do
+    install_skill "$skill"
+    echo "  + $skill"
+  done
+  echo ""
+  echo "Commit the new files in $SKILLS_DIR/ to persist them for future sessions."
+fi
+
+if [ ${#outdated[@]} -gt 0 ]; then
+  echo ""
+  echo "These org skills are outdated: ${outdated[*]}"
+  echo "To update, copy the latest versions from 0k-software/.github/.claude/skills/"
+  echo "or run: bash <(curl -fsSL $RAW_BASE/bin/update-org-skills)"
+fi

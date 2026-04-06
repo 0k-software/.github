@@ -60,6 +60,45 @@ Claude Code skills live in `.claude/skills/`. To install them globally
 make install-skills
 ```
 
+### Making skills available in remote sessions (other 0k-software projects)
+
+Remote Claude Code sessions don't have access to `~/.claude/skills/`, so skills
+must be present in the project's own `.claude/skills/`. To share these org
+skills across projects without silently stale copies, add this `SessionStart`
+hook to the other project's `.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/ensure-org-skills)"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**What it does:**
+
+- **Missing skills** are installed automatically into `.claude/skills/`. Commit
+  the new files so they persist across sessions.
+- **Outdated skills** (local copy differs from this repo) trigger a warning
+  with instructions — no silent overwrites.
+
+**To manually update outdated skills:**
+
+```
+bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/update-org-skills)
+```
+
+Review the diff (`git diff .claude/skills/`) and commit when satisfied.
+
 ## Editing Guidelines
 
 - Maintain the numeric prefix naming convention for templates to preserve
