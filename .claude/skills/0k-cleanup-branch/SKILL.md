@@ -7,8 +7,8 @@ description:
 
 Analyse the current branch's commit history and rewrite it into a clean,
 logical sequence — removing WIP commits, fixups, reversals, and other noise
-that obscures what the branch actually does. The final diff against `master` is
-preserved exactly; only the commit structure changes.
+that obscures what the branch actually does. The final diff against the base
+branch is preserved exactly; only the commit structure changes.
 
 Here's the context provided by the user: "$ARGUMENTS". If provided, treat it as
 hints about how to group commits (e.g. "one commit per context" or "keep
@@ -20,30 +20,33 @@ migrations separate").
 
 1. Verify the working tree is clean (`git status --porcelain`). If dirty, abort
    and tell the user to commit or stash first.
-2. The base branch is always `master`. Enforce that the current branch is
-   already rebased on top of it — run:
+2. Get the current branch name: `git rev-parse --abbrev-ref HEAD`.
+3. Detect the base branch — the ref this branch diverged from:
    ```
-   git fetch origin master
-   git merge-base --is-ancestor origin/master HEAD
+   git rev-parse --abbrev-ref --symbolic-full-name @{upstream} 2>/dev/null
    ```
-   If the check fails, abort and tell the user:
-   > "Your branch is not rebased on top of `master`. Run `/0k-rebase master`
-   > first, then try again."
-3. Get the current branch name: `git rev-parse --abbrev-ref HEAD`.
-4. List all commits:
+   If that returns a ref (e.g. `origin/master`, `origin/main`,
+   `origin/my-feature`), use it as `<base-ref>`. If it returns nothing (no
+   tracking branch), fall back to finding the nearest decorated ancestor:
    ```
-   git log --oneline origin/master..HEAD
+   git log --simplify-by-decoration --pretty=%D HEAD \
+     | grep -m1 -o 'origin/[^,)]*'
    ```
-   If there are no commits, abort with "Nothing to clean up — branch is up to
-   date with `master`."
+   If still nothing is found, ask the user: _"Which branch is this based on?"_
+4. List all commits since the base:
+   ```
+   git log --oneline <base-ref>..HEAD
+   ```
+   If there are no commits, abort with "Nothing to clean up — branch is already
+   up to date with `<base-ref>`."
 
 ## Step 2 — Understand what changed
 
 Get the full picture:
 
 ```
-git log --oneline origin/master..HEAD
-git diff --stat origin/master..HEAD
+git log --oneline <base-ref>..HEAD
+git diff --stat <base-ref>..HEAD
 ```
 
 Read through every commit subject. Look for signals of noise:
@@ -113,10 +116,10 @@ recommit in the proposed groups:
    git rev-parse HEAD
    ```
 
-2. Soft-reset to master (all changes remain staged):
+2. Soft-reset to the base (all changes remain staged):
 
    ```
-   git reset --soft origin/master
+   git reset --soft <base-ref>
    ```
 
 3. For each proposed commit (in order): a. Unstage everything first:
@@ -139,7 +142,7 @@ recommit in the proposed groups:
 
 4. After all commits are done, verify the net diff is unchanged:
    ```
-   git diff origin/master..HEAD
+   git diff <base-ref>..HEAD
    ```
    It must be **identical** to what it was before the rewrite. If it differs,
    abort immediately:
@@ -151,7 +154,7 @@ recommit in the proposed groups:
 Show the final clean history:
 
 ```
-git log --oneline origin/master..HEAD
+git log --oneline <base-ref>..HEAD
 ```
 
 Confirm the cleanup is done:
