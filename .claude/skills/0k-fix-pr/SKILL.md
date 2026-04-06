@@ -79,9 +79,9 @@ tell the user you answered the questions and are waiting for further feedback.
 
 ## Step 4 — Implement change requests
 
-Process each group **one at a time** — implement, commit, and push before
-moving to the next group. Do **not** accumulate multiple groups into one
-commit.
+Each group of related change requests (as classified in Step 2) gets its own
+implement → commit → push cycle. Complete one group fully before starting the
+next. Do **not** accumulate multiple groups into one commit.
 
 For each group of related change requests:
 
