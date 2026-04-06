@@ -15,14 +15,16 @@ Open a kitty terminal window for the current working directory.
    pwd
    ```
 
-2. Check if kitty is running and look for a window whose `cwd` matches:
+2. Check if kitty is running:
 
    ```
    kitty @ ls 2>/dev/null
    ```
 
-   This returns JSON. Parse it to find a window where `cwd` matches the
-   session's working directory (exact match or the session dir is a prefix).
+   If the command exits non-zero or produces empty stdout, treat kitty as not
+   running and skip to Step 4b. Otherwise parse the JSON output to find a
+   window where `cwd` matches the session's working directory (exact match or
+   the session dir is a prefix).
 
 3. **If a matching window is found:**
    - Focus the OS window that contains it:
@@ -32,12 +34,17 @@ Open a kitty terminal window for the current working directory.
    - Tell the user which window was activated.
 
 4. **If no matching window is found:**
-   - Open a new kitty tab in the current directory:
-     ```
-     kitty @ new-window --new-tab --cwd <session-cwd> --tab-title "<basename of cwd>"
-     ```
-   - If the above fails because no kitty instance is running, launch a new one:
-     ```
-     kitty --directory <session-cwd> &
-     ```
-   - Tell the user a new tab/window was opened.
+
+   a. **Kitty is running but no matching window** — open a new tab:
+
+   ```
+   kitty @ new-window --new-tab --cwd <session-cwd> --tab-title "<basename of cwd>"
+   ```
+
+   b. **Kitty is not running** — launch a new instance:
+
+   ```
+   kitty --directory <session-cwd> &
+   ```
+
+   Tell the user a new tab/window was opened.
