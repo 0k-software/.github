@@ -92,32 +92,57 @@ bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin
 
 Review the diff (`git diff .claude/skills/`) and commit when satisfied.
 
-## Setup
+## Git Hooks
 
-After cloning, run:
+Project hooks live in `.git-hooks/` and are not installed automatically by Git.
+Run `make setup` to copy them into `.git/hooks/`.
+
+### Available hooks
+
+| Hook         | What it does                                                      |
+| ------------ | ----------------------------------------------------------------- |
+| `pre-commit` | Checks skill templates are in sync and that Markdown is formatted |
+
+#### `pre-commit`
+
+Runs two checks before every commit:
+
+1. **Skill template sync** — calls `bin/check-skill-templates` to verify that
+   `.claude/skills/0k-create-issue/templates/` matches
+   `.github/ISSUE_TEMPLATE/`. Fails if they differ, since the skill bundles
+   copies of the issue templates.
+2. **Prettier formatting** — runs `npx prettier --check "**/*.md"` if `npx` is
+   available; prints a warning and continues if it isn't.
+
+### Installation
 
 ```sh
 make setup
 ```
 
-This installs the pre-commit hook from `.git-hooks/` which ensures that the
-issue template copies bundled inside the `0k-create-issue` skill stay in sync
-with the source templates in `.github/ISSUE_TEMPLATE/`.
+This copies every file in `.git-hooks/` into `.git/hooks/` and makes them
+executable. It is safe to re-run and will overwrite any existing hooks with the
+same name.
 
-This also runs automatically on Claude Code session start via the
-`SessionStart` hook in `.claude/settings.json`.
+The `SessionStart` hook in `.claude/settings.json` runs `make setup`
+automatically whenever a Claude Code session opens in this repo, so hooks stay
+current without manual intervention.
 
-## Pre-commit Hook
+### Fixing hook failures
 
-The pre-commit hook (`.git-hooks/pre-commit`) runs `bin/check-skill-templates`,
-which verifies that `.claude/skills/0k-create-issue/templates/` matches
-`.github/ISSUE_TEMPLATE/`. If they're out of sync, run:
+**Skill templates out of sync:**
 
 ```sh
 make sync-skill-templates
+git add .claude/skills/0k-create-issue/templates/
 ```
 
-Then stage the updated files and commit.
+**Markdown formatting issues:**
+
+```sh
+npx prettier --write "**/*.md"
+git add -p
+```
 
 [gh-community-health]:
   https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/creating-a-default-community-health-file
