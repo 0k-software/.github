@@ -1,5 +1,5 @@
 ---
-name: kitty
+name: 0k-kitty
 description:
   Open kitty terminal — activates an existing window in the current directory
   or opens a new tab
