@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+#
+# update-org-skills: Overwrite local org skills with the latest from 0k-software/.github.
+#
+# Run this manually when ensure-org-skills reports outdated skills:
+#
+#   bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/update-org-skills)
+#
+# Unlike ensure-org-skills (which only installs missing skills and warns about
+# outdated ones), this script always overwrites with the remote version.
+#
+set -uo pipefail
+
+GITHUB_ORG="0k-software"
+GITHUB_REPO=".github"
+BRANCH="main"
+RAW_BASE="https://raw.githubusercontent.com/$GITHUB_ORG/$GITHUB_REPO/$BRANCH"
+SKILLS_DIR=".claude/skills"
+
+# Skip when running inside the source repo itself
+if git remote -v 2>/dev/null | grep -qF "0k-software/.github"; then
+  echo "Already in the source repo — nothing to do." >&2
+  exit 0
+fi
+
+declare -A SKILL_FILES
+SKILL_FILES["0k-commit"]="SKILL.md"
+SKILL_FILES["0k-rebase"]="SKILL.md"
+SKILL_FILES["0k-plan"]="SKILL.md"
+SKILL_FILES["0k-fix-pr"]="SKILL.md"
+SKILL_FILES["0k-create-issue"]="SKILL.md templates/1-pitch.yml templates/2-feature.yml templates/3-task.yml templates/4-bug.yml templates/5-enhancement.yml templates/6-kickoff.yml"
+
+fetch() {
+  curl -fsSL "$1" 2>/dev/null
+}
+
+updated=0
+failed=0
+
+for skill in "${!SKILL_FILES[@]}"; do
+  echo "Updating $skill..."
+  # shellcheck disable=SC2086
+  for file in ${SKILL_FILES[$skill]}; do
+    local_path="$SKILLS_DIR/$skill/$file"
+    remote_url="$RAW_BASE/$SKILLS_DIR/$skill/$file"
+    mkdir -p "$(dirname "$local_path")"
+    if fetch "$remote_url" > "$local_path"; then
+      updated=$((updated + 1))
+    else
+      echo "  warn: failed to fetch $skill/$file" >&2
+      rm -f "$local_path"
+      failed=$((failed + 1))
+    fi
+  done
+done
+
+echo ""
+echo "Updated $updated file(s)${failed:+, $failed failed}."
+echo "Review the changes and commit when satisfied."
