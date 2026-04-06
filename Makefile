@@ -4,7 +4,7 @@ GIT_HOOKS_DST := .git/hooks
 HOOK_FILES := $(wildcard $(GIT_HOOKS_SRC)/*)
 
 .PHONY: all
-all: setup install-skills
+all: setup install-skills package-skills
 
 .PHONY: setup
 setup:
