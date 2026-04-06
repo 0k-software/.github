@@ -19,7 +19,6 @@ the reason/motivation behind the changes and use it to write the commit body.
      generate the commit message, not writing the code yourself.
 4. Display the generated commit message with a horizontal rule (`\n\n---\n\n`)
    before and after it so it stands out clearly.
-5. Run `git commit -m "..."` using a heredoc to preserve formatting. Do not
-   push.
+5. Run `git commit -m "..."` using a heredoc to preserve formatting.
 6. If any error occurs during the commit process, display an error message and
    abort, **do not attempt to fix it yourself**.
