@@ -18,22 +18,27 @@ migrations together").
 
 1. Verify the working tree is clean (`git status --porcelain`). If dirty, abort
    and tell the user to commit or stash first.
-2. The base branch is always `master`. Enforce that the current branch is
-   already rebased on top of it — run:
+2. Detect the default base branch — check which exists on the remote:
    ```
-   git fetch origin master
-   git merge-base --is-ancestor origin/master HEAD
+   git remote show origin | grep 'HEAD branch'
+   ```
+   Use the result (typically `main` or `master`) as `$BASE`. If detection
+   fails, default to `main`.
+3. Enforce that the current branch is already rebased on top of `$BASE` — run:
+   ```
+   git fetch origin $BASE
+   git merge-base --is-ancestor origin/$BASE HEAD
    ```
    If the check fails (exit code non-zero), abort and tell the user:
-   > "Your branch is not rebased on top of `master`. Run `/0k-rebase master`
+   > "Your branch is not rebased on top of `$BASE`. Run `/0k-rebase $BASE`
    > first, then try again."
-3. Get the current branch name: `git rev-parse --abbrev-ref HEAD`.
-4. List all commits to be split:
+4. Get the current branch name: `git rev-parse --abbrev-ref HEAD`.
+5. List all commits to be split:
    ```
-   git log --oneline origin/master..HEAD
+   git log --oneline origin/$BASE..HEAD
    ```
    If there are no commits, abort with "Nothing to split — branch is up to date
-   with `master`."
+   with `$BASE`."
 
 ## Step 2 — Measure each commit
 
@@ -108,7 +113,7 @@ For each bucket (1 through N):
 1. Determine the branch name: `<current-branch>-<N>` (e.g.
    `feature/my-big-feature-1`).
 2. Check out the correct starting point:
-   - Bucket 1 starts from `origin/master`.
+   - Bucket 1 starts from `origin/$BASE`.
    - Bucket N (N > 1) starts from the tip of bucket N-1's branch.
 3. Create and check out the new branch:
    ```
@@ -129,7 +134,7 @@ For each bucket (1 through N):
 
 5. After all commits in the bucket are applied, verify line count:
    ```
-   git diff --shortstat origin/master..HEAD
+   git diff --shortstat origin/$BASE..HEAD
    ```
    Report the actual line count for the branch.
 
@@ -146,7 +151,7 @@ For each branch (1 through N), in order:
    git push -u origin <branch-name>
    ```
 2. Open a PR targeting the correct base:
-   - Branch 1 targets `master`.
+   - Branch 1 targets `$BASE`.
    - Branch N (N > 1) targets branch N-1.
 
    Use the GitHub MCP tool to create the PR. Title it with the branch name and
@@ -159,7 +164,7 @@ After all PRs are created, display a summary:
 ```
 Split complete — 3 PRs opened from `feature/my-big-feature`:
 
-  PR #101  feature/my-big-feature-1  (420 lines)  ← targets: master
+  PR #101  feature/my-big-feature-1  (420 lines)  ← targets: $BASE
   PR #102  feature/my-big-feature-2  (340 lines)  ← targets: feature/my-big-feature-1
   PR #103  feature/my-big-feature-3  (290 lines)  ← targets: feature/my-big-feature-2
 
