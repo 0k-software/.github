@@ -1,5 +1,5 @@
 ---
-name: 0k-split-branches
+name: 0k-split-branch
 description:
   Split a large branch into smaller stacked branches — each under 500 changed
   lines — to make PRs easier to review
