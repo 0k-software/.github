@@ -80,29 +80,43 @@ tell the user you answered the questions and are waiting for further feedback.
 ## Step 4 — Implement change requests
 
 Each group of related change requests (as classified in Step 2) gets its own
-implement → commit → push cycle. Complete one group fully before starting the
-next. Do **not** accumulate multiple groups into one commit.
+commit. Complete **all** groups (implement + commit) before pushing or
+replying. Do **not** accumulate multiple groups into one commit.
 
-For each group of related change requests:
+### 4a — Commit loop (repeat for every group)
+
+For each group of related change requests, in order:
 
 1. Read the files involved to understand the full context.
 2. Implement the requested change(s) — and **only** those changes.
 3. Run `/0k-commit` with the change request context as the argument.
-4. Push the branch:
-   ```
-   git push
-   ```
-5. Get the commit URL from the push output or via the GitHub MCP tools. If MCP
-   tools are unavailable:
-   ```
-   gh api "repos/<owner>/<repo>/commits/<sha>" --jq .html_url
-   ```
-6. Reply to **each** addressed comment on GitHub (prefer MCP tools, fall back
-   to `gh` CLI), appending the AI attribution footer (see below):
-   ```
-   gh api "repos/<owner>/<repo>/pulls/<pr-number>/comments" \
-     -f body="<reply>" -F in_reply_to=<comment-id>
-   ```
+4. Record the resulting commit SHA alongside the group (you will need it in
+   Step 4c). Then **immediately continue to the next group** — do not push yet.
+
+### 4b — Push once
+
+After **all** groups have been committed, push the branch a single time:
+
+```
+git push -u origin <branch-name>
+```
+
+### 4c — Reply to every thread
+
+For each group (now that the commit SHA is known), reply to **every** comment
+in the thread on GitHub (prefer MCP tools, fall back to `gh` CLI), appending
+the AI attribution footer (see below):
+
+```
+gh api "repos/<owner>/<repo>/pulls/<pr-number>/comments" \
+  -f body="<reply>" -F in_reply_to=<comment-id>
+```
+
+Include the commit URL in the reply. Derive it from the SHA:
+
+```
+gh api "repos/<owner>/<repo>/commits/<sha>" --jq .html_url
+```
 
 ## Step 5 — Report
 
