@@ -37,5 +37,7 @@ changes and use it to write the commit body.
      attempt to fix it yourself.
    - **Auto-fix mode** (`!`): diagnose the failure (e.g. pre-commit hook
      lint/format errors), fix the issue, re-stage with `git add .`, and retry
-     the commit. If the fix attempt also fails, report the error but still do
-     **not** abort — let the calling skill decide how to proceed.
+     the commit. If the fix attempt also fails, report the error, clearly state
+     that **no commit was created**, and return control to the caller as a
+     handled error. Do **not** fabricate or report a commit SHA, and do **not**
+     claim success for commit-dependent workflows.
