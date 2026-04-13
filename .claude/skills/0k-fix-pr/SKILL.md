@@ -143,8 +143,8 @@ change requests). This prevents future runs from re-addressing the same
 feedback.
 
 ```
-gh api "repos/<owner>/<repo>/pulls/comments/<comment-id>/reactions" \
-  -f content="eyes"
+gh api "repos/<owner>/<repo>/pulls/comments/<databaseId>/reactions" \
+  -X POST -f content="eyes"
 ```
 
 ## Step 6 — Report
