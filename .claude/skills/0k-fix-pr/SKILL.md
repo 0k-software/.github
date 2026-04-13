@@ -40,7 +40,16 @@ branch (prefer the GitHub MCP tools; fall back to
    ```
 3. **Discard** every thread where `isResolved` is `true`. Keep only unresolved
    threads.
-4. For each remaining thread, record all comments in order. The **last comment
+4. For each remaining thread, check whether its **first comment** has an `eyes`
+   (👀) reaction from the authenticated user:
+   ```
+   gh api "repos/<owner>/<repo>/pulls/comments/<comment-id>/reactions" \
+     --jq '[.[] | select(.content == "eyes")]'
+   ```
+   Threads already marked with `eyes` have been addressed in a previous run.
+   Keep them as **context** (they may inform code changes) but do **not**
+   re-classify, re-implement, or reply to them again.
+5. For each remaining thread, record all comments in order. The **last comment
    in the thread** takes precedence — if a later reply changes or overrides the
    original request, follow the latest instruction.
 
@@ -118,7 +127,19 @@ Include the commit URL in the reply. Derive it from the SHA:
 gh api "repos/<owner>/<repo>/commits/<sha>" --jq .html_url
 ```
 
-## Step 5 — Report
+## Step 5 — Mark threads as addressed
+
+After posting all replies and pushing, react with `eyes` (👀) to the **first
+comment** of every thread that was addressed in this run (both questions and
+change requests). This prevents future runs from re-addressing the same
+feedback.
+
+```
+gh api "repos/<owner>/<repo>/pulls/comments/<comment-id>/reactions" \
+  -f content="eyes"
+```
+
+## Step 6 — Report
 
 After all comments are handled, display a summary:
 
