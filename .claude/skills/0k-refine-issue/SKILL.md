@@ -24,10 +24,21 @@ refine.
    ```
    gh issue view <number> --repo <owner>/<repo> --json title,body,labels,number,url,state,issueType
    ```
-3. Fetch **all** comments on the issue:
+3. Fetch **all** comments on the issue, including their reactions:
    ```
-   gh issue view <number> --repo <owner>/<repo> --comments --json comments
+   gh api "repos/<owner>/<repo>/issues/<number>/comments" --paginate \
+     --jq '.[] | {id, author: .user.login, body, reactions: [.reactions.url]}'
    ```
+   For each comment, also fetch its reactions to check for the `eyes` (👀)
+   marker:
+   ```
+   gh api "repos/<owner>/<repo>/issues/comments/<comment-id>/reactions" \
+     --jq '[.[] | select(.content == "eyes")]'
+   ```
+4. **Skip already-addressed comments.** Any comment that has an `eyes` (👀)
+   reaction from the authenticated user has already been handled in a previous
+   run. Keep these comments as **context** (they may inform title/description
+   updates) but do **not** re-address them or reply to them again.
 
 ## Step 2 — Analyse feedback
 
@@ -78,7 +89,18 @@ noise. Instead, post a **single comment** that addresses all feedback points,
 referencing each commenter by `@username` and quoting the relevant part of
 their comment. This keeps the thread clean.
 
-## Step 5 — Report
+## Step 5 — Mark comments as addressed
+
+After posting the reply and applying any issue updates, react with `eyes` (👀)
+to every comment that was addressed in this run. This prevents future runs from
+re-addressing the same feedback.
+
+```
+gh api "repos/<owner>/<repo>/issues/comments/<comment-id>/reactions" \
+  -f content="eyes"
+```
+
+## Step 6 — Report
 
 Display a summary:
 
