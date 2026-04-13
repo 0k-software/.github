@@ -50,6 +50,11 @@ Based on `$ARGUMENTS`, run one of the following:
 
 ### `init {gh-url}`
 
+`{gh-url}` is an issue number or URL. If empty, try to infer the issue number
+from the current branch name — if the branch name starts with digits (e.g.
+`42-some-feature`), use that number. If no number can be inferred, ask the user
+which issue to plan.
+
 Plan the GH issue at `{gh-url}`. Fetch the issue details, then create PLAN.md
 following the format above. Include the link, a summary of the issue, the
 overall approach, a TOC checklist with anchor links, and a detailed section for
