@@ -11,8 +11,10 @@ argument-hint: <issue number or URL>
 Review a GitHub issue's description and comments, address all feedback, and
 update the issue accordingly.
 
-`$ARGUMENTS` is an issue number or URL. If empty, ask the user which issue to
-refine.
+`$ARGUMENTS` is an issue number or URL. If empty, try to infer the issue number
+from the current branch name — if the branch name starts with digits (e.g.
+`42-some-feature`), use that number. If no number can be inferred, ask the user
+which issue to refine.
 
 ---
 
