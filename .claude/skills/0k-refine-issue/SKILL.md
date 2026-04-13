@@ -56,17 +56,15 @@ Group the feedback into:
 | **Acknowledgement**    | Comment that needs a short acknowledgement reply (e.g. "good point")  |
 | **No action needed**   | Resolved discussion, bot comments, or already-addressed feedback      |
 
-Present this analysis to the user as a numbered list, showing each comment
-(author, summary) and your proposed action. **Wait for user confirmation**
-before proceeding.
+Proceed directly — do **not** ask the user for confirmation. Apply your best
+judgement to address all feedback.
 
 ## Step 3 — Update the issue
 
-If any description or title changes were identified and approved:
+If any description or title changes were identified:
 
-1. Draft the updated title and/or body incorporating all approved feedback.
-2. Show the user a diff-style comparison of the changes (old vs new).
-3. After user approval, apply the update:
+1. Draft the updated title and/or body incorporating all feedback.
+2. Apply the update immediately:
    ```
    gh issue edit <number> --repo <owner>/<repo> --title "<new title>" --body "<new body>"
    ```
