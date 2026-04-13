@@ -55,6 +55,16 @@ following the format above. Include the link, a summary of the issue, the
 overall approach, a TOC checklist with anchor links, and a detailed section for
 each step describing what to implement and how.
 
+After creating PLAN.md:
+
+1. Run `/0k-commit ! plan: {issue title}` to commit it.
+2. Push the branch and open a **draft** PR linking to the issue:
+   ```
+   git push -u origin HEAD
+   gh pr create --draft --title "[{issue-number}] {issue title}" \
+     --body "Closes {gh-url}" --head "$(git branch --show-current)"
+   ```
+
 ### `next`
 
 Read PLAN.md and implement the next unchecked step. Once done, mark the step as
