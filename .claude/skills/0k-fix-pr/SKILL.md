@@ -40,15 +40,23 @@ branch (prefer the GitHub MCP tools; fall back to
    ```
 3. **Discard** every thread where `isResolved` is `true`. Keep only unresolved
    threads.
-4. For each remaining thread, check whether its **first comment** has an `eyes`
-   (👀) reaction from the authenticated user:
+4. For each remaining thread, check whether its **first comment** (using its
+   `databaseId` — not the opaque GraphQL `id`) has an `eyes` (👀) reaction from
+   the authenticated user:
+
    ```
-   gh api "repos/<owner>/<repo>/pulls/comments/<comment-id>/reactions" \
-     --jq '[.[] | select(.content == "eyes")]'
+   viewer="$(gh api user --jq .login)"
+   gh api --paginate "repos/{owner}/{repo}/pulls/comments/{databaseId}/reactions" \
+     --jq --arg viewer "$viewer" '[.[] | select(.content == "eyes" and .user.login == $viewer)]'
    ```
+
    Threads already marked with `eyes` have been addressed in a previous run.
    Keep them as **context** (they may inform code changes) but do **not**
    re-classify, re-implement, or reply to them again.
+
+   **Important:** All REST API calls under `pulls/comments/` expect the numeric
+   `databaseId` from the GraphQL response, not the opaque `id`.
+
 5. For each remaining thread, record all comments in order. The **last comment
    in the thread** takes precedence — if a later reply changes or overrides the
    original request, follow the latest instruction.
