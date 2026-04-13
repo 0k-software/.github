@@ -2,13 +2,25 @@
 name: 0k-commit
 description:
   Stage all changes (staged, unstaged, and untracked) and generate a
-  Conventional Commit message
+  Conventional Commit message — use `!` prefix to auto-fix errors instead of
+  aborting
 ---
 
 Stage everything and generate a git commit message, then commit.
 
-Here's the context provided by the user: "$ARGUMENTS". If provided, treat it as
-the reason/motivation behind the changes and use it to write the commit body.
+## Argument parsing
+
+`$ARGUMENTS` may start with `!` (e.g. `! fixed the bug`). Strip the leading `!`
+and whitespace to obtain the **context text**. If `!` is present, the skill
+runs in **auto-fix mode** (see Step 6).
+
+If `$ARGUMENTS` does not start with `!`, the entire string is the context text
+and the skill runs in **interactive mode**.
+
+If the context text is non-empty, treat it as the reason/motivation behind the
+changes and use it to write the commit body.
+
+## Steps
 
 1. Run `git add .` to stage all changes (staged, unstaged, and untracked).
 2. Run `git diff --no-ext-diff --staged` to get the diff to be committed.
@@ -20,5 +32,10 @@ the reason/motivation behind the changes and use it to write the commit body.
 4. Display the generated commit message with a horizontal rule (`\n\n---\n\n`)
    before and after it so it stands out clearly.
 5. Run `git commit -m "..."` using a heredoc to preserve formatting.
-6. If any error occurs during the commit process, display an error message and
-   abort, **do not attempt to fix it yourself**.
+6. **On error:**
+   - **Interactive mode** (no `!`): display the error and abort. Do **not**
+     attempt to fix it yourself.
+   - **Auto-fix mode** (`!`): diagnose the failure (e.g. pre-commit hook
+     lint/format errors), fix the issue, re-stage with `git add .`, and retry
+     the commit. If the fix attempt also fails, report the error but still do
+     **not** abort — let the calling skill decide how to proceed.
