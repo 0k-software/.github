@@ -63,12 +63,8 @@ each step describing what to implement and how.
 After creating PLAN.md:
 
 1. Run `/0k-commit ! plan: {issue title}` to commit it.
-2. Push the branch and open a **draft** PR linking to the issue:
-   ```
-   git push -u origin HEAD
-   gh pr create --draft --title "[{issue-number}] {issue title}" \
-     --body "Closes {gh-url}" --head "$(git branch --show-current)"
-   ```
+2. Invoke `/0k:create-pr draft` to push the branch and open a draft PR linking
+   to the issue.
 
 ### `next`
 
