@@ -4,7 +4,7 @@
 #
 # Run this manually when ensure-org-skills reports outdated skills:
 #
-#   bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/0k/bin/update-org-skills)
+#   bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/update-org-skills)
 #
 # Unlike ensure-org-skills (which only installs missing skills and warns about
 # outdated ones), this script always overwrites with the remote version.

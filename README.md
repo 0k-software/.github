@@ -73,7 +73,7 @@ Remote Claude Code sessions (e.g. claude.ai/code) don't load
         "hooks": [
           {
             "type": "command",
-            "command": "bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/0k/bin/ensure-org-skills)"
+            "command": "bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/ensure-org-skills)"
           }
         ]
       }
@@ -92,7 +92,7 @@ Remote Claude Code sessions (e.g. claude.ai/code) don't load
 **To manually update outdated skills:**
 
 ```sh
-bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/0k/bin/update-org-skills)
+bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/update-org-skills)
 ```
 
 Review the diff (`git diff .claude/plugins/0k/`) and commit when satisfied.
