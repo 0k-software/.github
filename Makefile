@@ -4,7 +4,7 @@ GIT_HOOKS_DST := .git/hooks
 HOOK_FILES := $(wildcard $(GIT_HOOKS_SRC)/*)
 
 .PHONY: all
-all: setup install-skills package-skills
+all: setup install-plugin package-plugin
 
 .PHONY: setup
 setup:
@@ -18,12 +18,12 @@ setup:
 	@echo "Git hooks installed to $(GIT_HOOKS_DST)/"
 
 ISSUE_TEMPLATE_SRC := .github/ISSUE_TEMPLATE
-SKILL_TEMPLATES_DST := .claude/skills/0k-create-issue/templates
-SKILLS_SRC := .claude/skills
-SKILLS_HOME := $(HOME)/.claude/skills
+SKILL_TEMPLATES_DST := 0k/skills/create-issue/templates
+PLUGIN_SRC := 0k
+PLUGIN_HOME := $(HOME)/.claude/plugins/0k
 
 TEMPLATE_FILES := $(wildcard $(ISSUE_TEMPLATE_SRC)/[0-9]*.yml)
-SKILL_DIRS := $(wildcard $(SKILLS_SRC)/0k-*)
+SKILL_DIRS := $(wildcard $(PLUGIN_SRC)/skills/*)
 
 .PHONY: sync-skill-templates
 sync-skill-templates:
@@ -32,36 +32,37 @@ sync-skill-templates:
 	@cp $(TEMPLATE_FILES) $(SKILL_TEMPLATES_DST)/
 	@echo "Synced $(words $(TEMPLATE_FILES)) templates to $(SKILL_TEMPLATES_DST)/"
 
-.PHONY: install-skills
-install-skills: sync-skill-templates
+.PHONY: install-plugin
+install-plugin: sync-skill-templates
+	@mkdir -p "$(PLUGIN_HOME)/.claude-plugin"
+	@cp $(PLUGIN_SRC)/.claude-plugin/plugin.json "$(PLUGIN_HOME)/.claude-plugin/"
 	@for dir in $(SKILL_DIRS); do \
 		name=$$(basename "$$dir"); \
-		echo "Installing $$name -> $(SKILLS_HOME)/$$name/"; \
-		mkdir -p "$(SKILLS_HOME)/$$name"; \
-		rm -rf "$(SKILLS_HOME)/$$name/"*; \
-		cp -r "$$dir/"* "$(SKILLS_HOME)/$$name/"; \
+		echo "Installing $$name -> $(PLUGIN_HOME)/skills/$$name/"; \
+		mkdir -p "$(PLUGIN_HOME)/skills/$$name"; \
+		rm -rf "$(PLUGIN_HOME)/skills/$$name/"*; \
+		cp -r "$$dir/"* "$(PLUGIN_HOME)/skills/$$name/"; \
 	done
-	@echo "Installed $(words $(SKILL_DIRS)) skill(s) to $(SKILLS_HOME)/"
+	@echo "Installed 0k plugin to $(PLUGIN_HOME)/"
 
-SKILLS_DIST := dist/skills
+PLUGIN_DIST := dist
 
-.PHONY: package-skills
-package-skills: sync-skill-templates
-	@rm -rf $(SKILLS_DIST)
-	@mkdir -p $(SKILLS_DIST)
-	@for dir in $(SKILL_DIRS); do \
-		name=$$(basename "$$dir"); \
-		cd $(SKILLS_SRC) && zip -r ../../$(SKILLS_DIST)/$$name.zip $$name && cd ../..; \
-		echo "Packaged $$name -> $(SKILLS_DIST)/$$name.zip"; \
-	done
-	@echo "Packaged $(words $(SKILL_DIRS)) skill(s) into $(SKILLS_DIST)/"
+.PHONY: package-plugin
+package-plugin: sync-skill-templates
+	@rm -rf $(PLUGIN_DIST)
+	@mkdir -p $(PLUGIN_DIST)
+	@cd . && zip -r $(PLUGIN_DIST)/0k-plugin.zip 0k/
+	@echo "Packaged plugin -> $(PLUGIN_DIST)/0k-plugin.zip"
 
-.PHONY: uninstall-skills
-uninstall-skills:
-	@for dir in $(SKILL_DIRS); do \
-		name=$$(basename "$$dir"); \
-		if [ -d "$(SKILLS_HOME)/$$name" ]; then \
-			rm -rf "$(SKILLS_HOME)/$$name"; \
-			echo "Removed $(SKILLS_HOME)/$$name/"; \
-		fi; \
-	done
+.PHONY: uninstall-plugin
+uninstall-plugin:
+	@if [ -d "$(PLUGIN_HOME)" ]; then \
+		rm -rf "$(PLUGIN_HOME)"; \
+		echo "Removed $(PLUGIN_HOME)/"; \
+	fi
+
+# Backwards-compatible aliases
+.PHONY: install-skills uninstall-skills package-skills
+install-skills: install-plugin
+uninstall-skills: uninstall-plugin
+package-skills: package-plugin

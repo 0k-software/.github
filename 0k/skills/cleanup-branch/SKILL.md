@@ -1,5 +1,5 @@
 ---
-name: 0k-cleanup-branch
+name: cleanup-branch
 description:
   Clean up a branch's commit history by squashing back-and-forth commits into a
   meaningful, reviewable set — without changing what ends up in the codebase
@@ -184,7 +184,7 @@ Done. Rewrote 7 commits → 3 clean commits.
 Net diff is unchanged (430 lines across 5 files).
 
 If this branch is too large for a single PR, run:
-  /0k-split-branch
+  /0k:split-branch
 ```
 
 If the branch has already been pushed, remind the user that they'll need to

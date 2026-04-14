@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# ensure-org-skills: Install missing 0k-software org skills; warn about outdated ones.
+# ensure-org-skills: Install missing 0k plugin skills; warn about outdated ones.
 #
 # Run as a Claude Code SessionStart hook in any 0k-software project by adding this
 # to the project's .claude/settings.json:
@@ -10,7 +10,7 @@
 #       "SessionStart": [{
 #         "hooks": [{
 #           "type": "command",
-#           "command": "bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/ensure-org-skills)"
+#           "command": "bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/0k/bin/ensure-org-skills)"
 #         }]
 #       }]
 #     }
@@ -26,58 +26,56 @@ GITHUB_REPO=".github"
 BRANCH="main"
 API_BASE="https://api.github.com/repos/$GITHUB_ORG/$GITHUB_REPO"
 RAW_BASE="https://raw.githubusercontent.com/$GITHUB_ORG/$GITHUB_REPO/$BRANCH"
-SKILLS_DIR=".claude/skills"
+PLUGIN_DIR=".claude/plugins/0k"
 
 # Skip when running inside the source repo itself
 if git remote -v 2>/dev/null | grep -qF "0k-software/.github"; then
   exit 0
 fi
 
-# Discover all skill files via the GitHub git trees API (one recursive call).
+# Discover all plugin files via the GitHub git trees API (one recursive call).
 # Files always have an extension; directory tree entries don't — use that to filter.
 tree_json=$(curl -fsSL "$API_BASE/git/trees/$BRANCH?recursive=1" 2>/dev/null) || {
   echo "warn: could not reach GitHub API, skipping org skills check" >&2
   exit 0
 }
 
-skill_paths=$(printf '%s\n' "$tree_json" \
-  | grep -o '"path":"\.claude/skills/0k-[^"]*"' \
+plugin_paths=$(printf '%s\n' "$tree_json" \
+  | grep -o '"path":"0k/[^"]*"' \
   | sed 's/"path":"//;s/"$//' \
   | grep '\.')
 
-if [ -z "$skill_paths" ]; then
-  echo "warn: no skills found in 0k-software/.github" >&2
+if [ -z "$plugin_paths" ]; then
+  echo "warn: no plugin files found in 0k-software/.github" >&2
   exit 0
 fi
 
-# Collect unique skill names
-skill_names=$(printf '%s\n' "$skill_paths" \
-  | sed 's|\.claude/skills/\([^/]*\)/.*|\1|' \
+# Collect unique skill names from 0k/skills/<name>/...
+skill_names=$(printf '%s\n' "$plugin_paths" \
+  | grep '^0k/skills/' \
+  | sed 's|0k/skills/\([^/]*\)/.*|\1|' \
   | sort -u)
 
-install_skill() {
-  local skill="$1"
-  local paths
-  paths=$(printf '%s\n' "$skill_paths" | grep "^\\.claude/skills/$skill/")
-  while IFS= read -r path; do
-    mkdir -p "$(dirname "$path")"
-    if ! curl -fsSL "$RAW_BASE/$path" > "$path" 2>/dev/null; then
-      echo "  warn: failed to fetch $path" >&2
-      rm -f "$path"
-    fi
-  done <<< "$paths"
+install_plugin_file() {
+  local remote_path="$1"
+  local local_path="$PLUGIN_DIR/${remote_path#0k/}"
+  mkdir -p "$(dirname "$local_path")"
+  if ! curl -fsSL "$RAW_BASE/$remote_path" > "$local_path" 2>/dev/null; then
+    echo "  warn: failed to fetch $remote_path" >&2
+    rm -f "$local_path"
+  fi
 }
 
 missing=()
 outdated=()
 
 while IFS= read -r skill; do
-  local_md="$SKILLS_DIR/$skill/SKILL.md"
+  local_md="$PLUGIN_DIR/skills/$skill/SKILL.md"
 
   if [ ! -f "$local_md" ]; then
     missing+=("$skill")
   else
-    remote_md=$(curl -fsSL "$RAW_BASE/$SKILLS_DIR/$skill/SKILL.md" 2>/dev/null) || continue
+    remote_md=$(curl -fsSL "$RAW_BASE/0k/skills/$skill/SKILL.md" 2>/dev/null) || continue
     if [ "$remote_md" != "$(cat "$local_md")" ]; then
       outdated+=("$skill")
     fi
@@ -85,18 +83,24 @@ while IFS= read -r skill; do
 done <<< "$skill_names"
 
 if [ ${#missing[@]} -gt 0 ]; then
-  echo "Installing org skills:"
+  echo "Installing 0k plugin:"
+
+  # Ensure the plugin manifest exists
+  install_plugin_file "0k/.claude-plugin/plugin.json"
+
   for skill in "${missing[@]}"; do
-    install_skill "$skill"
+    skill_files=$(printf '%s\n' "$plugin_paths" | grep "^0k/skills/$skill/")
+    while IFS= read -r path; do
+      install_plugin_file "$path"
+    done <<< "$skill_files"
     echo "  + $skill"
   done
   echo ""
-  echo "Commit the new files in $SKILLS_DIR/ to persist them for future sessions."
+  echo "Commit the new files in $PLUGIN_DIR/ to persist them for future sessions."
 fi
 
 if [ ${#outdated[@]} -gt 0 ]; then
   echo ""
   echo "These org skills are outdated: ${outdated[*]}"
-  echo "To update, copy the latest versions from 0k-software/.github/.claude/skills/"
-  echo "or run: bash <(curl -fsSL $RAW_BASE/bin/update-org-skills)"
+  echo "To update, run: bash <(curl -fsSL $RAW_BASE/0k/bin/update-org-skills)"
 fi

@@ -51,21 +51,21 @@ checks that skill template copies stay in sync with the source issue
 templates). This runs automatically on Claude Code session start via the
 `SessionStart` hook in `.claude/settings.json`.
 
-## Skills
+## Plugin
 
-Claude Code skills live in `.claude/skills/`. To install them globally
-(`~/.claude/skills/`) so they're available across all projects:
+The `0k` Claude Code plugin lives in `0k/`. It contains all org-shared skills.
+To install it locally so it's available across all projects:
 
 ```
-make install-skills
+make install-plugin
 ```
 
-### Making skills available in remote sessions (other 0k-software projects)
+### Making the plugin available in remote sessions (other 0k-software projects)
 
-Remote Claude Code sessions don't have access to `~/.claude/skills/`, so skills
-must be present in the project's own `.claude/skills/`. To share these org
-skills across projects without silently stale copies, add this `SessionStart`
-hook to the other project's `.claude/settings.json`:
+Remote Claude Code sessions don't have access to `~/.claude/plugins/`, so the
+plugin must be present in each project's own `.claude/plugins/0k/`. To share
+the plugin across projects without silently stale copies, add this
+`SessionStart` hook to the other project's `.claude/settings.json`:
 
 ```json
 {
@@ -75,7 +75,7 @@ hook to the other project's `.claude/settings.json`:
         "hooks": [
           {
             "type": "command",
-            "command": "bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/ensure-org-skills)"
+            "command": "bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/0k/bin/ensure-org-skills)"
           }
         ]
       }
@@ -86,18 +86,18 @@ hook to the other project's `.claude/settings.json`:
 
 **What it does:**
 
-- **Missing skills** are installed automatically into `.claude/skills/`. Commit
-  the new files so they persist across sessions.
+- **Missing skills** are installed automatically into `.claude/plugins/0k/`.
+  Commit the new files so they persist across sessions.
 - **Outdated skills** (local copy differs from this repo) trigger a warning
   with instructions — no silent overwrites.
 
 **To manually update outdated skills:**
 
 ```
-bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/update-org-skills)
+bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/0k/bin/update-org-skills)
 ```
 
-Review the diff (`git diff .claude/skills/`) and commit when satisfied.
+Review the diff (`git diff .claude/plugins/0k/`) and commit when satisfied.
 
 ## Editing Guidelines
 
