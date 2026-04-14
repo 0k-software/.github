@@ -1,5 +1,6 @@
 GIT_HOOKS_SRC := .git-hooks
-GIT_HOOKS_DST := .git/hooks
+GIT_DIR := $(shell git rev-parse --git-dir 2>/dev/null || echo .git)
+GIT_HOOKS_DST := $(GIT_DIR)/hooks
 
 HOOK_FILES := $(wildcard $(GIT_HOOKS_SRC)/*)
 
@@ -19,11 +20,10 @@ setup:
 
 ISSUE_TEMPLATE_SRC := .github/ISSUE_TEMPLATE
 SKILL_TEMPLATES_DST := 0k/skills/create-issue/templates
-PLUGIN_SRC := 0k
-PLUGIN_HOME := $(HOME)/.claude/plugins/0k
+PLUGIN_NAME := 0k
+MARKETPLACE_NAME := 0k-software
 
 TEMPLATE_FILES := $(wildcard $(ISSUE_TEMPLATE_SRC)/[0-9]*.yml)
-SKILL_DIRS := $(wildcard $(PLUGIN_SRC)/skills/*)
 
 .PHONY: sync-skill-templates
 sync-skill-templates:
@@ -34,16 +34,11 @@ sync-skill-templates:
 
 .PHONY: install-plugin
 install-plugin: sync-skill-templates
-	@mkdir -p "$(PLUGIN_HOME)/.claude-plugin"
-	@cp $(PLUGIN_SRC)/.claude-plugin/plugin.json "$(PLUGIN_HOME)/.claude-plugin/"
-	@for dir in $(SKILL_DIRS); do \
-		name=$$(basename "$$dir"); \
-		echo "Installing $$name -> $(PLUGIN_HOME)/skills/$$name/"; \
-		mkdir -p "$(PLUGIN_HOME)/skills/$$name"; \
-		rm -rf "$(PLUGIN_HOME)/skills/$$name/"*; \
-		cp -r "$$dir/"* "$(PLUGIN_HOME)/skills/$$name/"; \
-	done
-	@echo "Installed 0k plugin to $(PLUGIN_HOME)/"
+	@claude plugin marketplace add "$(CURDIR)" 2>/dev/null \
+		|| claude plugin marketplace update $(MARKETPLACE_NAME)
+	@claude plugin install $(PLUGIN_NAME) 2>/dev/null \
+		|| claude plugin update $(PLUGIN_NAME)
+	@echo "Plugin $(PLUGIN_NAME) installed from $(MARKETPLACE_NAME) marketplace"
 
 PLUGIN_DIST := dist
 
@@ -56,10 +51,9 @@ package-plugin: sync-skill-templates
 
 .PHONY: uninstall-plugin
 uninstall-plugin:
-	@if [ -d "$(PLUGIN_HOME)" ]; then \
-		rm -rf "$(PLUGIN_HOME)"; \
-		echo "Removed $(PLUGIN_HOME)/"; \
-	fi
+	@claude plugin uninstall $(PLUGIN_NAME) 2>/dev/null || true
+	@claude plugin marketplace remove $(MARKETPLACE_NAME) 2>/dev/null || true
+	@echo "Plugin $(PLUGIN_NAME) uninstalled"
 
 # Backwards-compatible aliases
 .PHONY: install-skills uninstall-skills package-skills
