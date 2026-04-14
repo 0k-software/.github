@@ -10,7 +10,7 @@
 #       "SessionStart": [{
 #         "hooks": [{
 #           "type": "command",
-#           "command": "bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/0k/bin/ensure-org-skills)"
+#           "command": "bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/ensure-org-skills)"
 #         }]
 #       }]
 #     }
@@ -102,5 +102,5 @@ fi
 if [ ${#outdated[@]} -gt 0 ]; then
   echo ""
   echo "These org skills are outdated: ${outdated[*]}"
-  echo "To update, run: bash <(curl -fsSL $RAW_BASE/0k/bin/update-org-skills)"
+  echo "To update, run: bash <(curl -fsSL $RAW_BASE/bin/update-org-skills)"
 fi
