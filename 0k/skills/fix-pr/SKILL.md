@@ -8,8 +8,7 @@ description:
 Address all **unresolved** review comments on a pull request.
 
 `$ARGUMENTS` is a PR number or URL. If empty, find the open PR for the current
-branch (prefer the GitHub MCP tools; fall back to
-`gh pr view --json number -q .number`).
+branch (`gh pr view --json number -q .number`).
 
 ---
 
@@ -17,10 +16,8 @@ branch (prefer the GitHub MCP tools; fall back to
 
 1. Derive `<owner>/<repo>` and `<pr-number>` from the argument or current
    branch.
-2. Fetch **all** review threads. Prefer the GitHub MCP tools
-   (`mcp__github__pull_request_read` or similar) to retrieve PR review threads
-   and their resolution state. If MCP tools are unavailable, fall back to the
-   `gh` CLI with the GraphQL API to get `isResolved`:
+2. Fetch **all** review threads using the `gh` CLI with the GraphQL API to get
+   `isResolved`:
    ```
    gh api graphql -f query='
      query($owner:String!, $repo:String!, $pr:Int!) {
@@ -82,9 +79,7 @@ For every question thread:
 1. Read the relevant code to understand the context.
 2. Draft a clear, concise answer.
 3. Append the AI attribution footer (see below) to the reply.
-4. Post the reply using the GitHub MCP tools
-   (`mcp__github__add_reply_to_pull_request_comment` or similar). If MCP tools
-   are unavailable, fall back to:
+4. Post the reply using the `gh` CLI:
    ```
    gh api "repos/<owner>/<repo>/pulls/<pr-number>/comments" \
      -f body="<answer>" -F in_reply_to=<comment-id>
@@ -122,8 +117,8 @@ git push -u origin <branch-name>
 ### 4c — Reply to every thread
 
 For each group (now that the commit SHA is known), reply to **every** comment
-in the thread on GitHub (prefer MCP tools, fall back to `gh` CLI), appending
-the AI attribution footer (see below):
+in the thread on GitHub using the `gh` CLI, appending the AI attribution footer
+(see below):
 
 ```
 gh api "repos/<owner>/<repo>/pulls/<pr-number>/comments" \
