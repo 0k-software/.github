@@ -55,17 +55,60 @@ Fields with `required: true` must be filled — ask the user if you cannot infer
 ## Creating the Issue
 
 Use GitHub MCP tools if available (search for tools matching `mcp__github`).
-Otherwise fall back to the `gh` CLI:
+Otherwise fall back to the `gh` CLI using the two-step process below.
+
+**IMPORTANT: `gh issue create` does NOT have a `--type` flag. Never use
+`--type`. Never use `--label` as a substitute for setting the issue type.
+Follow the two-step process below exactly.**
+
+### Step 1 — Create the issue
 
 ```
 gh issue create --repo 0k-software/<repo> \
   --title "<title>" \
-  --body "<body>" \
-  --type "<type>"
+  --body "<body>"
 ```
 
-Use the `type` field value from the chosen template's YAML frontmatter as the
-`--type` argument.
+Capture the issue URL from the output (e.g.,
+`https://github.com/0k-software/<repo>/issues/123`).
+
+### Step 2 — Set the issue type
+
+Use the `type` field value from the chosen template's YAML frontmatter (e.g.,
+`"Bug"`, `"Task"`, `"Feature"`) to find the matching issue type ID:
+
+```
+gh api graphql -f query='
+  query {
+    repository(owner: "0k-software", name: "<repo>") {
+      issueTypes(first: 10) {
+        nodes { id name }
+      }
+    }
+  }
+'
+```
+
+Get the newly created issue's node ID:
+
+```
+gh issue view <number> --repo 0k-software/<repo> --json id --jq .id
+```
+
+Set the issue type:
+
+```
+gh api graphql -f query='
+  mutation {
+    updateIssueIssueType(input: {
+      issueId: "<issue_node_id>",
+      issueTypeId: "<issue_type_id>"
+    }) {
+      issue { id }
+    }
+  }
+'
+```
 
 ## AI Attribution Footer
 
