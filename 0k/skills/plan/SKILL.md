@@ -73,7 +73,7 @@ After creating PLAN.md:
 ### `next`
 
 Read PLAN.md and implement the next unchecked step. Once done, mark the step as
-done (`- [x]`) in the PLAN.md TOC and run `/0k:commit` with the step
+done (`- [x]`) in the PLAN.md TOC and run `/0k:commit !` with the step
 title/description as context.
 
 If the implementation required any deviation from the original step description
