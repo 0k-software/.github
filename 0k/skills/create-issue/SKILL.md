@@ -29,7 +29,7 @@ standardized templates. Do NOT create free-form issues.
    can infer from the user's description. For fields you cannot infer, ask the
    user — do NOT leave template placeholders or italic prompt text in the final
    issue.
-6. **Create the issue** using the GitHub MCP tools (preferred) or `gh` CLI.
+6. **Create the issue** using the `gh` CLI (see "Creating the Issue" below).
    - Use the `type` property from the chosen template file as the issue type.
    - Construct a clear, concise title (do NOT include emoji prefixes — GitHub
      adds the template icon automatically).
@@ -54,33 +54,23 @@ Fields with `required: true` must be filled — ask the user if you cannot infer
 
 ## Creating the Issue
 
-Use GitHub MCP tools if available (search for tools matching `mcp__github`).
-Otherwise fall back to the `gh` CLI using the two-step process below.
-
 **IMPORTANT: `gh issue create` does NOT have a `--type` flag. Never use
-`--type`. Never use `--label` as a substitute for setting the issue type.
-Follow the two-step process below exactly.**
+`--type`. Never use `--label` as a substitute for setting the issue type.**
 
-### Step 1 — Create the issue
+Use the GraphQL `createIssue` mutation to create the issue with its type set in
+a single request.
 
-```
-gh issue create --repo 0k-software/<repo> \
-  --title "<title>" \
-  --body "<body>"
-```
+### Step 1 — Look up repository and issue type IDs
 
-Capture the issue URL from the output (e.g.,
-`https://github.com/0k-software/<repo>/issues/123`).
-
-### Step 2 — Set the issue type
-
-Use the `type` field value from the chosen template's YAML frontmatter (e.g.,
-`"Bug"`, `"Task"`, `"Feature"`) to find the matching issue type ID:
+Query the repository's node ID and available issue types. Use the `type` field
+value from the chosen template's YAML frontmatter (e.g., `"Bug"`, `"Task"`,
+`"Feature"`) to find the matching issue type ID:
 
 ```
 gh api graphql -f query='
   query {
     repository(owner: "0k-software", name: "<repo>") {
+      id
       issueTypes(first: 10) {
         nodes { id name }
       }
@@ -89,22 +79,18 @@ gh api graphql -f query='
 '
 ```
 
-Get the newly created issue's node ID:
-
-```
-gh issue view <number> --repo 0k-software/<repo> --json id --jq .id
-```
-
-Set the issue type:
+### Step 2 — Create the issue
 
 ```
 gh api graphql -f query='
   mutation {
-    updateIssueIssueType(input: {
-      issueId: "<issue_node_id>",
+    createIssue(input: {
+      repositoryId: "<repo_node_id>",
+      title: "<title>",
+      body: "<body>",
       issueTypeId: "<issue_type_id>"
     }) {
-      issue { id }
+      issue { number url }
     }
   }
 '
