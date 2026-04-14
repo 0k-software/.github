@@ -32,7 +32,7 @@ You are helping the user create a GitHub pull request from the current branch.
    If the push fails due to hook errors or conflicts, report the error and
    stop.
 6. **Build the PR title and body.**
-   - **Title:** `[{issue-number}] {issue title}` — if there is a linked issue.
+   - **Title:** `[#{issue-number}] {issue title}` — if there is a linked issue.
      Otherwise, derive a concise title from the branch name or `$ARGUMENTS`.
    - **Body:** If there is a linked issue, include `Closes {issue-url}` as the
      body. If there is no linked issue, write a brief summary based on the
