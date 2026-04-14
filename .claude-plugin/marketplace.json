@@ -1,0 +1,12 @@
+{
+  "name": "0k-software",
+  "owner": {
+    "name": "0k-software"
+  },
+  "plugins": [
+    {
+      "name": "0k",
+      "source": "./0k"
+    }
+  ]
+}
