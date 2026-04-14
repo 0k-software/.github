@@ -106,7 +106,8 @@ For each group of related change requests, in order:
 
 1. Read the files involved to understand the full context.
 2. Implement the requested change(s) — and **only** those changes.
-3. Run `/0k:commit !` with the change request context as the argument.
+3. Invoke the `/0k:commit` skill with the `!` flag, passing the change request
+   context as the argument.
 4. Record the resulting commit SHA alongside the group (you will need it in
    Step 4c). Then **immediately continue to the next group** — do not push yet.
 
