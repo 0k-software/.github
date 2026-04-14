@@ -154,7 +154,7 @@ For each branch (1 through N), in order:
    - Branch 1 targets `$BASE`.
    - Branch N (N > 1) targets branch N-1.
 
-   Use the GitHub MCP tool to create the PR. Title it with the branch name and
+   Use `gh pr create` to create the PR. Title it with the branch name and
    include a short description summarising the commits it contains. In the PR
    body, note that it is part of a stacked series and link to the other PRs in
    the chain once they are created.
