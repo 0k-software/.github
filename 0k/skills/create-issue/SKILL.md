@@ -1,5 +1,5 @@
 ---
-name: 0k-create-issue
+name: create-issue
 description:
   Create a GitHub issue in an 0k-software org repo using the standardized issue
   templates (pitch, feature, task, bug, enhancement, kickoff).

@@ -1,5 +1,5 @@
 ---
-name: 0k-refine-issue
+name: refine-issue
 description:
   Refine a GitHub issue — review its description and all comments, address
   feedback, reply to each comment, and update the title/description as needed

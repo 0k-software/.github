@@ -4,8 +4,8 @@ This is the [community health repository][gh-community-health] for the
 0k-software GitHub organization. Its contents serve as org-wide defaults for
 any repository that doesn't define its own.
 
-It contains two main things: **GitHub Issue Templates** and **Claude Code
-Skills**.
+It contains two main things: **GitHub Issue Templates** and the **0k Claude
+Code Plugin**.
 
 ## Issue Templates
 
@@ -25,40 +25,45 @@ Templates are numbered to control display order.
 Templates are tailored for an **Elixir/Phoenix** stack (Phoenix, Ecto, Oban,
 Backpex, PhoenixTest).
 
-## Claude Code Skills
+## 0k Plugin
 
-Reusable Claude Code skills live in `.claude/skills/`. Each skill is a
-subdirectory with a `SKILL.md` that defines its behavior.
+The `0k` Claude Code plugin lives in `0k/`. Each skill is a subdirectory under
+`0k/skills/` with a `SKILL.md` that defines its behavior. Skills are invoked as
+`/0k:<skill-name>`.
 
-| Skill             | Purpose                                              |
-| ----------------- | ---------------------------------------------------- |
-| `0k-commit`       | Stage all changes and generate a Conventional Commit |
-| `0k-create-issue` | Create a GitHub issue using the org issue templates  |
-| `0k-fix-pr`       | Address unresolved PR review comments                |
-| `0k-plan`         | Manage a GH issue implementation plan                |
-| `0k-rebase`       | Rebase current branch onto another                   |
+| Skill            | Invocation           | Purpose                                              |
+| ---------------- | -------------------- | ---------------------------------------------------- |
+| `commit`         | `/0k:commit`         | Stage all changes and generate a Conventional Commit |
+| `create-issue`   | `/0k:create-issue`   | Create a GitHub issue using the org issue templates  |
+| `fix-pr`         | `/0k:fix-pr`         | Address unresolved PR review comments                |
+| `plan`           | `/0k:plan`           | Manage a GH issue implementation plan                |
+| `rebase`         | `/0k:rebase`         | Rebase current branch onto another                   |
+| `cleanup-branch` | `/0k:cleanup-branch` | Clean up a branch's commit history                   |
+| `split-branch`   | `/0k:split-branch`   | Split a large branch into smaller stacked branches   |
+| `refine-issue`   | `/0k:refine-issue`   | Refine a GitHub issue from comment feedback          |
+| `kitty`          | `/0k:kitty`          | Open kitty terminal for the current directory        |
 
-### Installing skills locally
+### Installing the plugin locally
 
-To install skills into `~/.claude/skills/` so they're available in all local
+To install the plugin to `~/.claude/plugins/0k/` so it's available in all local
 Claude Code sessions:
 
 ```sh
-make install-skills
+make install-plugin
 ```
 
 To uninstall:
 
 ```sh
-make uninstall-skills
+make uninstall-plugin
 ```
 
-### Installing skills in remote sessions (other 0k-software projects)
+### Installing the plugin in remote sessions (other 0k-software projects)
 
 Remote Claude Code sessions (e.g. claude.ai/code) don't load
-`~/.claude/skills/`, so skills must be present in each project's own
-`.claude/skills/`. Add this `SessionStart` hook to the project's
-`.claude/settings.json` to keep org skills automatically available:
+`~/.claude/plugins/`, so the plugin must be present in each project's own
+`.claude/plugins/0k/`. Add this `SessionStart` hook to the project's
+`.claude/settings.json` to keep the plugin automatically available:
 
 ```json
 {
@@ -68,7 +73,7 @@ Remote Claude Code sessions (e.g. claude.ai/code) don't load
         "hooks": [
           {
             "type": "command",
-            "command": "bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/ensure-org-skills)"
+            "command": "bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/0k/bin/ensure-org-skills)"
           }
         ]
       }
@@ -79,18 +84,18 @@ Remote Claude Code sessions (e.g. claude.ai/code) don't load
 
 **What it does:**
 
-- **Missing skills** are copied into `.claude/skills/` automatically. Commit
-  the new files so they persist across sessions.
+- **Missing skills** are copied into `.claude/plugins/0k/` automatically.
+  Commit the new files so they persist across sessions.
 - **Outdated skills** (local copy differs from this repo) trigger a warning
   with update instructions — no silent overwrites.
 
 **To manually update outdated skills:**
 
 ```sh
-bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/update-org-skills)
+bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/0k/bin/update-org-skills)
 ```
 
-Review the diff (`git diff .claude/skills/`) and commit when satisfied.
+Review the diff (`git diff .claude/plugins/0k/`) and commit when satisfied.
 
 ## Git Hooks
 
@@ -108,9 +113,8 @@ Run `make setup` to copy them into `.git/hooks/`.
 Runs two checks before every commit:
 
 1. **Skill template sync** — calls `bin/check-skill-templates` to verify that
-   `.claude/skills/0k-create-issue/templates/` matches
-   `.github/ISSUE_TEMPLATE/`. Fails if they differ, since the skill bundles
-   copies of the issue templates.
+   `0k/skills/create-issue/templates/` matches `.github/ISSUE_TEMPLATE/`. Fails
+   if they differ, since the skill bundles copies of the issue templates.
 2. **Prettier formatting** — runs `npx prettier --check "**/*.md"` if `npx` is
    available; prints a warning and continues if it isn't.
 
@@ -134,7 +138,7 @@ current without manual intervention.
 
 ```sh
 make sync-skill-templates
-git add .claude/skills/0k-create-issue/templates/
+git add 0k/skills/create-issue/templates/
 ```
 
 **Markdown formatting issues:**

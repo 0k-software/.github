@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 #
-# update-org-skills: Overwrite local org skills with the latest from 0k-software/.github.
+# update-org-skills: Overwrite local 0k plugin with the latest from 0k-software/.github.
 #
 # Run this manually when ensure-org-skills reports outdated skills:
 #
-#   bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/update-org-skills)
+#   bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/0k/bin/update-org-skills)
 #
 # Unlike ensure-org-skills (which only installs missing skills and warns about
 # outdated ones), this script always overwrites with the remote version.
@@ -16,6 +16,7 @@ GITHUB_REPO=".github"
 BRANCH="main"
 API_BASE="https://api.github.com/repos/$GITHUB_ORG/$GITHUB_REPO"
 RAW_BASE="https://raw.githubusercontent.com/$GITHUB_ORG/$GITHUB_REPO/$BRANCH"
+PLUGIN_DIR=".claude/plugins/0k"
 
 # Skip when running inside the source repo itself
 if git remote -v 2>/dev/null | grep -qF "0k-software/.github"; then
@@ -23,36 +24,37 @@ if git remote -v 2>/dev/null | grep -qF "0k-software/.github"; then
   exit 0
 fi
 
-# Discover all skill files via the GitHub git trees API (one recursive call).
+# Discover all plugin files via the GitHub git trees API (one recursive call).
 # Files always have an extension; directory tree entries don't — use that to filter.
 tree_json=$(curl -fsSL "$API_BASE/git/trees/$BRANCH?recursive=1" 2>/dev/null) || {
   echo "error: could not reach GitHub API" >&2
   exit 1
 }
 
-skill_paths=$(printf '%s\n' "$tree_json" \
-  | grep -o '"path":"\.claude/skills/0k-[^"]*"' \
+plugin_paths=$(printf '%s\n' "$tree_json" \
+  | grep -o '"path":"0k/[^"]*"' \
   | sed 's/"path":"//;s/"$//' \
   | grep '\.')
 
-if [ -z "$skill_paths" ]; then
-  echo "error: no skills found in 0k-software/.github" >&2
+if [ -z "$plugin_paths" ]; then
+  echo "error: no plugin files found in 0k-software/.github" >&2
   exit 1
 fi
 
 updated=0
 failed=0
 
-while IFS= read -r path; do
-  mkdir -p "$(dirname "$path")"
-  if curl -fsSL "$RAW_BASE/$path" > "$path" 2>/dev/null; then
+while IFS= read -r remote_path; do
+  local_path="$PLUGIN_DIR/${remote_path#0k/}"
+  mkdir -p "$(dirname "$local_path")"
+  if curl -fsSL "$RAW_BASE/$remote_path" > "$local_path" 2>/dev/null; then
     updated=$((updated + 1))
   else
-    echo "warn: failed to fetch $path" >&2
-    rm -f "$path"
+    echo "warn: failed to fetch $remote_path" >&2
+    rm -f "$local_path"
     failed=$((failed + 1))
   fi
-done <<< "$skill_paths"
+done <<< "$plugin_paths"
 
 echo ""
 echo "Updated $updated file(s)${failed:+, $failed failed}."

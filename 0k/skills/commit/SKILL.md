@@ -1,5 +1,5 @@
 ---
-name: 0k-commit
+name: commit
 description:
   Stage all changes (staged, unstaged, and untracked) and generate a
   Conventional Commit message — use `!` prefix to auto-fix errors instead of

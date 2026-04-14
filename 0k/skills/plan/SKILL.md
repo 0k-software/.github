@@ -1,5 +1,5 @@
 ---
-name: 0k-plan
+name: plan
 description:
   Manage a GH issue implementation plan — `init {url}`, `next`, `add {desc}`,
   `execute`
@@ -73,7 +73,7 @@ After creating PLAN.md:
 ### `next`
 
 Read PLAN.md and implement the next unchecked step. Once done, mark the step as
-done (`- [x]`) in the PLAN.md TOC and run `/0k-commit !` with the step
+done (`- [x]`) in the PLAN.md TOC and run `/0k:commit` with the step
 title/description as context.
 
 If the implementation required any deviation from the original step description
@@ -99,7 +99,7 @@ Run every remaining step in PLAN.md, one after another, until none are left.
 
 1. Read PLAN.md and find the first unchecked (`- [ ]`) step.
 2. If no unchecked step exists → stop and report "Plan complete."
-3. Otherwise, execute that step exactly as `/0k-plan next` would (implement,
+3. Otherwise, execute that step exactly as `/0k:plan next` would (implement,
    mark done, commit, update plan if needed).
 4. Go back to step 1.
 
