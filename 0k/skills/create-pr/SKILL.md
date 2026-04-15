@@ -37,12 +37,13 @@ You are helping the user create a GitHub pull request from the current branch.
    - **Body:** If there is a linked issue, include `Closes {issue-url}` as the
      body. If there is no linked issue, write a brief summary based on the
      branch's commits (`git log main..HEAD --oneline`).
-7. **Create the PR** using `gh pr create`:
+7. **Create the PR** using `gh pr create`. Write the body to a temporary file
+   first, then:
    ```
    gh pr create \
      [--draft] \
      --title "{title}" \
-     --body "{body}" \
+     --body-file /tmp/pr-body.md \
      --head "$(git branch --show-current)"
    ```
 8. **Show the user the PR URL** returned by `gh pr create`.

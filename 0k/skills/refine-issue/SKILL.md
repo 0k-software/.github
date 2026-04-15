@@ -66,11 +66,12 @@ judgement to address all feedback.
 If any description or title changes were identified:
 
 1. Draft the updated title and/or body incorporating all feedback.
-2. Apply the update immediately:
+2. Write the updated body to a temporary file, then apply the update:
    ```
-   gh issue edit {number} --repo {owner}/{repo} --title "{new title}" --body "{new body}"
+   gh issue edit {number} --repo {owner}/{repo} --title "{new title}" --body-file /tmp/issue-body.md
    ```
-   Only include `--title` or `--body` flags for fields that actually changed.
+   Only include `--title` or `--body-file` flags for fields that actually
+   changed.
 
 ## Step 4 — Reply to comments
 
@@ -79,9 +80,9 @@ explanation of changes made):
 
 1. Draft a concise, helpful reply.
 2. Append the AI attribution footer (see below) to each reply.
-3. Post the reply:
+3. Write the reply to a temporary file, then post it:
    ```
-   gh issue comment {number} --repo {owner}/{repo} --body "{reply}"
+   gh issue comment {number} --repo {owner}/{repo} --body-file /tmp/issue-comment.md
    ```
 
 **Important:** Do NOT post one comment per original comment — that creates
