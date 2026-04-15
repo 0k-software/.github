@@ -110,13 +110,13 @@ Review the diff (`git diff .claude/plugins/0k/`) and commit when satisfied.
 3. Run:
 
 ```sh
-make release VERSION=<semver>
+make release
 ```
 
-This packages the plugin, creates and pushes the git tag, and publishes a
-GitHub release with the plugin zip attached. Both `bin/install-plugin` and the
-`ensure-org-skills` / `update-org-skills` scripts always pull from the latest
-release.
+The version is read automatically from `plugin.json`. This packages the plugin,
+creates and pushes the git tag, and publishes a GitHub release with the plugin
+zip attached. Both `bin/install-plugin` and the `ensure-org-skills` /
+`update-org-skills` scripts always pull from the latest release.
 
 ## Git Hooks
 
