@@ -24,5 +24,5 @@ detailed section for each step describing what to implement and how.
 After creating PLAN.md:
 
 1. Run `/0k:commit ! plan: {issue title}` to commit it.
-2. Invoke `/0k:create-pr draft` to push the branch and open a draft PR linking
-   to the issue.
+2. Invoke `/0k:create-pr draft {issue-number}` to push the branch and open a
+   draft PR linking to the issue.
