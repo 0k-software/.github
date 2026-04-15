@@ -25,3 +25,10 @@ Run every remaining step in PLAN.md, one after another, until none are left.
 to finish the entire plan autonomously. Keep going until every step is checked
 off or an unrecoverable error forces you to stop (in which case, explain what
 blocked you and which steps remain).
+
+**After all steps are complete:**
+
+1. Run `git rm PLAN.md` to remove the working artifact.
+2. Commit the removal using `/0k:commit`.
+3. Run `gh pr ready` to mark the current branch's PR as ready for review.
+4. Push the final commit.
