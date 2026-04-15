@@ -78,7 +78,7 @@ Remote Claude Code sessions (e.g. claude.ai/code) don't load
         "hooks": [
           {
             "type": "command",
-            "command": "bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/ensure-org-skills)"
+            "command": "bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/ensure-plugin)"
           }
         ]
       }
