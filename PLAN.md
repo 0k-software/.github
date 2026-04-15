@@ -25,7 +25,7 @@ HTML/XML tags, YAML front matter, and markdown formatting untouched.
 ## Steps
 
 - [x] [Step 1: Replace placeholders in fix-pr skill](#step-1-replace-placeholders-in-fix-pr-skill)
-- [ ] [Step 2: Replace placeholders in refine-issue skill](#step-2-replace-placeholders-in-refine-issue-skill)
+- [x] [Step 2: Replace placeholders in refine-issue skill](#step-2-replace-placeholders-in-refine-issue-skill)
 - [ ] [Step 3: Replace placeholders in cleanup-branch skill](#step-3-replace-placeholders-in-cleanup-branch-skill)
 - [ ] [Step 4: Replace placeholders in split-branch skill](#step-4-replace-placeholders-in-split-branch-skill)
 - [ ] [Step 5: Replace placeholders in rebase skill](#step-5-replace-placeholders-in-rebase-skill)

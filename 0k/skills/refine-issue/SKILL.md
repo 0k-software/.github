@@ -3,7 +3,7 @@ name: refine-issue
 description:
   Refine a GitHub issue — review its description and all comments, address
   feedback, reply to each comment, and update the title/description as needed
-argument-hint: <issue number or URL>
+argument-hint: { issue number or URL }
 ---
 
 # Refine Issue
@@ -20,21 +20,21 @@ which issue to refine.
 
 ## Step 1 — Fetch the issue
 
-1. Derive `<owner>/<repo>` from the current working directory's git remote. If
+1. Derive `{owner}/{repo}` from the current working directory's git remote. If
    `$ARGUMENTS` is a full URL, extract the owner/repo/number from it instead.
 2. Fetch the issue details (title, body, labels, type) using `gh`:
    ```
-   gh issue view <number> --repo <owner>/<repo> --json title,body,labels,number,url,state,issueType
+   gh issue view {number} --repo {owner}/{repo} --json title,body,labels,number,url,state,issueType
    ```
 3. Fetch **all** comments on the issue, including their reactions:
    ```
-   gh api "repos/<owner>/<repo>/issues/<number>/comments" --paginate \
+   gh api "repos/{owner}/{repo}/issues/{number}/comments" --paginate \
      --jq '.[] | {id, author: .user.login, body, reactions: [.reactions.url]}'
    ```
    For each comment, also fetch its reactions to check for the `eyes` (👀)
    marker:
    ```
-   gh api "repos/<owner>/<repo>/issues/comments/<comment-id>/reactions" \
+   gh api "repos/{owner}/{repo}/issues/comments/{comment-id}/reactions" \
      --jq '[.[] | select(.content == "eyes")]'
    ```
 4. **Skip already-addressed comments.** Any comment that has an `eyes` (👀)
@@ -68,7 +68,7 @@ If any description or title changes were identified:
 1. Draft the updated title and/or body incorporating all feedback.
 2. Apply the update immediately:
    ```
-   gh issue edit <number> --repo <owner>/<repo> --title "<new title>" --body "<new body>"
+   gh issue edit {number} --repo {owner}/{repo} --title "{new title}" --body "{new body}"
    ```
    Only include `--title` or `--body` flags for fields that actually changed.
 
@@ -81,7 +81,7 @@ explanation of changes made):
 2. Append the AI attribution footer (see below) to each reply.
 3. Post the reply:
    ```
-   gh issue comment <number> --repo <owner>/<repo> --body "<reply>"
+   gh issue comment {number} --repo {owner}/{repo} --body "{reply}"
    ```
 
 **Important:** Do NOT post one comment per original comment — that creates
@@ -96,7 +96,7 @@ to every comment that was addressed in this run. This prevents future runs from
 re-addressing the same feedback.
 
 ```
-gh api "repos/<owner>/<repo>/issues/comments/<comment-id>/reactions" \
+gh api "repos/{owner}/{repo}/issues/comments/{comment-id}/reactions" \
   -f content="eyes"
 ```
 
