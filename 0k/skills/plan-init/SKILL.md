@@ -54,12 +54,6 @@ to roughly one commit; use this to predict PR size:
 | ≤ 6        | ≤ ~500 lines      | Single PR — proceed normally |
 | ≥ 7        | > ~500 lines      | Scope down required          |
 
-**When the step count is ≤ 6**, continue with the normal flow:
-
-1. Run `/0k:commit ! plan: {issue title}` to commit it.
-2. Invoke `/0k:create-pr draft {issue-number}` to push the branch and open a
-   draft PR linking to the issue.
-
 **When the step count is ≥ 7**, the plan is too large for a single reviewable
 PR. Present the two options and ask the user to choose:
 
@@ -90,3 +84,9 @@ PR. Present the two options and ask the user to choose:
 
 1. Run `/0k:commit ! plan: {issue title}` to commit the full PLAN.md.
 2. Invoke `/0k:create-pr draft {issue-number}` to push and open the draft PR.
+
+**When the step count is ≤ 6**, continue with the normal flow:
+
+1. Run `/0k:commit ! plan: {issue title}` to commit it.
+2. Invoke `/0k:create-pr draft {issue-number}` to push the branch and open a
+   draft PR linking to the issue.
