@@ -30,7 +30,7 @@ HTML/XML tags, YAML front matter, and markdown formatting untouched.
 - [x] [Step 4: Replace placeholders in split-branch skill](#step-4-replace-placeholders-in-split-branch-skill)
 - [x] [Step 5: Replace placeholders in rebase skill](#step-5-replace-placeholders-in-rebase-skill)
 - [x] [Step 6: Replace placeholders in kitty skill](#step-6-replace-placeholders-in-kitty-skill)
-- [ ] [Step 7: Replace placeholders in create-issue skill](#step-7-replace-placeholders-in-create-issue-skill)
+- [x] [Step 7: Replace placeholders in create-issue skill](#step-7-replace-placeholders-in-create-issue-skill)
 
 ---
 
