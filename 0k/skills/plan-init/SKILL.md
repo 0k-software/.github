@@ -21,6 +21,22 @@ following the format defined in `PLAN_FORMAT.md`. Include the link, a summary
 of the issue, the overall approach, a TOC checklist with anchor links, and a
 detailed section for each step describing what to implement and how.
 
+**Before creating PLAN.md**, check the current branch:
+
+```
+git branch --show-current
+```
+
+If the current branch is `main` or `master`, create and checkout a new branch
+derived from the issue. Build the branch name as `{issue-number}-{slug}` where
+`{slug}` is the issue title lowercased, spaces replaced with hyphens, special
+characters stripped, and truncated to keep the total branch name readable (aim
+for ≤ 50 characters). Then run:
+
+```
+git checkout -b {branch-name}
+```
+
 After creating PLAN.md:
 
 1. Run `/0k:commit ! plan: {issue title}` to commit it.
