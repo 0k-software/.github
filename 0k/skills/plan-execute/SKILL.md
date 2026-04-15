@@ -6,7 +6,7 @@ description:
 ---
 
 Before proceeding, read the shared format definition at
-`0k/skills/plan/PLAN_FORMAT.md` (relative to the plugin root). Use the `Read`
+`0k/references/PLAN_FORMAT.md` (relative to the plugin root). Use the `Read`
 tool on that file to learn the PLAN.md structure.
 
 ---
