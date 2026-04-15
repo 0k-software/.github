@@ -2,7 +2,7 @@
   "name": "0k",
   "description": "0k-software org skills — commit, rebase, issue management, branch workflows, and more",
   "version": "1.0.0",
-  "author": "0k-software",
+  "author": { "name": "0k-software" },
   "license": "MIT",
   "homepage": "https://github.com/0k-software/.github",
   "repository": "https://github.com/0k-software/.github"
