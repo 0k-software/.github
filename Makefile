@@ -5,7 +5,7 @@ GIT_HOOKS_DST := $(GIT_DIR)/hooks
 HOOK_FILES := $(wildcard $(GIT_HOOKS_SRC)/*)
 
 .PHONY: all
-all: setup install-plugin package-plugin
+all: setup install-plugin
 
 .PHONY: setup
 setup:
@@ -40,15 +40,7 @@ install-plugin: sync-skill-templates
 		|| claude plugin update $(PLUGIN_NAME)
 	@echo "Plugin $(PLUGIN_NAME) installed from $(MARKETPLACE_NAME) marketplace"
 
-PLUGIN_DIST := dist
 PLUGIN_VERSION := $(shell jq -r '.version' $(PLUGIN_NAME)/.claude-plugin/plugin.json 2>/dev/null)
-
-.PHONY: package-plugin
-package-plugin: sync-skill-templates
-	@rm -rf $(PLUGIN_DIST)
-	@mkdir -p $(PLUGIN_DIST)
-	@cd . && zip -r $(PLUGIN_DIST)/0k-plugin.zip 0k/
-	@echo "Packaged plugin -> $(PLUGIN_DIST)/0k-plugin.zip"
 
 .PHONY: uninstall-plugin
 uninstall-plugin:
@@ -57,7 +49,7 @@ uninstall-plugin:
 	@echo "Plugin $(PLUGIN_NAME) uninstalled"
 
 .PHONY: release
-release: package-plugin
+release:
 	@test -n "$(PLUGIN_VERSION)" || { echo "error: could not read version from $(PLUGIN_NAME)/.claude-plugin/plugin.json"; exit 1; }
 	@git diff --quiet && git diff --cached --quiet \
 		|| { echo "error: working tree is dirty — commit all changes first"; exit 1; }
@@ -66,12 +58,10 @@ release: package-plugin
 	@git push origin "v$(PLUGIN_VERSION)"
 	@gh release create "v$(PLUGIN_VERSION)" \
 		--title "v$(PLUGIN_VERSION)" \
-		--generate-notes \
-		"$(PLUGIN_DIST)/$(PLUGIN_NAME)-plugin.zip#$(PLUGIN_NAME)-plugin.zip"
+		--generate-notes
 	@echo "Released v$(PLUGIN_VERSION)"
 
 # Backwards-compatible aliases
-.PHONY: install-skills uninstall-skills package-skills
+.PHONY: install-skills uninstall-skills
 install-skills: install-plugin
 uninstall-skills: uninstall-plugin
-package-skills: package-plugin
