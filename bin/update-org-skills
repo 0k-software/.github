@@ -7,40 +7,19 @@
 #   bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/update-org-skills)
 #
 # Unlike ensure-org-skills (which only installs missing skills and warns about
-# outdated ones), this script always overwrites with the latest release.
+# outdated ones), this script always updates to the latest release.
 #
 set -uo pipefail
 
-GITHUB_ORG="0k-software"
-GITHUB_REPO=".github"
 PLUGIN_NAME="0k"
-RELEASE_ZIP_URL="https://github.com/$GITHUB_ORG/$GITHUB_REPO/releases/latest/download/$PLUGIN_NAME-plugin.zip"
-PLUGIN_DIR=".claude/plugins/$PLUGIN_NAME"
 
 # Skip when running inside the source repo itself
-if git remote -v 2>/dev/null | grep -qF "$GITHUB_ORG/$GITHUB_REPO"; then
+if git remote -v 2>/dev/null | grep -qF "0k-software/.github"; then
   echo "Already in the source repo — nothing to do." >&2
   exit 0
 fi
 
-command -v unzip >/dev/null 2>&1 || {
-  echo "error: 'unzip' is required but not installed" >&2
-  exit 1
-}
-
-TMP=$(mktemp -d)
-trap 'rm -rf "$TMP"' EXIT
-
-echo "Downloading latest 0k plugin release..."
-curl -fsSL "$RELEASE_ZIP_URL" -o "$TMP/plugin.zip" || {
-  echo "error: failed to download plugin release" >&2
-  exit 1
-}
-
-mkdir -p "$PLUGIN_DIR"
-unzip -q "$TMP/plugin.zip" -d "$TMP/extracted"
-cp -r "$TMP/extracted/$PLUGIN_NAME/." "$PLUGIN_DIR/"
+claude plugin update "$PLUGIN_NAME"
 
 echo ""
-echo "Updated to latest 0k plugin release."
 echo "Review the changes and commit when satisfied."

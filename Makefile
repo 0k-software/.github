@@ -41,6 +41,7 @@ install-plugin: sync-skill-templates
 	@echo "Plugin $(PLUGIN_NAME) installed from $(MARKETPLACE_NAME) marketplace"
 
 PLUGIN_DIST := dist
+PLUGIN_VERSION := $(shell jq -r '.version' $(PLUGIN_NAME)/.claude-plugin/plugin.json 2>/dev/null)
 
 .PHONY: package-plugin
 package-plugin: sync-skill-templates
@@ -57,19 +58,17 @@ uninstall-plugin:
 
 .PHONY: release
 release: package-plugin
-	@test -n "$(VERSION)" || { echo "Usage: make release VERSION=<semver>  (e.g. make release VERSION=1.1.0)"; exit 1; }
-	@grep -q '"version": "$(VERSION)"' $(PLUGIN_NAME)/.claude-plugin/plugin.json \
-		|| { echo "error: plugin.json version is not $(VERSION) — update it first"; exit 1; }
+	@test -n "$(PLUGIN_VERSION)" || { echo "error: could not read version from $(PLUGIN_NAME)/.claude-plugin/plugin.json"; exit 1; }
 	@git diff --quiet && git diff --cached --quiet \
 		|| { echo "error: working tree is dirty — commit all changes first"; exit 1; }
-	@git tag -a "v$(VERSION)" -m "v$(VERSION)" 2>/dev/null \
-		|| { echo "error: tag v$(VERSION) already exists"; exit 1; }
-	@git push origin "v$(VERSION)"
-	@gh release create "v$(VERSION)" \
-		--title "v$(VERSION)" \
+	@git tag -a "v$(PLUGIN_VERSION)" -m "v$(PLUGIN_VERSION)" 2>/dev/null \
+		|| { echo "error: tag v$(PLUGIN_VERSION) already exists"; exit 1; }
+	@git push origin "v$(PLUGIN_VERSION)"
+	@gh release create "v$(PLUGIN_VERSION)" \
+		--title "v$(PLUGIN_VERSION)" \
 		--generate-notes \
 		"$(PLUGIN_DIST)/$(PLUGIN_NAME)-plugin.zip#$(PLUGIN_NAME)-plugin.zip"
-	@echo "Released v$(VERSION)"
+	@echo "Released v$(PLUGIN_VERSION)"
 
 # Backwards-compatible aliases
 .PHONY: install-skills uninstall-skills package-skills
