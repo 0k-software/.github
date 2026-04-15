@@ -29,8 +29,8 @@ Parse `$ARGUMENTS` to determine the mode and target branch:
 
 1. Verify the working tree is clean (`git status --porcelain`). If dirty, abort
    and tell the user to commit or stash first.
-2. Fetch the latest from origin: `git fetch origin <target>`.
-3. Count commits to rebase: `git log --oneline origin/<target>..HEAD`. Display
+2. Fetch the latest from origin: `git fetch origin {target}`.
+3. Count commits to rebase: `git log --oneline origin/{target}..HEAD`. Display
    them so the user knows what will be rebased.
 
 ## Step 2 — Start the rebase
@@ -38,7 +38,7 @@ Parse `$ARGUMENTS` to determine the mode and target branch:
 Run:
 
 ```
-git rebase origin/<target> --exec "git hook run pre-commit"
+git rebase origin/{target} --exec "git hook run pre-commit"
 ```
 
 This applies each commit and runs the pre-commit hook after each one. Three
