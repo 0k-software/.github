@@ -16,7 +16,7 @@
 #     }
 #   }
 #
-# Missing plugin: installed automatically from the latest GitHub release.
+# Missing plugin: installed automatically via the Claude Code plugin marketplace.
 # Outdated plugin: flagged with instructions — no silent overwrites.
 #
 set -uo pipefail
@@ -24,8 +24,9 @@ set -uo pipefail
 GITHUB_ORG="0k-software"
 GITHUB_REPO=".github"
 PLUGIN_NAME="0k"
+MARKETPLACE="$GITHUB_ORG/$GITHUB_REPO"
+MARKETPLACE_NAME="$GITHUB_ORG"
 API_LATEST="https://api.github.com/repos/$GITHUB_ORG/$GITHUB_REPO/releases/latest"
-RELEASE_ZIP_URL="https://github.com/$GITHUB_ORG/$GITHUB_REPO/releases/latest/download/$PLUGIN_NAME-plugin.zip"
 PLUGIN_DIR=".claude/plugins/$PLUGIN_NAME"
 
 # Skip when running inside the source repo itself
@@ -33,44 +34,17 @@ if git remote -v 2>/dev/null | grep -qF "$GITHUB_ORG/$GITHUB_REPO"; then
   exit 0
 fi
 
-# Fetch the latest release version from the GitHub API
-latest_json=$(curl -fsSL "$API_LATEST" 2>/dev/null) || {
-  echo "warn: could not reach GitHub API, skipping org skills check" >&2
-  exit 0
-}
-
-latest_version=$(printf '%s\n' "$latest_json" \
-  | grep '"tag_name"' \
-  | sed 's/.*"tag_name": *"v\([^"]*\)".*/\1/' \
-  | head -1)
-
-if [ -z "$latest_version" ]; then
-  echo "warn: could not determine latest release version" >&2
-  exit 0
-fi
-
 local_plugin_json="$PLUGIN_DIR/.claude-plugin/plugin.json"
 
 if [ ! -f "$local_plugin_json" ]; then
-  # Not installed — fetch and install from the latest release zip
-  command -v unzip >/dev/null 2>&1 || {
-    echo "warn: 'unzip' is required to install the 0k plugin" >&2
+  echo "Installing 0k plugin..."
+
+  claude plugin marketplace add "$MARKETPLACE" 2>/dev/null \
+    || claude plugin marketplace update "$MARKETPLACE_NAME"
+  claude plugin install "$PLUGIN_NAME" || {
+    echo "warn: failed to install 0k plugin" >&2
     exit 0
   }
-
-  echo "Installing 0k plugin v$latest_version..."
-
-  TMP=$(mktemp -d)
-  trap 'rm -rf "$TMP"' EXIT
-
-  curl -fsSL "$RELEASE_ZIP_URL" -o "$TMP/plugin.zip" 2>/dev/null || {
-    echo "warn: failed to download plugin release" >&2
-    exit 0
-  }
-
-  mkdir -p "$PLUGIN_DIR"
-  unzip -q "$TMP/plugin.zip" -d "$TMP/extracted"
-  cp -r "$TMP/extracted/$PLUGIN_NAME/." "$PLUGIN_DIR/"
 
   echo "Commit the new files in $PLUGIN_DIR/ to persist them for future sessions."
 else
@@ -79,7 +53,12 @@ else
     | sed 's/.*"version": *"\([^"]*\)".*/\1/' \
     | head -1)
 
-  if [ "$installed_version" != "$latest_version" ]; then
+  latest_version=$(curl -fsSL "$API_LATEST" 2>/dev/null \
+    | grep '"tag_name"' \
+    | sed 's/.*"tag_name": *"v\([^"]*\)".*/\1/' \
+    | head -1)
+
+  if [ -n "$latest_version" ] && [ "$installed_version" != "$latest_version" ]; then
     echo ""
     echo "The 0k plugin is outdated (installed: v$installed_version, latest: v$latest_version)."
     echo "To update, run: bash <(curl -fsSL https://raw.githubusercontent.com/$GITHUB_ORG/$GITHUB_REPO/main/bin/update-plugin)"
