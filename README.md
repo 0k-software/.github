@@ -113,10 +113,9 @@ Review the diff (`git diff .claude/plugins/0k/`) and commit when satisfied.
 make release
 ```
 
-The version is read automatically from `plugin.json`. This packages the plugin,
-creates and pushes the git tag, and publishes a GitHub release with the plugin
-zip attached. Both `bin/install-plugin` and the `ensure-plugin` /
-`update-plugin` scripts always pull from the latest release.
+The version is read automatically from `plugin.json`. This creates and pushes
+the git tag and publishes a GitHub release. Both `bin/install-plugin` and the
+`ensure-plugin` / `update-plugin` scripts always pull from the latest release.
 
 ## Git Hooks
 
