@@ -75,7 +75,7 @@ the plugin across projects without silently stale copies, add this
         "hooks": [
           {
             "type": "command",
-            "command": "bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/ensure-org-skills)"
+            "command": "bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/ensure-plugin)"
           }
         ]
       }

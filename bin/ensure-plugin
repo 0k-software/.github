@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# ensure-org-skills: Install missing 0k plugin skills; warn about outdated ones.
+# ensure-plugin: Install the 0k plugin if missing; warn if outdated.
 #
 # Run as a Claude Code SessionStart hook in any 0k-software project by adding this
 # to the project's .claude/settings.json:
@@ -10,7 +10,7 @@
 #       "SessionStart": [{
 #         "hooks": [{
 #           "type": "command",
-#           "command": "bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/ensure-org-skills)"
+#           "command": "bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/ensure-plugin)"
 #         }]
 #       }]
 #     }
@@ -82,6 +82,6 @@ else
   if [ "$installed_version" != "$latest_version" ]; then
     echo ""
     echo "The 0k plugin is outdated (installed: v$installed_version, latest: v$latest_version)."
-    echo "To update, run: bash <(curl -fsSL https://raw.githubusercontent.com/$GITHUB_ORG/$GITHUB_REPO/main/bin/update-org-skills)"
+    echo "To update, run: bash <(curl -fsSL https://raw.githubusercontent.com/$GITHUB_ORG/$GITHUB_REPO/main/bin/update-plugin)"
   fi
 fi
