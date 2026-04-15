@@ -22,7 +22,7 @@ cross-references in other skills.
 - [x] [Step 3: Create plan-next skill](#step-3-create-plan-next-skill)
 - [x] [Step 4: Create plan-add skill](#step-4-create-plan-add-skill)
 - [x] [Step 5: Create plan-execute skill](#step-5-create-plan-execute-skill)
-- [ ] [Step 6: Remove original plan skill and update references](#step-6-remove-original-plan-skill-and-update-references)
+- [x] [Step 6: Remove original plan skill and update references](#step-6-remove-original-plan-skill-and-update-references)
 
 ---
 

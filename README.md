@@ -36,7 +36,10 @@ The `0k` Claude Code plugin lives in `0k/`. Each skill is a subdirectory under
 | `commit`         | `/0k:commit`         | Stage all changes and generate a Conventional Commit |
 | `create-issue`   | `/0k:create-issue`   | Create a GitHub issue using the org issue templates  |
 | `fix-pr`         | `/0k:fix-pr`         | Address unresolved PR review comments                |
-| `plan`           | `/0k:plan`           | Manage a GH issue implementation plan                |
+| `plan-init`      | `/0k:plan-init`      | Create an implementation plan from a GitHub issue    |
+| `plan-next`      | `/0k:plan-next`      | Implement the next unchecked step in PLAN.md         |
+| `plan-add`       | `/0k:plan-add`       | Add a new step to an existing PLAN.md                |
+| `plan-execute`   | `/0k:plan-execute`   | Run all remaining plan steps autonomously            |
 | `rebase`         | `/0k:rebase`         | Rebase current branch onto another                   |
 | `cleanup-branch` | `/0k:cleanup-branch` | Clean up a branch's commit history                   |
 | `split-branch`   | `/0k:split-branch`   | Split a large branch into smaller stacked branches   |
