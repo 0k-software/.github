@@ -45,7 +45,7 @@ migrations together").
 For every commit (oldest to newest), count its changed lines:
 
 ```
-git diff --shortstat <commit>^ <commit>
+git diff --shortstat {commit}^ {commit}
 ```
 
 Record each commit as: `{ sha, subject, additions, deletions, total_lines }`.
@@ -110,19 +110,19 @@ tweak the grouping.
 
 For each bucket (1 through N):
 
-1. Determine the branch name: `<current-branch>-<N>` (e.g.
+1. Determine the branch name: `{current-branch}-{N}` (e.g.
    `feature/my-big-feature-1`).
 2. Check out the correct starting point:
    - Bucket 1 starts from `origin/$BASE`.
    - Bucket N (N > 1) starts from the tip of bucket N-1's branch.
 3. Create and check out the new branch:
    ```
-   git checkout -b <branch-name>
+   git checkout -b {branch-name}
    ```
 4. Cherry-pick each commit in the bucket:
 
    ```
-   git cherry-pick <sha>
+   git cherry-pick {sha}
    ```
 
    If cherry-pick produces a conflict, stop and report:
@@ -148,7 +148,7 @@ For each branch (1 through N), in order:
 
 1. Push the branch:
    ```
-   git push -u origin <branch-name>
+   git push -u origin {branch-name}
    ```
 2. Open a PR targeting the correct base:
    - Branch 1 targets `$BASE`.
