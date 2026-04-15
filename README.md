@@ -48,11 +48,10 @@ The `0k` Claude Code plugin lives in `0k/`. Each skill is a subdirectory under
 
 ### Installing the plugin locally
 
-To install the plugin to `~/.claude/plugins/0k/` so it's available in all local
-Claude Code sessions:
+Install the latest release to `~/.claude/plugins/0k/` without cloning:
 
 ```sh
-make install-plugin
+bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/install-plugin)
 ```
 
 To uninstall:
@@ -60,6 +59,9 @@ To uninstall:
 ```sh
 make uninstall-plugin
 ```
+
+> **Contributors** working inside this repo can use `make install-plugin`
+> instead, which installs from the local working copy.
 
 ### Installing the plugin in remote sessions (other 0k-software projects)
 
@@ -87,18 +89,34 @@ Remote Claude Code sessions (e.g. claude.ai/code) don't load
 
 **What it does:**
 
-- **Missing skills** are copied into `.claude/plugins/0k/` automatically.
+- **Missing plugin** is installed automatically from the latest GitHub release.
   Commit the new files so they persist across sessions.
-- **Outdated skills** (local copy differs from this repo) trigger a warning
-  with update instructions — no silent overwrites.
+- **Outdated plugin** (local version differs from latest release) triggers a
+  warning with update instructions — no silent overwrites.
 
-**To manually update outdated skills:**
+**To manually update to the latest release:**
 
 ```sh
 bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/update-org-skills)
 ```
 
 Review the diff (`git diff .claude/plugins/0k/`) and commit when satisfied.
+
+### Releasing a new version
+
+1. Update `version` in `0k/.claude-plugin/plugin.json` and add an entry to
+   `CHANGELOG.md`.
+2. Commit and push those changes.
+3. Run:
+
+```sh
+make release VERSION=<semver>
+```
+
+This packages the plugin, creates and pushes the git tag, and publishes a
+GitHub release with the plugin zip attached. Both `bin/install-plugin` and the
+`ensure-org-skills` / `update-org-skills` scripts always pull from the latest
+release.
 
 ## Git Hooks
 

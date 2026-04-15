@@ -1,61 +1,46 @@
 #!/usr/bin/env bash
 #
-# update-org-skills: Overwrite local 0k plugin with the latest from 0k-software/.github.
+# update-org-skills: Update the local 0k plugin to the latest release.
 #
-# Run this manually when ensure-org-skills reports outdated skills:
+# Run this manually when ensure-org-skills reports an outdated plugin:
 #
 #   bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/update-org-skills)
 #
 # Unlike ensure-org-skills (which only installs missing skills and warns about
-# outdated ones), this script always overwrites with the remote version.
+# outdated ones), this script always overwrites with the latest release.
 #
 set -uo pipefail
 
 GITHUB_ORG="0k-software"
 GITHUB_REPO=".github"
-BRANCH="main"
-API_BASE="https://api.github.com/repos/$GITHUB_ORG/$GITHUB_REPO"
-RAW_BASE="https://raw.githubusercontent.com/$GITHUB_ORG/$GITHUB_REPO/$BRANCH"
-PLUGIN_DIR=".claude/plugins/0k"
+PLUGIN_NAME="0k"
+RELEASE_ZIP_URL="https://github.com/$GITHUB_ORG/$GITHUB_REPO/releases/latest/download/$PLUGIN_NAME-plugin.zip"
+PLUGIN_DIR=".claude/plugins/$PLUGIN_NAME"
 
 # Skip when running inside the source repo itself
-if git remote -v 2>/dev/null | grep -qF "0k-software/.github"; then
+if git remote -v 2>/dev/null | grep -qF "$GITHUB_ORG/$GITHUB_REPO"; then
   echo "Already in the source repo — nothing to do." >&2
   exit 0
 fi
 
-# Discover all plugin files via the GitHub git trees API (one recursive call).
-# Files always have an extension; directory tree entries don't — use that to filter.
-tree_json=$(curl -fsSL "$API_BASE/git/trees/$BRANCH?recursive=1" 2>/dev/null) || {
-  echo "error: could not reach GitHub API" >&2
+command -v unzip >/dev/null 2>&1 || {
+  echo "error: 'unzip' is required but not installed" >&2
   exit 1
 }
 
-plugin_paths=$(printf '%s\n' "$tree_json" \
-  | grep -o '"path":"0k/[^"]*"' \
-  | sed 's/"path":"//;s/"$//' \
-  | grep '\.')
+TMP=$(mktemp -d)
+trap 'rm -rf "$TMP"' EXIT
 
-if [ -z "$plugin_paths" ]; then
-  echo "error: no plugin files found in 0k-software/.github" >&2
+echo "Downloading latest 0k plugin release..."
+curl -fsSL "$RELEASE_ZIP_URL" -o "$TMP/plugin.zip" || {
+  echo "error: failed to download plugin release" >&2
   exit 1
-fi
+}
 
-updated=0
-failed=0
-
-while IFS= read -r remote_path; do
-  local_path="$PLUGIN_DIR/${remote_path#0k/}"
-  mkdir -p "$(dirname "$local_path")"
-  if curl -fsSL "$RAW_BASE/$remote_path" > "$local_path" 2>/dev/null; then
-    updated=$((updated + 1))
-  else
-    echo "warn: failed to fetch $remote_path" >&2
-    rm -f "$local_path"
-    failed=$((failed + 1))
-  fi
-done <<< "$plugin_paths"
+mkdir -p "$PLUGIN_DIR"
+unzip -q "$TMP/plugin.zip" -d "$TMP/extracted"
+cp -r "$TMP/extracted/$PLUGIN_NAME/." "$PLUGIN_DIR/"
 
 echo ""
-echo "Updated $updated file(s)${failed:+, $failed failed}."
+echo "Updated to latest 0k plugin release."
 echo "Review the changes and commit when satisfied."

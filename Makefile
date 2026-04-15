@@ -55,6 +55,22 @@ uninstall-plugin:
 	@claude plugin marketplace remove $(MARKETPLACE_NAME) 2>/dev/null || true
 	@echo "Plugin $(PLUGIN_NAME) uninstalled"
 
+.PHONY: release
+release: package-plugin
+	@test -n "$(VERSION)" || { echo "Usage: make release VERSION=<semver>  (e.g. make release VERSION=1.1.0)"; exit 1; }
+	@grep -q '"version": "$(VERSION)"' $(PLUGIN_NAME)/.claude-plugin/plugin.json \
+		|| { echo "error: plugin.json version is not $(VERSION) — update it first"; exit 1; }
+	@git diff --quiet && git diff --cached --quiet \
+		|| { echo "error: working tree is dirty — commit all changes first"; exit 1; }
+	@git tag -a "v$(VERSION)" -m "v$(VERSION)" 2>/dev/null \
+		|| { echo "error: tag v$(VERSION) already exists"; exit 1; }
+	@git push origin "v$(VERSION)"
+	@gh release create "v$(VERSION)" \
+		--title "v$(VERSION)" \
+		--generate-notes \
+		"$(PLUGIN_DIST)/$(PLUGIN_NAME)-plugin.zip#$(PLUGIN_NAME)-plugin.zip"
+	@echo "Released v$(VERSION)"
+
 # Backwards-compatible aliases
 .PHONY: install-skills uninstall-skills package-skills
 install-skills: install-plugin

@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+#
+# install-plugin: Install the 0k Claude Code plugin locally without cloning.
+#
+# Usage (no clone needed):
+#
+#   bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/install-plugin)
+#
+# Downloads the latest release zip, registers it as a local marketplace source,
+# and installs the plugin so it's available in all local Claude Code sessions.
+#
+set -uo pipefail
+
+GITHUB_ORG="0k-software"
+GITHUB_REPO=".github"
+PLUGIN_NAME="0k"
+MARKETPLACE_NAME="0k-software"
+RELEASE_ZIP_URL="https://github.com/$GITHUB_ORG/$GITHUB_REPO/releases/latest/download/$PLUGIN_NAME-plugin.zip"
+
+command -v unzip >/dev/null 2>&1 || {
+  echo "error: 'unzip' is required but not installed" >&2
+  exit 1
+}
+
+TMP=$(mktemp -d)
+trap 'rm -rf "$TMP"' EXIT
+
+echo "Downloading latest 0k plugin release..."
+curl -fsSL "$RELEASE_ZIP_URL" -o "$TMP/plugin.zip" || {
+  echo "error: failed to download $RELEASE_ZIP_URL" >&2
+  exit 1
+}
+
+unzip -q "$TMP/plugin.zip" -d "$TMP/extracted"
+
+echo "Registering and installing..."
+claude plugin marketplace add "$TMP/extracted" 2>/dev/null \
+  || claude plugin marketplace update "$MARKETPLACE_NAME"
+claude plugin install "$PLUGIN_NAME" 2>/dev/null \
+  || claude plugin update "$PLUGIN_NAME"
+
+echo "Done. The 0k plugin is now available in all local Claude Code sessions."
