@@ -58,40 +58,49 @@ to roughly one commit; use this to predict PR size:
 **When the step count is ≥ 7**, display this warning before committing:
 
 > ⚠️ This plan has {N} steps. At ~80 lines per commit, that's roughly {N × 80}
-> changed lines — likely over the 500-line reviewability threshold. Consider
-> splitting into stacked PRs now rather than using `/split-branch` later.
+> changed lines — likely over the 500-line reviewability threshold. How would
+> you like to handle this?
 >
-> Split into multiple PRs? [Y/n]
+> **A (recommended):** Scope this plan down to the first deliverable group and
+> create new GitHub issues for the remaining work. Keeps a clean 1-issue → 1-PR
+> ratio and avoids planning work you don't need yet.
+>
+> **B:** Split the full plan into stacked PRs linked to the same issue. Creates
+> `PLAN-1.md`, `PLAN-2.md`, … and opens a PR chain.
+>
+> **C:** Continue with the full plan in a single PR.
 
-**If the user declines** (or step count is ≤ 6), continue with the normal flow:
+**Option A — Scope down + defer (recommended):**
 
-1. Run `/0k:commit ! plan: {issue title}` to commit it.
-2. Invoke `/0k:create-pr draft {issue-number}` to push the branch and open a
-   draft PR linking to the issue.
+1. **Propose a grouping.** Identify the first logical deliverable group (≤ 6
+   steps). Group the remaining steps into follow-up batches. Show the proposed
+   grouping and ask the user to confirm or adjust.
+2. **Trim PLAN.md** to contain only the first group's steps.
+3. **Create a follow-up GitHub issue** for each remaining group using
+   `/0k:create-issue`. Include enough context for a future implementer and link
+   back to the original issue.
+4. Run `/0k:commit ! plan: {issue title}` to commit the scoped-down PLAN.md.
+5. Invoke `/0k:create-pr draft {issue-number}` to push and open the draft PR.
 
-**If the user agrees** (or does not explicitly decline when count ≥ 10):
+**Option B — Stacked PRs:**
 
-1. **Propose a grouping.** Partition the steps into batches of ≤ 6 steps,
-   keeping logically related steps together (e.g. migration with its schema, a
-   feature with its tests). Present the proposed grouping:
+1. **Propose a grouping.** Partition all steps into batches of ≤ 6, keeping
+   logically related steps together. Show the proposed split and ask to
+   confirm:
 
    ```
    Proposed split into {M} plans:
 
      Plan 1 — "{theme}" ({N} steps)
        • Step 1: …
-       • Step 2: …
 
      Plan 2 — "{theme}" ({N} steps)
        • Step 3: …
-       …
    ```
 
-   Ask the user to confirm or adjust before writing any files.
-
 2. **Create one file per batch**: `PLAN-1.md`, `PLAN-2.md`, … `PLAN-{M}.md`.
-   Each file follows the standard PLAN_FORMAT.md structure (renumber steps from
-   1 within each file). Add a one-line preamble after the Summary:
+   Each follows the standard PLAN_FORMAT.md structure (steps renumbered from
+   1). Add a one-line preamble after the Summary:
    - `PLAN-1.md`: `> Part 1 of {M} — next: PLAN-2.md`
    - `PLAN-N.md` (N > 1): `> Part {N} of {M} — previous: PLAN-{N-1}.md`
 
@@ -99,6 +108,10 @@ to roughly one commit; use this to predict PR size:
 
 3. Run `/0k:commit ! plan: {issue title} (split into {M} parts)` to commit all
    PLAN files together.
-
 4. Invoke `/0k:create-pr draft {issue-number}` to push and open the first draft
    PR.
+
+**Option C — Proceed as-is:**
+
+1. Run `/0k:commit ! plan: {issue title}` to commit it.
+2. Invoke `/0k:create-pr draft {issue-number}` to push and open the draft PR.
