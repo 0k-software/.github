@@ -27,15 +27,20 @@ detailed section for each step describing what to implement and how.
 git branch --show-current
 ```
 
-If the current branch is `main` or `master`, create and checkout a new branch
-derived from the issue. Build the branch name as `{issue-number}-{slug}` where
-`{slug}` is the issue title lowercased, spaces replaced with hyphens, special
-characters stripped, and truncated to keep the total branch name readable (aim
-for ≤ 50 characters). Then run:
+If the current branch is `main` or `master`, create a new branch derived from
+the issue. Build the branch name as `{issue-number}-{slug}` where `{slug}` is
+the issue title lowercased, spaces replaced with hyphens, special characters
+stripped, and kept to **≤ 20 characters** — pick 2–3 words that capture the
+area or context (the issue number already provides full traceability). Then
+run:
 
 ```
-git checkout -b {branch-name}
+gh issue develop {issue-number} --name {branch-name}
+wt switch {branch-name}
 ```
+
+`gh issue develop` creates the branch and links it to the issue on GitHub.
+`wt switch` switches to it via a worktree.
 
 After creating PLAN.md:
 
