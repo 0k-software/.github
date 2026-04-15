@@ -29,7 +29,7 @@ Open a kitty terminal window for the current working directory.
 3. **If a matching window is found:**
    - Focus the OS window that contains it:
      ```
-     kitty @ focus-window --match id:<window-id>
+     kitty @ focus-window --match id:{window-id}
      ```
    - Tell the user which window was activated.
 
@@ -38,13 +38,13 @@ Open a kitty terminal window for the current working directory.
    a. **Kitty is running but no matching window** — open a new tab:
 
    ```
-   kitty @ new-window --new-tab --cwd <session-cwd> --tab-title "<basename of cwd>"
+   kitty @ new-window --new-tab --cwd {session-cwd} --tab-title "{basename of cwd}"
    ```
 
    b. **Kitty is not running** — launch a new instance:
 
    ```
-   kitty --directory <session-cwd> &
+   kitty --directory {session-cwd} &
    ```
 
    Tell the user a new tab/window was opened.
