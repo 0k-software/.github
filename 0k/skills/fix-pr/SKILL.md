@@ -14,7 +14,7 @@ branch (`gh pr view --json number -q .number`).
 
 ## Step 1 — Gather comments
 
-1. Derive `<owner>/<repo>` and `<pr-number>` from the argument or current
+1. Derive `{owner}/{repo}` and `{pr-number}` from the argument or current
    branch.
 2. Fetch **all** review threads using the `gh` CLI with the GraphQL API to get
    `isResolved`:
@@ -33,7 +33,7 @@ branch (`gh pr view --json number -q .number`).
            }
          }
        }
-     }' -f owner="<owner>" -f repo="<repo>" -F pr="<pr-number>"
+     }' -f owner="{owner}" -f repo="{repo}" -F pr="{pr-number}"
    ```
 3. **Discard** every thread where `isResolved` is `true`. Keep only unresolved
    threads.
@@ -81,8 +81,8 @@ For every question thread:
 3. Append the AI attribution footer (see below) to the reply.
 4. Post the reply using the `gh` CLI:
    ```
-   gh api "repos/<owner>/<repo>/pulls/<pr-number>/comments" \
-     -f body="<answer>" -F in_reply_to=<comment-id>
+   gh api "repos/{owner}/{repo}/pulls/{pr-number}/comments" \
+     -f body="{answer}" -F in_reply_to={comment-id}
    ```
 5. Display each question and the answer you posted so the user can review.
 
@@ -111,7 +111,7 @@ For each group of related change requests, in order:
 After **all** groups have been committed, push the branch a single time:
 
 ```
-git push -u origin <branch-name>
+git push -u origin {branch-name}
 ```
 
 ### 4c — Reply to every thread
@@ -121,14 +121,14 @@ in the thread on GitHub using the `gh` CLI, appending the AI attribution footer
 (see below):
 
 ```
-gh api "repos/<owner>/<repo>/pulls/<pr-number>/comments" \
-  -f body="<reply>" -F in_reply_to=<comment-id>
+gh api "repos/{owner}/{repo}/pulls/{pr-number}/comments" \
+  -f body="{reply}" -F in_reply_to={comment-id}
 ```
 
 Include the commit URL in the reply. Derive it from the SHA:
 
 ```
-gh api "repos/<owner>/<repo>/commits/<sha>" --jq .html_url
+gh api "repos/{owner}/{repo}/commits/{sha}" --jq .html_url
 ```
 
 ## Step 5 — Mark threads as addressed
@@ -139,7 +139,7 @@ change requests). This prevents future runs from re-addressing the same
 feedback.
 
 ```
-gh api "repos/<owner>/<repo>/pulls/comments/<databaseId>/reactions" \
+gh api "repos/{owner}/{repo}/pulls/comments/{databaseId}/reactions" \
   -X POST -f content="eyes"
 ```
 
