@@ -17,7 +17,7 @@ cross-references in other skills.
 
 ## Steps
 
-- [ ] [Step 1: Extract PLAN_FORMAT.md](#step-1-extract-planformatmd)
+- [x] [Step 1: Extract PLAN_FORMAT.md](#step-1-extract-planformatmd)
 - [ ] [Step 2: Create plan-init skill](#step-2-create-plan-init-skill)
 - [ ] [Step 3: Create plan-next skill](#step-3-create-plan-next-skill)
 - [ ] [Step 4: Create plan-add skill](#step-4-create-plan-add-skill)
