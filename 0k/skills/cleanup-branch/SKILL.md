@@ -26,7 +26,7 @@ migrations separate").
    git rev-parse --abbrev-ref --symbolic-full-name @{upstream} 2>/dev/null
    ```
    If that returns a ref (e.g. `origin/master`, `origin/main`,
-   `origin/my-feature`), use it as `<base-ref>`. If it returns nothing (no
+   `origin/my-feature`), use it as `{base-ref}`. If it returns nothing (no
    tracking branch), fall back to finding the nearest decorated ancestor:
    ```
    git log --simplify-by-decoration --pretty=%D HEAD \
@@ -35,24 +35,24 @@ migrations separate").
    If still nothing is found, ask the user: _"Which branch is this based on?"_
 4. List all commits since the base:
    ```
-   git log --oneline <base-ref>..HEAD
+   git log --oneline {base-ref}..HEAD
    ```
    If there are no commits, abort with "Nothing to clean up — branch is already
-   up to date with `<base-ref>`."
+   up to date with `{base-ref}`."
 
 ## Step 2 — Understand what changed
 
 Get the full picture of the branch as a whole:
 
 ```
-git log --oneline <base-ref>..HEAD
-git diff --stat <base-ref>..HEAD
+git log --oneline {base-ref}..HEAD
+git diff --stat {base-ref}..HEAD
 ```
 
 Then read the **actual diff of every individual commit** (oldest to newest):
 
 ```
-git log --reverse -p <base-ref>..HEAD
+git log --reverse -p {base-ref}..HEAD
 ```
 
 Look for noise at two levels:
@@ -139,7 +139,7 @@ recommit in the proposed groups:
 2. Soft-reset to the base (all changes remain staged):
 
    ```
-   git reset --soft <base-ref>
+   git reset --soft {base-ref}
    ```
 
 3. For each proposed commit (in order): a. Unstage everything first:
@@ -151,30 +151,30 @@ recommit in the proposed groups:
    b. Stage only the files for this commit:
 
    ```
-   git add <file1> <file2> ...
+   git add {file1} {file2} ...
    ```
 
    c. Commit with the proposed message:
 
    ```
-   git commit -m "<message>"
+   git commit -m "{message}"
    ```
 
 4. After all commits are done, verify the net diff is unchanged:
    ```
-   git diff <base-ref>..HEAD
+   git diff {base-ref}..HEAD
    ```
    It must be **identical** to what it was before the rewrite. If it differs,
    abort immediately:
    > "Something went wrong — the net diff changed. Restoring original HEAD."
-   > Then run: `git reset --hard <original-HEAD-sha>`
+   > Then run: `git reset --hard {original-HEAD-sha}`
 
 ## Step 5 — Confirm and suggest next steps
 
 Show the final clean history:
 
 ```
-git log --oneline <base-ref>..HEAD
+git log --oneline {base-ref}..HEAD
 ```
 
 Confirm the cleanup is done:
@@ -191,5 +191,5 @@ If the branch has already been pushed, remind the user that they'll need to
 force-push:
 
 ```
-git push --force-with-lease origin <branch-name>
+git push --force-with-lease origin {branch-name}
 ```
