@@ -94,7 +94,7 @@ the plugin across projects without silently stale copies, add this
 **To manually update outdated skills:**
 
 ```
-bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/update-org-skills)
+bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/update-plugin)
 ```
 
 Review the diff (`git diff .claude/plugins/0k/`) and commit when satisfied.
