@@ -3,7 +3,7 @@ name: create-issue
 description:
   Create a GitHub issue in an 0k-software org repo using the standardized issue
   templates (pitch, feature, task, bug, enhancement, kickoff).
-argument-hint: <description of the issue>
+argument-hint: { description of the issue }
 ---
 
 # Create Issue from Template
@@ -69,7 +69,7 @@ value from the chosen template's YAML frontmatter (e.g., `"Bug"`, `"Task"`,
 ```
 gh api graphql -f query='
   query {
-    repository(owner: "0k-software", name: "<repo>") {
+    repository(owner: "0k-software", name: "{repo}") {
       id
       issueTypes(first: 10) {
         nodes { id name }
@@ -85,10 +85,10 @@ gh api graphql -f query='
 gh api graphql -f query='
   mutation {
     createIssue(input: {
-      repositoryId: "<repo_node_id>",
-      title: "<title>",
-      body: "<body>",
-      issueTypeId: "<issue_type_id>"
+      repositoryId: "{repo_node_id}",
+      title: "{title}",
+      body: "{body}",
+      issueTypeId: "{issue_type_id}"
     }) {
       issue { number url }
     }
