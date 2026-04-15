@@ -16,91 +16,72 @@
 #     }
 #   }
 #
-# Missing skills are installed automatically. Outdated skills are flagged with
-# instructions so developers can update manually (no silent overwrites).
+# Missing plugin: installed automatically from the latest GitHub release.
+# Outdated plugin: flagged with instructions — no silent overwrites.
 #
 set -uo pipefail
 
 GITHUB_ORG="0k-software"
 GITHUB_REPO=".github"
-BRANCH="main"
-API_BASE="https://api.github.com/repos/$GITHUB_ORG/$GITHUB_REPO"
-RAW_BASE="https://raw.githubusercontent.com/$GITHUB_ORG/$GITHUB_REPO/$BRANCH"
-PLUGIN_DIR=".claude/plugins/0k"
+PLUGIN_NAME="0k"
+API_LATEST="https://api.github.com/repos/$GITHUB_ORG/$GITHUB_REPO/releases/latest"
+RELEASE_ZIP_URL="https://github.com/$GITHUB_ORG/$GITHUB_REPO/releases/latest/download/$PLUGIN_NAME-plugin.zip"
+PLUGIN_DIR=".claude/plugins/$PLUGIN_NAME"
 
 # Skip when running inside the source repo itself
-if git remote -v 2>/dev/null | grep -qF "0k-software/.github"; then
+if git remote -v 2>/dev/null | grep -qF "$GITHUB_ORG/$GITHUB_REPO"; then
   exit 0
 fi
 
-# Discover all plugin files via the GitHub git trees API (one recursive call).
-# Files always have an extension; directory tree entries don't — use that to filter.
-tree_json=$(curl -fsSL "$API_BASE/git/trees/$BRANCH?recursive=1" 2>/dev/null) || {
+# Fetch the latest release version from the GitHub API
+latest_json=$(curl -fsSL "$API_LATEST" 2>/dev/null) || {
   echo "warn: could not reach GitHub API, skipping org skills check" >&2
   exit 0
 }
 
-plugin_paths=$(printf '%s\n' "$tree_json" \
-  | grep -o '"path":"0k/[^"]*"' \
-  | sed 's/"path":"//;s/"$//' \
-  | grep '\.')
+latest_version=$(printf '%s\n' "$latest_json" \
+  | grep '"tag_name"' \
+  | sed 's/.*"tag_name": *"v\([^"]*\)".*/\1/' \
+  | head -1)
 
-if [ -z "$plugin_paths" ]; then
-  echo "warn: no plugin files found in 0k-software/.github" >&2
+if [ -z "$latest_version" ]; then
+  echo "warn: could not determine latest release version" >&2
   exit 0
 fi
 
-# Collect unique skill names from 0k/skills/<name>/...
-skill_names=$(printf '%s\n' "$plugin_paths" \
-  | grep '^0k/skills/' \
-  | sed 's|0k/skills/\([^/]*\)/.*|\1|' \
-  | sort -u)
+local_plugin_json="$PLUGIN_DIR/.claude-plugin/plugin.json"
 
-install_plugin_file() {
-  local remote_path="$1"
-  local local_path="$PLUGIN_DIR/${remote_path#0k/}"
-  mkdir -p "$(dirname "$local_path")"
-  if ! curl -fsSL "$RAW_BASE/$remote_path" > "$local_path" 2>/dev/null; then
-    echo "  warn: failed to fetch $remote_path" >&2
-    rm -f "$local_path"
-  fi
-}
+if [ ! -f "$local_plugin_json" ]; then
+  # Not installed — fetch and install from the latest release zip
+  command -v unzip >/dev/null 2>&1 || {
+    echo "warn: 'unzip' is required to install the 0k plugin" >&2
+    exit 0
+  }
 
-missing=()
-outdated=()
+  echo "Installing 0k plugin v$latest_version..."
 
-while IFS= read -r skill; do
-  local_md="$PLUGIN_DIR/skills/$skill/SKILL.md"
+  TMP=$(mktemp -d)
+  trap 'rm -rf "$TMP"' EXIT
 
-  if [ ! -f "$local_md" ]; then
-    missing+=("$skill")
-  else
-    remote_md=$(curl -fsSL "$RAW_BASE/0k/skills/$skill/SKILL.md" 2>/dev/null) || continue
-    if [ "$remote_md" != "$(cat "$local_md")" ]; then
-      outdated+=("$skill")
-    fi
-  fi
-done <<< "$skill_names"
+  curl -fsSL "$RELEASE_ZIP_URL" -o "$TMP/plugin.zip" 2>/dev/null || {
+    echo "warn: failed to download plugin release" >&2
+    exit 0
+  }
 
-if [ ${#missing[@]} -gt 0 ]; then
-  echo "Installing 0k plugin:"
+  mkdir -p "$PLUGIN_DIR"
+  unzip -q "$TMP/plugin.zip" -d "$TMP/extracted"
+  cp -r "$TMP/extracted/$PLUGIN_NAME/." "$PLUGIN_DIR/"
 
-  # Ensure the plugin manifest exists
-  install_plugin_file "0k/.claude-plugin/plugin.json"
-
-  for skill in "${missing[@]}"; do
-    skill_files=$(printf '%s\n' "$plugin_paths" | grep "^0k/skills/$skill/")
-    while IFS= read -r path; do
-      install_plugin_file "$path"
-    done <<< "$skill_files"
-    echo "  + $skill"
-  done
-  echo ""
   echo "Commit the new files in $PLUGIN_DIR/ to persist them for future sessions."
-fi
+else
+  # Already installed — compare versions
+  installed_version=$(grep '"version"' "$local_plugin_json" \
+    | sed 's/.*"version": *"\([^"]*\)".*/\1/' \
+    | head -1)
 
-if [ ${#outdated[@]} -gt 0 ]; then
-  echo ""
-  echo "These org skills are outdated: ${outdated[*]}"
-  echo "To update, run: bash <(curl -fsSL $RAW_BASE/bin/update-org-skills)"
+  if [ "$installed_version" != "$latest_version" ]; then
+    echo ""
+    echo "The 0k plugin is outdated (installed: v$installed_version, latest: v$latest_version)."
+    echo "To update, run: bash <(curl -fsSL https://raw.githubusercontent.com/$GITHUB_ORG/$GITHUB_REPO/main/bin/update-org-skills)"
+  fi
 fi

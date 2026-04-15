@@ -12,6 +12,24 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- `bin/install-plugin` — one-liner local install from latest GitHub release, no
+  clone required
+- `make release VERSION=<semver>` — packages the plugin, tags the commit, and
+  publishes a GitHub release with the plugin zip
+
+### Changed
+
+- `bin/ensure-org-skills` — installs from the latest GitHub release zip instead
+  of enumerating individual files via the git trees API; detects outdated
+  plugin by comparing `plugin.json` version strings
+- `bin/update-org-skills` — updates from the latest GitHub release zip
+
+---
+
 ## [1.0.0] - 2026-04-15
 
 ### Added
