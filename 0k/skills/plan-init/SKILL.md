@@ -61,7 +61,14 @@ to roughly one commit; use this to predict PR size:
    draft PR linking to the issue.
 
 **When the step count is ≥ 7**, the plan is too large for a single reviewable
-PR. Scope it down before committing:
+PR. Present the two options and ask the user to choose:
+
+- **A — Scope down (recommended):** Keep only the first deliverable group here
+  and extract the rest into follow-up GitHub issues. Preserves the 1-issue →
+  1-PR ratio and avoids planning work prematurely.
+- **B — Continue as-is:** Keep the full plan in a single PR.
+
+**If the user chooses A:**
 
 1. **Propose a grouping.** Identify the first logical deliverable group (≤ 6
    steps). Group the remaining steps into follow-up batches. Show the proposed
@@ -78,3 +85,8 @@ PR. Scope it down before committing:
      links, e.g.: "Extracted to: #X (group 2 title), #Y (group 3 title)."
 5. Run `/0k:commit ! plan: {issue title}` to commit the scoped-down PLAN.md.
 6. Invoke `/0k:create-pr draft {issue-number}` to push and open the draft PR.
+
+**If the user chooses B:**
+
+1. Run `/0k:commit ! plan: {issue title}` to commit the full PLAN.md.
+2. Invoke `/0k:create-pr draft {issue-number}` to push and open the draft PR.
