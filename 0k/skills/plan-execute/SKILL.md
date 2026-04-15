@@ -13,18 +13,23 @@ tool on that file to learn the PLAN.md structure.
 
 Run every remaining step in PLAN.md, one after another, until none are left.
 
-**Procedure — loop until done:**
+**Procedure:**
 
-1. Read PLAN.md and find the first unchecked (`- [ ]`) step.
-2. If no unchecked step exists → stop and report "Plan complete."
-3. Otherwise, execute that step exactly as `/0k:plan-next` would (implement,
-   mark done, commit, update plan if needed).
-4. Go back to step 1.
+1. Read PLAN.md and collect **all** unchecked (`- [ ]`) steps.
+2. If no unchecked steps exist → stop and report "Plan complete."
+3. Use `TodoWrite` to create **one task per unchecked step** (in order), so the
+   full work queue is visible upfront before any execution begins.
+4. For each task in the `TodoWrite` list (in order):
+   - Execute the step exactly as `/0k:plan-next` would (implement, mark the
+     step done in PLAN.md, commit, update plan if needed).
+   - Mark the corresponding `TodoWrite` task as completed.
+   - Continue immediately to the next task.
+5. Once every `TodoWrite` task is marked done, report "Plan complete."
 
-**Important:** Do NOT stop after a single step. The whole point of `execute` is
-to finish the entire plan autonomously. Keep going until every step is checked
-off or an unrecoverable error forces you to stop (in which case, explain what
-blocked you and which steps remain).
+**Important:** Do NOT stop after a single step. The `TodoWrite` list is the
+complete work queue — keep going until every task is checked off. Only stop on
+an unrecoverable error (in which case, explain what blocked you and which steps
+remain).
 
 **After all steps are complete:**
 

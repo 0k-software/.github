@@ -97,6 +97,10 @@ replying. Do **not** accumulate multiple groups into one commit.
 
 ### 4a — Commit loop (repeat for every group)
 
+Before starting this loop, use `TodoWrite` to create **one task per group** (in
+order), so the full work queue is visible upfront. This queue must be fully
+completed before moving on to Step 4b.
+
 For each group of related change requests, in order:
 
 1. Read the files involved to understand the full context.
@@ -104,7 +108,8 @@ For each group of related change requests, in order:
 3. Invoke the `/0k:commit` skill with the `!` flag, passing the change request
    context as the argument.
 4. Record the resulting commit SHA alongside the group (you will need it in
-   Step 4c). Then **immediately continue to the next group** — do not push yet.
+   Step 4c). Mark the corresponding `TodoWrite` task as completed. Then
+   **immediately continue to the next group** — do not push yet.
 
 ### 4b — Push once
 
