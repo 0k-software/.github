@@ -97,7 +97,7 @@ Remote Claude Code sessions (e.g. claude.ai/code) don't load
 **To manually update to the latest release:**
 
 ```sh
-bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/update-org-skills)
+bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/update-plugin)
 ```
 
 Review the diff (`git diff .claude/plugins/0k/`) and commit when satisfied.
@@ -115,8 +115,8 @@ make release
 
 The version is read automatically from `plugin.json`. This packages the plugin,
 creates and pushes the git tag, and publishes a GitHub release with the plugin
-zip attached. Both `bin/install-plugin` and the `ensure-org-skills` /
-`update-org-skills` scripts always pull from the latest release.
+zip attached. Both `bin/install-plugin` and the `ensure-plugin` /
+`update-plugin` scripts always pull from the latest release.
 
 ## Git Hooks
 
