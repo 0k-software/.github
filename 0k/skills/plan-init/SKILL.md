@@ -79,20 +79,17 @@ PR. Present the two options and ask the user to choose:
      links, e.g.: "Extracted to: #X (group 2 title), #Y (group 3 title)."
 5. Run `/0k:commit ! plan: {issue title}` to commit the scoped-down PLAN.md.
 6. Invoke `/0k:create-pr draft {issue-number}` to push and open the draft PR.
-7. Request a Copilot review on the newly created PR using
-   `mcp__github__request_copilot_review`.
+7. Run `gh pr edit --add-reviewer "copilot"` to request a Copilot review.
 
 **If the user chooses B:**
 
 1. Run `/0k:commit ! plan: {issue title}` to commit the full PLAN.md.
 2. Invoke `/0k:create-pr draft {issue-number}` to push and open the draft PR.
-3. Request a Copilot review on the newly created PR using
-   `mcp__github__request_copilot_review`.
+3. Run `gh pr edit --add-reviewer "copilot"` to request a Copilot review.
 
 **When the step count is ≤ 6**, continue with the normal flow:
 
 1. Run `/0k:commit ! plan: {issue title}` to commit it.
 2. Invoke `/0k:create-pr draft {issue-number}` to push the branch and open a
    draft PR linking to the issue.
-3. Request a Copilot review on the newly created PR using
-   `mcp__github__request_copilot_review`.
+3. Run `gh pr edit --add-reviewer "copilot"` to request a Copilot review.
