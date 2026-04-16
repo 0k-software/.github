@@ -37,3 +37,5 @@ remain).
 2. Commit the removal using `/0k:commit`.
 3. Run `gh pr ready` to mark the current branch's PR as ready for review.
 4. Push the final commit.
+5. Request a Copilot review using `mcp__github__request_copilot_review` (always
+   request a fresh review, even if one was previously done on this PR).
