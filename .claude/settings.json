@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "make all"
+            "command": "make setup && ([ \"$CLAUDE_CODE_REMOTE\" = \"true\" ] && make install-plugin || true)"
           }
         ]
       }
