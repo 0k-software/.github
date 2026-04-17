@@ -45,5 +45,5 @@ remain).
 2. Commit the removal using `/0k:commit`.
 3. Run `gh pr ready` to mark the current branch's PR as ready for review.
 4. Push the final commit.
-5. Run `gh pr edit --add-reviewer "copilot"` to request a fresh Copilot review
+5. Run `gh pr edit --add-reviewer "@copilot"` to request a fresh Copilot review
    (always request, even if one was previously done on this PR).
