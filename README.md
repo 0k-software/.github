@@ -37,7 +37,6 @@ The `0k` Claude Code plugin lives in `0k/`. Each skill is a subdirectory under
 | `create-issue`   | `/0k:create-issue`   | Create a GitHub issue using the org issue templates  |
 | `fix-pr`         | `/0k:fix-pr`         | Address unresolved PR review comments                |
 | `plan-init`      | `/0k:plan-init`      | Create an implementation plan from a GitHub issue    |
-| `plan-next`      | `/0k:plan-next`      | Implement the next unchecked step in PLAN.md         |
 | `plan-add`       | `/0k:plan-add`       | Add a new step to an existing PLAN.md                |
 | `plan-execute`   | `/0k:plan-execute`   | Run all remaining plan steps autonomously            |
 | `rebase`         | `/0k:rebase`         | Rebase current branch onto another                   |
