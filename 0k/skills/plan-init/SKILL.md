@@ -85,4 +85,4 @@ scope-down steps above), or the user chose B — finalize:
 1. Run `/0k:commit ! plan: {issue title}` to commit PLAN.md.
 2. Invoke `/0k:create-pr draft {issue-number}` to push the branch and open a
    draft PR linking to the issue.
-3. Run `gh pr edit --add-reviewer "copilot"` to request a Copilot review.
+3. Run `gh pr edit --add-reviewer "@copilot"` to request a Copilot review.
