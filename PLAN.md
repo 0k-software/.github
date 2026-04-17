@@ -23,7 +23,7 @@ plan inlines the step-execution logic directly into `plan-execute`, deletes the
 
 ## Steps
 
-- [ ] [Step 1: Inline plan-next procedure into plan-execute](#step-1-inline-plan-next-procedure-into-plan-execute)
+- [x] [Step 1: Inline plan-next procedure into plan-execute](#step-1-inline-plan-next-procedure-into-plan-execute)
 - [ ] [Step 2: Delete the plan-next skill](#step-2-delete-the-plan-next-skill)
 - [ ] [Step 3: Remove plan-next from README skills table](#step-3-remove-plan-next-from-readme-skills-table)
 
