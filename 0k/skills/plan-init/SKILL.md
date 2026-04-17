@@ -62,7 +62,8 @@ PR. Present the two options and ask the user to choose:
   1-PR ratio and avoids planning work prematurely.
 - **B — Continue as-is:** Keep the full plan in a single PR.
 
-**If the user chooses A:**
+**If the user chooses A**, first perform the scope-down steps before
+finalizing:
 
 1. **Propose a grouping.** Identify the first logical deliverable group (≤ 6
    steps). Group the remaining steps into follow-up batches. Show the proposed
@@ -77,19 +78,11 @@ PR. Present the two options and ask the user to choose:
    - Edit the issue body so it describes only what this first group covers.
    - Leave a comment on the issue listing the extracted follow-up issues with
      links, e.g.: "Extracted to: #X (group 2 title), #Y (group 3 title)."
-5. Run `/0k:commit ! plan: {issue title}` to commit the scoped-down PLAN.md.
-6. Invoke `/0k:create-pr draft {issue-number}` to push and open the draft PR.
-7. Run `gh pr edit --add-reviewer "copilot"` to request a Copilot review.
 
-**If the user chooses B:**
+Then — whether the step count was ≤ 6, or the user chose A (after the
+scope-down steps above), or the user chose B — finalize:
 
-1. Run `/0k:commit ! plan: {issue title}` to commit the full PLAN.md.
-2. Invoke `/0k:create-pr draft {issue-number}` to push and open the draft PR.
-3. Run `gh pr edit --add-reviewer "copilot"` to request a Copilot review.
-
-**When the step count is ≤ 6**, continue with the normal flow:
-
-1. Run `/0k:commit ! plan: {issue title}` to commit it.
+1. Run `/0k:commit ! plan: {issue title}` to commit PLAN.md.
 2. Invoke `/0k:create-pr draft {issue-number}` to push the branch and open a
    draft PR linking to the issue.
 3. Run `gh pr edit --add-reviewer "copilot"` to request a Copilot review.
