@@ -20,7 +20,7 @@ documentation-only fix to one skill file.
 
 ## Steps
 
-- [ ] [Step 1: Drop `issueType` from the `gh issue view` call](#step-1-drop-issuetype-from-the-gh-issue-view-call)
+- [x] [Step 1: Drop `issueType` from the `gh issue view` call](#step-1-drop-issuetype-from-the-gh-issue-view-call)
 
 ---
 
