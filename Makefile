@@ -32,13 +32,15 @@ sync-skill-templates:
 	@cp $(TEMPLATE_FILES) $(SKILL_TEMPLATES_DST)/
 	@echo "Synced $(words $(TEMPLATE_FILES)) templates to $(SKILL_TEMPLATES_DST)/"
 
+# Installs from the local working copy. Use this when developing the plugin.
+# End users get the published plugin via .claude/settings.json (extraKnownMarketplaces).
 .PHONY: install-plugin
 install-plugin: sync-skill-templates
 	@claude plugin marketplace add "$(CURDIR)" 2>/dev/null \
 		|| claude plugin marketplace update $(MARKETPLACE_NAME)
 	@claude plugin install $(PLUGIN_NAME) 2>/dev/null \
 		|| claude plugin update $(PLUGIN_NAME)
-	@echo "Plugin $(PLUGIN_NAME) installed from $(MARKETPLACE_NAME) marketplace"
+	@echo "Plugin $(PLUGIN_NAME) installed from local working copy"
 
 PLUGIN_VERSION := $(shell jq -r '.version' $(PLUGIN_NAME)/.claude-plugin/plugin.json 2>/dev/null)
 

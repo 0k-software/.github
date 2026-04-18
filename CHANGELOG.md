@@ -16,17 +16,23 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Added
 
-- `bin/install-plugin` — one-liner local install from latest GitHub release, no
-  clone required
 - `make release VERSION=<semver>` — packages the plugin, tags the commit, and
   publishes a GitHub release with the plugin zip
 
 ### Changed
 
-- `bin/ensure-org-skills` — installs from the latest GitHub release zip instead
-  of enumerating individual files via the git trees API; detects outdated
-  plugin by comparing `plugin.json` version strings
-- `bin/update-org-skills` — updates from the latest GitHub release zip
+- Distribution switched to the standard Claude Code plugin mechanism. Projects
+  declare the marketplace and enable the plugin via `extraKnownMarketplaces`
+  and `enabledPlugins` in their `.claude/settings.json`. Claude Code handles
+  installation and updates automatically — no SessionStart hook needed.
+
+### Removed
+
+- `bin/install-plugin`, `bin/ensure-plugin`, `bin/update-plugin` — superseded
+  by Claude Code's built-in marketplace and plugin commands
+  (`/plugin marketplace add`, `/plugin install`, `/plugin update`).
+- `SessionStart` hook in `.claude/settings.json` that ran `make setup` and
+  `make install-plugin`. Run `make setup` manually after cloning.
 
 ---
 
