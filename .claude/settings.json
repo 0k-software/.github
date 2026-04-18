@@ -1,15 +1,13 @@
 {
-  "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "make setup && ([ \"$CLAUDE_CODE_REMOTE\" = \"true\" ] && make install-plugin || true)"
-          }
-        ]
+  "extraKnownMarketplaces": {
+    "0k-software": {
+      "source": {
+        "source": "github",
+        "repo": "0k-software/.github"
       }
-    ]
+    }
+  },
+  "enabledPlugins": {
+    "0k@0k-software": true
   }
 }

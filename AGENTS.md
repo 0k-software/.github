@@ -48,56 +48,41 @@ make setup
 
 This copies the project hooks from `.git-hooks/` into `.git/hooks/` (pre-commit
 checks that skill template copies stay in sync with the source issue
-templates). This runs automatically on Claude Code session start via the
-`SessionStart` hook in `.claude/settings.json`.
+templates).
 
 ## Plugin
 
 The `0k` Claude Code plugin lives in `0k/`. It contains all org-shared skills.
-To install it locally so it's available across all projects:
+For local development, install from the working copy:
 
 ```
 make install-plugin
 ```
 
-### Making the plugin available in remote sessions (other 0k-software projects)
+### Making the plugin available in other 0k-software projects
 
-Remote Claude Code sessions don't have access to `~/.claude/plugins/`, so the
-plugin must be present in each project's own `.claude/plugins/0k/`. To share
-the plugin across projects without silently stale copies, add this
-`SessionStart` hook to the other project's `.claude/settings.json`:
+Add this to the project's `.claude/settings.json` to declare the marketplace
+and auto-enable the plugin — the standard Claude Code mechanism, no scripts or
+hooks required:
 
 ```json
 {
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/ensure-plugin)"
-          }
-        ]
+  "extraKnownMarketplaces": {
+    "0k-software": {
+      "source": {
+        "source": "github",
+        "repo": "0k-software/.github"
       }
-    ]
+    }
+  },
+  "enabledPlugins": {
+    "0k@0k-software": true
   }
 }
 ```
 
-**What it does:**
-
-- **Missing skills** are installed automatically into `.claude/plugins/0k/`.
-  Commit the new files so they persist across sessions.
-- **Outdated skills** (local copy differs from this repo) trigger a warning
-  with instructions — no silent overwrites.
-
-**To manually update outdated skills:**
-
-```
-bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/update-plugin)
-```
-
-Review the diff (`git diff .claude/plugins/0k/`) and commit when satisfied.
+Claude Code installs the plugin from the latest GitHub release on session start
+and keeps it up to date automatically.
 
 ## Editing Guidelines
 

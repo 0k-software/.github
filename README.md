@@ -45,61 +45,49 @@ The `0k` Claude Code plugin lives in `0k/`. Each skill is a subdirectory under
 | `refine-issue`   | `/0k:refine-issue`   | Refine a GitHub issue from comment feedback          |
 | `kitty`          | `/0k:kitty`          | Open kitty terminal for the current directory        |
 
-### Installing the plugin locally
+### Installing the plugin
 
-Install the latest release to `~/.claude/plugins/0k/` without cloning:
+From any Claude Code session, register the marketplace and install the plugin:
 
-```sh
-bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/install-plugin)
+```
+/plugin marketplace add 0k-software/.github
+/plugin install 0k@0k-software
 ```
 
-To uninstall:
-
-```sh
-make uninstall-plugin
-```
+To update later: `/plugin update 0k@0k-software`. To uninstall:
+`/plugin uninstall 0k@0k-software`.
 
 > **Contributors** working inside this repo can use `make install-plugin`
 > instead, which installs from the local working copy.
 
-### Installing the plugin in remote sessions (other 0k-software projects)
+### Enabling the plugin across an org's projects
 
-Remote Claude Code sessions (e.g. claude.ai/code) don't load
-`~/.claude/plugins/`, so the plugin must be present in each project's own
-`.claude/plugins/0k/`. Add this `SessionStart` hook to the project's
-`.claude/settings.json` to keep the plugin automatically available:
+Add this to a project's `.claude/settings.json` to register the marketplace and
+auto-enable the plugin for everyone who opens the project:
 
 ```json
 {
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/ensure-plugin)"
-          }
-        ]
+  "extraKnownMarketplaces": {
+    "0k-software": {
+      "source": {
+        "source": "github",
+        "repo": "0k-software/.github"
       }
-    ]
+    }
+  },
+  "enabledPlugins": {
+    "0k@0k-software": true
   }
 }
 ```
 
-**What it does:**
+This is the standard Claude Code mechanism for distributing plugins to a team —
+no custom scripts or hooks required. Claude Code handles installation and
+updates automatically. See the [plugin marketplaces
+docs][cc-plugin-marketplaces] for details.
 
-- **Missing plugin** is installed automatically from the latest GitHub release.
-  Commit the new files so they persist across sessions.
-- **Outdated plugin** (local version differs from latest release) triggers a
-  warning with update instructions — no silent overwrites.
-
-**To manually update to the latest release:**
-
-```sh
-bash <(curl -fsSL https://raw.githubusercontent.com/0k-software/.github/main/bin/update-plugin)
-```
-
-Review the diff (`git diff .claude/plugins/0k/`) and commit when satisfied.
+[cc-plugin-marketplaces]:
+  https://docs.claude.com/en/docs/claude-code/plugin-marketplaces
 
 ### Releasing a new version
 
@@ -113,13 +101,13 @@ make release
 ```
 
 The version is read automatically from `plugin.json`. This creates and pushes
-the git tag and publishes a GitHub release. Both `bin/install-plugin` and the
-`ensure-plugin` / `update-plugin` scripts always pull from the latest release.
+the git tag and publishes a GitHub release. Claude Code picks up the new
+version on its next plugin update check.
 
 ## Git Hooks
 
 Project hooks live in `.git-hooks/` and are not installed automatically by Git.
-Run `make setup` to copy them into `.git/hooks/`.
+Run `make setup` to copy them into `.git/hooks/` after cloning.
 
 ### Available hooks
 
@@ -146,10 +134,6 @@ make setup
 This copies every file in `.git-hooks/` into `.git/hooks/` and makes them
 executable. It is safe to re-run and will overwrite any existing hooks with the
 same name.
-
-The `SessionStart` hook in `.claude/settings.json` runs `make setup`
-automatically whenever a Claude Code session opens in this repo, so hooks stay
-current without manual intervention.
 
 ### Fixing hook failures
 
