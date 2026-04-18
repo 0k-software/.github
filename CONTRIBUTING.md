@@ -116,6 +116,7 @@ automatically.
 | Status            | Meaning                             |
 | ----------------- | ----------------------------------- |
 | `Backlog`         | Captured, not yet triaged           |
+| `Refining`        | Being broken down or clarified      |
 | `Ready`           | Triaged and ready to be worked on   |
 | `In progress`     | Actively being worked on            |
 | `In review`       | Under code review or QA             |
