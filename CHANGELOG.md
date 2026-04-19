@@ -31,8 +31,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - `bin/install-plugin`, `bin/ensure-plugin`, `bin/update-plugin` — superseded
   by Claude Code's built-in marketplace and plugin commands
   (`/plugin marketplace add`, `/plugin install`, `/plugin update`).
-- `SessionStart` hook in `.claude/settings.json` that ran `make setup` and
-  `make install-plugin`. Run `make setup` manually after cloning.
+- `SessionStart` hook in `.claude/settings.json` that ran `make setup` and, in
+  remote sessions, `make install-plugin`. Run `make setup` manually after
+  cloning.
 
 ---
 
