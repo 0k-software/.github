@@ -59,6 +59,10 @@ For local development, install from the working copy:
 make install-plugin
 ```
 
+Local installs go through a separate `dev/.claude-plugin/marketplace.json` that
+registers the plugin as `0k-dev@0k-software-dev`, so they don't clobber a
+developer's published `0k@0k-software` install.
+
 ### Making the plugin available in other 0k-software projects
 
 Add this to the project's `.claude/settings.json` to declare the marketplace

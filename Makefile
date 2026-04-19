@@ -21,7 +21,9 @@ setup:
 ISSUE_TEMPLATE_SRC := .github/ISSUE_TEMPLATE
 SKILL_TEMPLATES_DST := 0k/skills/create-issue/templates
 PLUGIN_NAME := 0k
-MARKETPLACE_NAME := 0k-software
+DEV_PLUGIN_NAME := 0k-dev
+DEV_MARKETPLACE_NAME := 0k-software-dev
+DEV_MARKETPLACE_DIR := dev
 
 TEMPLATE_FILES := $(wildcard $(ISSUE_TEMPLATE_SRC)/[0-9]*.yml)
 
@@ -32,23 +34,24 @@ sync-skill-templates:
 	@cp $(TEMPLATE_FILES) $(SKILL_TEMPLATES_DST)/
 	@echo "Synced $(words $(TEMPLATE_FILES)) templates to $(SKILL_TEMPLATES_DST)/"
 
-# Installs from the local working copy. Use this when developing the plugin.
+# Installs from the local working copy under a separate `0k-dev@0k-software-dev`
+# identity so it never clobbers a developer's published `0k@0k-software` install.
 # End users get the published plugin via .claude/settings.json (extraKnownMarketplaces).
 .PHONY: install-plugin
 install-plugin: sync-skill-templates
-	@claude plugin marketplace add "$(CURDIR)" 2>/dev/null \
-		|| claude plugin marketplace update $(MARKETPLACE_NAME)
-	@claude plugin install $(PLUGIN_NAME) 2>/dev/null \
-		|| claude plugin update $(PLUGIN_NAME)
-	@echo "Plugin $(PLUGIN_NAME) installed from local working copy"
+	@claude plugin marketplace add "$(CURDIR)/$(DEV_MARKETPLACE_DIR)" 2>/dev/null \
+		|| claude plugin marketplace update $(DEV_MARKETPLACE_NAME)
+	@claude plugin install $(DEV_PLUGIN_NAME) 2>/dev/null \
+		|| claude plugin update $(DEV_PLUGIN_NAME)
+	@echo "Plugin $(DEV_PLUGIN_NAME) installed from local working copy"
 
 PLUGIN_VERSION := $(shell jq -r '.version' $(PLUGIN_NAME)/.claude-plugin/plugin.json 2>/dev/null)
 
 .PHONY: uninstall-plugin
 uninstall-plugin:
-	@claude plugin uninstall $(PLUGIN_NAME) 2>/dev/null || true
-	@claude plugin marketplace remove $(MARKETPLACE_NAME) 2>/dev/null || true
-	@echo "Plugin $(PLUGIN_NAME) uninstalled"
+	@claude plugin uninstall $(DEV_PLUGIN_NAME) 2>/dev/null || true
+	@claude plugin marketplace remove $(DEV_MARKETPLACE_NAME) 2>/dev/null || true
+	@echo "Plugin $(DEV_PLUGIN_NAME) uninstalled"
 
 .PHONY: release
 release:
