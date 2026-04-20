@@ -25,8 +25,9 @@ as `uses: 0k-software/.github/check-pr-diff-size@v1`.
 - Document the action in `README.md` alongside the existing skill and hook
   sections so contributors can discover it without hunting through the tree.
 - **Out of scope for this PR:** cutting the `v1` GitHub Release (creates the
-  shared git tag). That's a post-merge step done via the same release process
-  as #83, and the tag is shared with sibling composite actions in this repo.
+  shared git tag). Tracked as a separate task in #88 — the tag is cut once for
+  the whole repo (covering composite actions + the `0k` Claude Code plugin)
+  after this PR and #83 are merged.
 - **Out of scope:** swapping kingdone's inline step for
   `uses: 0k-software/.github/check-pr-diff-size@v1` — tracked separately in
   `0k-software/kingdone` per the issue.
