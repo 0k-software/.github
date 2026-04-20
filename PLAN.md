@@ -25,7 +25,7 @@ edits:
 
 ## Steps
 
-- [ ] [Step 1: Update field-gathering logic to best-effort populate from $ARGUMENTS](#step-1-update-field-gathering-logic-to-best-effort-populate-from-arguments)
+- [x] [Step 1: Update field-gathering logic to best-effort populate from $ARGUMENTS](#step-1-update-field-gathering-logic-to-best-effort-populate-from-arguments)
 - [ ] [Step 2: Update conversion rules and Important Rules to allow scaffold placeholder text](#step-2-update-conversion-rules-and-important-rules-to-allow-scaffold-placeholder-text)
 
 ---
