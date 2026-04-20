@@ -36,11 +36,11 @@ run:
 
 ```
 gh issue develop {issue-number} --name {branch-name}
-wt switch {branch-name}
+git fetch origin {branch-name} && git checkout {branch-name}
 ```
 
-`gh issue develop` creates the branch and links it to the issue on GitHub.
-`wt switch` switches to it via a worktree.
+`gh issue develop` creates the remote branch and links it to the issue on
+GitHub. `git fetch` + `git checkout` then checks out the branch locally.
 
 After creating PLAN.md, perform a **scope check** before committing:
 
