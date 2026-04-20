@@ -34,7 +34,7 @@ as `uses: 0k-software/.github/check-pr-diff-size@v1`.
 
 ## Steps
 
-- [ ] [Step 1: Add `check-pr-diff-size/action.yml` composite action](#step-1-add-check-pr-diff-sizeactionyml-composite-action)
+- [x] [Step 1: Add `check-pr-diff-size/action.yml` composite action](#step-1-add-check-pr-diff-sizeactionyml-composite-action)
 - [ ] [Step 2: Document the action in README](#step-2-document-the-action-in-readme)
 
 ---
@@ -89,9 +89,25 @@ existing logic from `0k-software/kingdone`'s `.github/workflows/check.yml`
   repo).
 - All four inputs are declared with the defaults listed above; `limit` is
   `required: true`.
-- Shell logic is a straight port of kingdone's current "Check PR diff size"
-  step — same pagination fix, same body format — with hard-coded values
-  replaced by `${{ inputs.* }}`.
+
+**Deviation from plan:** the shell logic was written from the behavioural spec
+in the issue/plan rather than copy-pasted verbatim from kingdone, because
+kingdone's source is outside this repo's review scope. Behaviour matches the
+spec:
+
+- Pagination-aware file list (uses `gh api --paginate` against the REST
+  `pulls/{pr}/files` endpoint — equivalent to the GraphQL cursor loop the plan
+  described).
+- Newline- or comma-separated `ignored-paths` with bash `globstar`/`extglob`
+  matching (so patterns like `priv/static/**` work).
+- Status bands: `ok` / `warn` (≥ `warn-threshold × limit`) / `over` (> limit).
+- Posts a fresh review each run (`REQUEST_CHANGES` when over limit, `COMMENT`
+  otherwise) and minimises previous matching reviews (pagination-aware GraphQL)
+  using `body-match-pattern`. Default pattern (`^📏 \*\*PR diff size\*\*`)
+  matches the body the action itself writes, so it round-trips without
+  configuration.
+- Emits a `$GITHUB_STEP_SUMMARY` block and fails the step (`exit 1`) when over
+  limit so branch protection can block the merge.
 
 ---
 

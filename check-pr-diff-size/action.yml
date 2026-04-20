@@ -1,0 +1,138 @@
+name: "Check PR diff size"
+description: "Count changed lines on a PR (ignoring configured paths) and post a REQUEST_CHANGES review when the PR exceeds a configurable limit."
+author: "0k-software"
+
+branding:
+  icon: "git-pull-request"
+  color: "blue"
+
+inputs:
+  limit:
+    description: "Maximum number of changed lines allowed on the PR."
+    required: true
+  warn-threshold:
+    description: "Fraction of `limit` (between 0 and 1) at which the status badge flips to warning."
+    required: false
+    default: "0.8"
+  ignored-paths:
+    description: "Newline- or comma-separated path globs excluded from the line count."
+    required: false
+    default: ""
+  body-match-pattern:
+    description: "POSIX ERE matching previous diff-size review bodies so stale ones get minimized."
+    required: false
+    default: "^📏 \\*\\*PR diff size\\*\\*"
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Check PR diff size"
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        OWNER: ${{ github.event.pull_request.base.repo.owner.login }}
+        REPO: ${{ github.event.pull_request.base.repo.name }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        LIMIT: ${{ inputs.limit }}
+        WARN_THRESHOLD: ${{ inputs.warn-threshold }}
+        IGNORED_PATHS: ${{ inputs.ignored-paths }}
+        BODY_MATCH_PATTERN: ${{ inputs.body-match-pattern }}
+      run: |
+        set -euo pipefail
+        shopt -s globstar extglob
+
+        mapfile -t ignored < <(
+          printf '%s\n' "${IGNORED_PATHS}" \
+            | tr ',' '\n' \
+            | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' \
+            | grep -v '^$' || true
+        )
+
+        path_ignored() {
+          local path="$1" pattern
+          for pattern in "${ignored[@]:-}"; do
+            [[ -z "$pattern" ]] && continue
+            # shellcheck disable=SC2053
+            [[ "$path" == $pattern ]] && return 0
+          done
+          return 1
+        }
+
+        # Pagination-aware list of changed files (REST, per_page=100).
+        total=0
+        while IFS=$'\t' read -r path add del; do
+          [[ -z "$path" ]] && continue
+          path_ignored "$path" && continue
+          total=$(( total + add + del ))
+        done < <(
+          gh api --paginate \
+            "repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}/files?per_page=100" \
+            --jq '.[] | [.filename, .additions, .deletions] | @tsv'
+        )
+
+        warn_limit=$(awk -v l="$LIMIT" -v w="$WARN_THRESHOLD" 'BEGIN { printf "%d", l * w }')
+        if (( total > LIMIT )); then
+          status="over"; emoji="❌"; event="REQUEST_CHANGES"
+        elif (( total >= warn_limit )); then
+          status="warn"; emoji="⚠️"; event="COMMENT"
+        else
+          status="ok"; emoji="✅"; event="COMMENT"
+        fi
+
+        body=$(printf '📏 **PR diff size**: %d / %d changed lines\n\nStatus: %s %s\n' \
+          "$total" "$LIMIT" "$emoji" "$status")
+
+        # Minimize every previous matching review (pagination-aware GraphQL).
+        reviews_query='query($owner:String!,$repo:String!,$pr:Int!,$cursor:String){
+          repository(owner:$owner,name:$repo){
+            pullRequest(number:$pr){
+              reviews(first:100, after:$cursor){
+                pageInfo { hasNextPage endCursor }
+                nodes { id body }
+              }
+            }
+          }
+        }'
+        cursor=""
+        while :; do
+          if [[ -z "$cursor" ]]; then
+            page=$(gh api graphql \
+              -F owner="$OWNER" -F repo="$REPO" -F pr="$PR_NUMBER" \
+              -F cursor=null -f query="$reviews_query")
+          else
+            page=$(gh api graphql \
+              -F owner="$OWNER" -F repo="$REPO" -F pr="$PR_NUMBER" \
+              -F cursor="$cursor" -f query="$reviews_query")
+          fi
+          while IFS=$'\t' read -r review_id review_body; do
+            [[ -z "$review_id" ]] && continue
+            if [[ "$review_body" =~ $BODY_MATCH_PATTERN ]]; then
+              gh api graphql \
+                -F id="$review_id" \
+                -f query='mutation($id:ID!){minimizeComment(input:{subjectId:$id, classifier:OUTDATED}){minimizedComment{isMinimized}}}' \
+                >/dev/null || true
+            fi
+          done < <(echo "$page" | jq -r '.data.repository.pullRequest.reviews.nodes[] | [.id, (.body // "")] | @tsv')
+          has_next=$(echo "$page" | jq -r '.data.repository.pullRequest.reviews.pageInfo.hasNextPage')
+          [[ "$has_next" != "true" ]] && break
+          cursor=$(echo "$page" | jq -r '.data.repository.pullRequest.reviews.pageInfo.endCursor')
+        done
+
+        # Post the current status as a fresh review.
+        gh api \
+          "repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}/reviews" \
+          -f event="$event" -f body="$body" >/dev/null
+
+        {
+          echo "### ${emoji} PR diff size"
+          echo ""
+          echo "- Total changed lines: **${total}**"
+          echo "- Limit: **${LIMIT}**"
+          echo "- Warn threshold: **${warn_limit}** lines (${WARN_THRESHOLD} × limit)"
+          echo "- Status: **${status}**"
+        } >> "$GITHUB_STEP_SUMMARY"
+
+        if [[ "$status" == "over" ]]; then
+          echo "::error::PR diff size ${total} exceeds limit ${LIMIT}"
+          exit 1
+        fi
