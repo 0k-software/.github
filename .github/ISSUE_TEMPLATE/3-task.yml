@@ -14,7 +14,7 @@ body:
     id: design
     attributes:
       label: Proposal
-      value: _What's the proposed solution? Describe how it should work._
+      value: _How will this be done? Describe the technical approach and any key decisions._
   - type: textarea
     id: alternatives
     attributes:
