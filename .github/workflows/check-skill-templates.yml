@@ -31,8 +31,8 @@ jobs:
         if: github.event_name == 'pull_request'
         uses: ./hide-addressed-reviews
 
-      - name: Check PR diff size
+      - name: Check PR size
         if: github.event_name == 'pull_request'
-        uses: ./check-pr-diff-size
+        uses: ./check-pr-size
         with:
           limit: 500

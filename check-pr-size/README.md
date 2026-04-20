@@ -1,11 +1,11 @@
-# check-pr-diff-size
+# check-pr-size
 
-Reusable composite GitHub Action that enforces a configurable PR diff-size
-limit. The action counts added lines with `git diff origin/<base>...HEAD`,
-renders a shields.io status badge, and posts a review on the PR —
-`REQUEST_CHANGES` when the limit is exceeded, `COMMENT` otherwise. Previous
-diff-size reviews from `github-actions[bot]` are dismissed (to clear any merge
-block) and minimised as OUTDATED on each run.
+Reusable composite GitHub Action that enforces a configurable PR size limit.
+The action counts added lines with `git diff origin/<base>...HEAD`, renders a
+shields.io status badge, and posts a review on the PR — `REQUEST_CHANGES` when
+the limit is exceeded, `COMMENT` otherwise. Previous pr-size reviews from
+`github-actions[bot]` are dismissed (to clear any merge block) and minimised as
+OUTDATED on each run.
 
 ## Usage
 
@@ -32,14 +32,14 @@ permissions:
   contents: read
 
 jobs:
-  check-pr-diff-size:
+  check-pr-size:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: 0k-software/.github/check-pr-diff-size@v1
+      - uses: 0k-software/.github/check-pr-size@v1
         with:
           limit: 500
           ignored-paths: |
