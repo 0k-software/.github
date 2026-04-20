@@ -54,7 +54,8 @@ You MUST create a task for each of these items and complete them in order:
 7. **Spec self-review** — quick inline check for placeholders, contradictions,
    ambiguity, scope (see below)
 8. **User reviews spec on GitHub** — post a comment on the issue linking to the
-   updated issue body and ask the user to review it there before proceeding
+   updated issue body and ask the user to review it there; mention that if they
+   leave comments on the issue, they can run `/fix` to address them
 9. **Transition to implementation** — invoke plan-init skill to create
    implementation plan
 
@@ -187,7 +188,8 @@ issue linking to the updated issue body, then ask the user to review it there
 before proceeding:
 
 > "Spec posted to the issue body. Please review it at <issue-url> and let me
-> know if you want any changes before we create the implementation plan."
+> know if you want any changes before we create the implementation plan. If you
+> leave comments on the issue, run `/fix` to address them."
 
 Wait for the user's response. If they request changes, make them, update the
 issue body again, and re-run the spec review loop. Only proceed once the user
