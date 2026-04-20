@@ -30,10 +30,16 @@ PR that will follow.
 git branch --show-current
 ```
 
-First, derive the target branch name as `{issue-number}-{slug}` where `{slug}`
-is the issue title lowercased, spaces replaced with hyphens, special characters
-stripped, and kept to **≤ 20 characters** — pick 2–3 words that capture the
-area or context (the issue number already provides full traceability).
+**Already on a correctly-named branch** (starts with `{number}-`, e.g.
+`42-some-feature`): the branch is already set up. Skip the rest of this section
+and proceed to Step 3. The issue number is the leading digits of the branch
+name.
+
+Otherwise, derive the target branch name as `{issue-number}-{slug}` where
+`{slug}` is the issue title lowercased, spaces replaced with hyphens, special
+characters stripped, and kept to **≤ 20 characters** — pick 2–3 words that
+capture the area or context (the issue number already provides full
+traceability).
 
 **On `main`/`master` (local session):** create and check out the branch:
 
@@ -45,9 +51,9 @@ git fetch origin {branch-name} && git checkout {branch-name}
 `gh issue develop` creates the remote branch and links it to the issue on
 GitHub. `git fetch` + `git checkout` then checks out the branch locally.
 
-**Not on `main`/`master` (remote/web session):** the session already has its
-own branch. Push it to the standard-named branch and rename the local branch to
-match:
+**On any other branch** (e.g. `claude/*` remote/web session): the session
+already has its own branch but doesn't follow the naming convention. Push it to
+the standard-named branch and rename the local branch to match:
 
 ```
 git push -u origin HEAD:{branch-name}
