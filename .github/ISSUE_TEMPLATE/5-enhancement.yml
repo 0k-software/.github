@@ -17,7 +17,7 @@ body:
       label: Rationale
       value: _Why is this improvement worth doing? What pain does it reduce?_
   - type: textarea
-    id: approach
+    id: proposal
     attributes:
       label: Proposal
       value: _What's the proposed solution? Describe how it should work._
