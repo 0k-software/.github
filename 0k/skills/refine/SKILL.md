@@ -1,5 +1,5 @@
 ---
-name: refine-issue
+name: refine
 description:
   Refine a GitHub issue interactively — brainstorm through each template
   section with the user one at a time, then update the issue on approval
