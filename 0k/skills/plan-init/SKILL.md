@@ -28,12 +28,12 @@ the session context (local vs. remote):
 git branch --show-current
 ```
 
-**On `main`/`master` (local session):** create a new branch derived from the
-issue. Build the branch name as `{issue-number}-{slug}` where `{slug}` is the
-issue title lowercased, spaces replaced with hyphens, special characters
+First, derive the target branch name as `{issue-number}-{slug}` where `{slug}`
+is the issue title lowercased, spaces replaced with hyphens, special characters
 stripped, and kept to **≤ 20 characters** — pick 2–3 words that capture the
-area or context (the issue number already provides full traceability). Then
-run:
+area or context (the issue number already provides full traceability).
+
+**On `main`/`master` (local session):** create and check out the branch:
 
 ```
 gh issue develop {issue-number} --name {branch-name}
@@ -44,15 +44,17 @@ git fetch origin {branch-name} && git checkout {branch-name}
 GitHub. `git fetch` + `git checkout` then checks out the branch locally.
 
 **Not on `main`/`master` (remote/web session):** the session already has its
-own branch. Push it to the standard-named branch so the GitHub naming
-convention is followed:
+own branch. Push it to the standard-named branch and rename the local branch to
+match:
 
 ```
 git push -u origin HEAD:{branch-name}
+git branch -m {branch-name}
 ```
 
-This establishes upstream tracking to the properly-named branch without
-requiring a local branch switch.
+This maps the session branch to the `{issue-number}-{slug}` convention on
+GitHub and renames the local branch to match, so subsequent commands (including
+`create-pr`) use the correct name.
 
 After creating PLAN.md, perform a **scope check** before committing:
 
