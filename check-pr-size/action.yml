@@ -1,4 +1,4 @@
-name: "Check PR diff size"
+name: "Check PR size"
 description: "Count added lines on a PR (excluding configured paths) and post a REQUEST_CHANGES review when the PR exceeds a configurable limit."
 author: "0k-software"
 
@@ -28,13 +28,13 @@ inputs:
       stale on the next run and get dismissed (if still blocking) and
       minimised as OUTDATED.
     required: false
-    default: "<!-- pr-diff-size -->"
+    default: "<!-- pr-size -->"
 
 runs:
   using: "composite"
   steps:
-    - name: "Check PR diff size"
-      id: diff-size
+    - name: "Check PR size"
+      id: pr-size
       if: github.event_name == 'pull_request'
       shell: bash
       env:
@@ -137,7 +137,7 @@ runs:
         EOF
         )
 
-        # Clean up previous diff-size reviews from github-actions[bot].
+        # Clean up previous pr-size reviews from github-actions[bot].
         # Submitted reviews can't be deleted via the REST API, so we dismiss
         # CHANGES_REQUESTED ones (to clear the merge block) and minimize all
         # of them as OUTDATED (matches the UI's "Hide" -> "Outdated" action)

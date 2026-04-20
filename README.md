@@ -35,7 +35,7 @@ to the moving major tag, e.g.
 | Action                                                         | `uses:` path                                 | Purpose                                                              |
 | -------------------------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------- |
 | [`hide-addressed-reviews`](./hide-addressed-reviews/README.md) | `0k-software/.github/hide-addressed-reviews` | Minimize LGTM-style bot reviews and resolve the threads they opened. |
-| [`check-pr-diff-size`](./check-pr-diff-size/README.md)         | `0k-software/.github/check-pr-diff-size`     | Enforce a configurable PR diff-size limit with a status review.      |
+| [`check-pr-size`](./check-pr-size/README.md)                   | `0k-software/.github/check-pr-size`          | Enforce a configurable PR size limit with a status review.           |
 
 See each action's own `README.md` for inputs, permissions, and examples.
 
