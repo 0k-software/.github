@@ -130,11 +130,52 @@ gh api "repos/{owner}/{repo}/pulls/{pr-number}/comments" \
   -f body="{reply}" -F in_reply_to={comment-id}
 ```
 
-Include the commit URL in the reply. Derive it from the SHA:
+Include a link to the committed change in the reply, anchored at the exact
+commented line. Build the link from data already available in the thread (no
+extra API calls needed — `path` and `line` come from the GraphQL query in Step
+1):
 
-```
-gh api "repos/{owner}/{repo}/commits/{sha}" --jq .html_url
-```
+1. **Base URL** — PR-scoped changes view for this specific commit:
+
+   ```
+   https://github.com/{owner}/{repo}/pull/{pr-number}/changes/{commit_sha}
+   ```
+
+   Use `/changes/` (not `/files/`): `/changes/` shows only that commit's diff,
+   while `/files/` shows all changes to each file from BASE up to the commit.
+
+2. **File anchor** — SHA-256 of the comment's `path`:
+
+   ```
+   printf '%s' "{path}" | sha256sum | awk '{print $1}'
+   ```
+
+   Use the full hex digest as `{hash}` — GitHub's diff fragments use the full
+   SHA-256, not a prefix.
+
+3. **Line anchor** — append `L{line}` using the `line` field from the GraphQL
+   response. If `line` is `null` (file-level comment), omit the `L{line}`
+   suffix; the `#diff-{hash}` anchor alone still jumps to the right file.
+
+4. **Full URL:**
+
+   ```
+   https://github.com/{owner}/{repo}/pull/{pr-number}/changes/{commit_sha}#diff-{hash}L{line}
+   ```
+
+5. **Format the link manually** in the reply body as a markdown link with the
+   short SHA as the visible text:
+
+   ```
+   [`{short_sha}`]({full_url})
+   ```
+
+   where `{short_sha}` is the first 7 characters of `{commit_sha}`. Do **not**
+   paste the bare URL — GitHub auto-detects commit URL patterns and replaces
+   them with its own rendering, which strips the line anchor.
+
+All comments in the same review thread share the same `path`/`line`, so use the
+thread's first comment when constructing the link.
 
 ## Step 5 — Mark threads as addressed
 
