@@ -34,7 +34,7 @@ body:
   - type: textarea
     id: solution
     attributes:
-      label: Proposal
+      label: The Solution
       value: _What's the proposed solution? Describe how it should work._
   - type: textarea
     id: alternatives
