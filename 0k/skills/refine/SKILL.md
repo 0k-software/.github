@@ -109,9 +109,10 @@ investigation-first:
 - Propose an **Investigation Plan**: where to look first, what to instrument or
   log, how to confirm or rule out each hypothesis
 - Only once root cause is understood should a fix approach be proposed
-- Fill **Investigation Plan** (not Proposal) with the debugging strategy and
-  hypotheses; fill **Alternatives** with any competing fix approaches once root
-  cause is known
+- Fill **Investigation Plan** (not Proposal) with the chosen debugging strategy
+  and hypotheses; fill **Alternatives** with other investigation strategies
+  that were considered but set aside — they serve as fallback paths if the
+  primary plan doesn't yield results
 
 **Exploring approaches:**
 
