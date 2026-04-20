@@ -145,10 +145,11 @@ plan-init.
 - Use elements-of-style:writing-clearly-and-concisely skill if available
 - Post the spec as the updated issue body on GitHub, filling in all sections of
   the issue type template. The issue body is the canonical, living spec.
-- The **Proposal** section (present in all templates) must include the full
-  spec detail as sub-sections: **Architecture**, **Components**, **Data Flow**,
-  **Error Handling**, and **Testing**. Do not omit any of these — this is where
-  the brainstormed design lives.
+- The **Proposal** section (present in all templates) must contain the full
+  spec detail from the brainstorming session. Structure it freely — use
+  headings, paragraphs, or lists as the content warrants. Cover architecture,
+  components, data flow, error handling, and testing where relevant, but do not
+  impose headings that don't apply to the scope of the issue.
 - The **Alternatives** section must be filled with every design decision where
   multiple options were considered. For each, include a concise summary of each
   option and its tradeoffs, and note which was chosen and why. Use this format:
