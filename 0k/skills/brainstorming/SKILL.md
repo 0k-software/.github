@@ -38,26 +38,16 @@ sentences for truly simple projects), but you MUST present it and get approval.
 
 You MUST create a task for each of these items and complete them in order:
 
-1. **Fetch issue and explore context** — fetch the issue title, body, issue
-   type, and load the matching type template from `0k/references/templates/`;
-   then check files, docs, and recent commits
-2. **Offer visual companion** (if topic will involve visual questions) — this
-   is its own message, not combined with a clarifying question. See the Visual
-   Companion section below.
-3. **Ask clarifying questions** — one at a time, understand
-   purpose/constraints/success criteria
-4. **Propose 2-3 approaches** — with trade-offs and your recommendation
-5. **Present design** — in sections scaled to their complexity, get user
-   approval after each section
-6. **Write design doc** — post the spec as the updated issue body (filling all
-   template sections)
-7. **Spec self-review** — quick inline check for placeholders, contradictions,
-   ambiguity, scope (see below)
-8. **User reviews spec on GitHub** — post a comment on the issue linking to the
-   updated issue body and ask the user to review it there; mention that if they
-   leave comments on the issue, they can run `/fix` to address them
-9. **Transition to implementation** — invoke plan-init skill to create
-   implementation plan
+1. **Fetch issue and explore context** — issue details, type template, codebase
+2. **Offer visual companion** — if visual questions ahead; own message only
+3. **Ask clarifying questions** — one at a time
+4. **Propose 2-3 approaches** — with trade-offs and recommendation
+5. **Present design** — section by section, get approval as you go
+6. **Write design doc** — post as issue body, filling all template sections
+7. **Spec self-review** — fix placeholders, contradictions, ambiguity inline
+8. **User reviews spec on GitHub** — post comment with link, suggest `/fix` for
+   feedback
+9. **Invoke plan-init** — create implementation plan
 
 ## Process Flow
 
