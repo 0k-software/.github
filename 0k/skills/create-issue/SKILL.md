@@ -25,10 +25,15 @@ standardized templates. Do NOT create free-form issues.
    ask them to pick.
 4. **Read the chosen template file** to understand the exact fields and
    structure required for that issue type.
-5. **Gather the required fields** for that template. Fill in every field you
-   can infer from the user's description. For fields you cannot infer, ask the
-   user — do NOT leave template placeholders or italic prompt text in the final
-   issue.
+5. **Populate fields** from the user's description (`$ARGUMENTS`):
+   - The **title** is always sourced from `$ARGUMENTS` (verbatim or lightly
+     cleaned for conciseness).
+   - For all other fields, populate whichever ones best fit the context
+     provided in `$ARGUMENTS` — no specific field is required to be filled.
+   - For fields where `$ARGUMENTS` provides no useful information, **do not ask
+     the user** — retain the template's default `value` placeholder text as a
+     scaffold for a later `refine-issue` pass.
+   - Do not invent content that wasn't provided or clearly implied by the user.
 6. **Create the issue** using the `gh` CLI (see "Creating the Issue" below).
    - Use the `type` property from the chosen template file as the issue type.
    - Construct a clear, concise title (do NOT include emoji prefixes — GitHub
@@ -49,8 +54,6 @@ markdown issue body as follows:
 - **`checkboxes`** fields → `## {label}` heading followed by the checkbox list.
 - **`markdown`** fields → skip (these are instructions, not issue content).
 - **`input`** fields → `## {label}` heading followed by the value.
-
-Fields with `required: true` must be filled — ask the user if you cannot infer.
 
 ## Creating the Issue
 
