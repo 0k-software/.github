@@ -19,10 +19,10 @@ standardized templates. Do NOT create free-form issues.
    git remote (look for an `0k-software/` remote). If the current directory is
    not an 0k-software repo, ask the user which repo to use.
 3. **Determine the issue type** from the description. Read all template files
-   in `${CLAUDE_SKILL_DIR}/templates/` — each file's `name` and `description`
-   fields describe the issue type it covers. Match the user's intent to the
-   best fitting template. If ambiguous, present the user with the options and
-   ask them to pick.
+   in `0k/references/templates/` — each file's `name` and `description` fields
+   describe the issue type it covers. Match the user's intent to the best
+   fitting template. If ambiguous, present the user with the options and ask
+   them to pick.
 4. **Read the chosen template file** to understand the exact fields and
    structure required for that issue type.
 5. **Populate fields** from the user's description (`$ARGUMENTS`):

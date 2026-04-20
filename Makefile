@@ -19,7 +19,7 @@ setup:
 	@echo "Git hooks installed to $(GIT_HOOKS_DST)/"
 
 ISSUE_TEMPLATE_SRC := .github/ISSUE_TEMPLATE
-SKILL_TEMPLATES_DST := 0k/skills/create-issue/templates
+SKILL_TEMPLATES_DST := 0k/references/templates
 PLUGIN_NAME := 0k
 DEV_PLUGIN_NAME := 0k-dev
 DEV_MARKETPLACE_NAME := 0k-software-dev
