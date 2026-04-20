@@ -47,9 +47,10 @@ standardized templates. Do NOT create free-form issues.
 The template `.yml` files are GitHub Issue Form definitions. Convert them to a
 markdown issue body as follows:
 
-- **`textarea`** fields → `## {label}` heading followed by the content. The
-  `value` in the template is placeholder/prompt text — replace it with real
-  content, never include it verbatim.
+- **`textarea`** fields → `## {label}` heading followed by the content.
+  - If content can be inferred from `$ARGUMENTS`, use it.
+  - If no content is available, use the template `value` verbatim so it remains
+    as a reference scaffold for a later `refine-issue` pass.
 - **`dropdown`** fields → `## {label}` heading followed by the selected value.
 - **`checkboxes`** fields → `## {label}` heading followed by the checkbox list.
 - **`markdown`** fields → skip (these are instructions, not issue content).
@@ -112,9 +113,9 @@ by a blank line:
 ## Important Rules
 
 - **Never create a free-form issue.** Always use a template structure.
-- **Never leave placeholder/prompt text** (like `_Why do we need this?_`) in
-  the final body — replace with real content or ask the user.
-- **Ask rather than guess** when information is insufficient for required
-  fields.
+- **Fields not populated from `$ARGUMENTS`** retain the template's default
+  `value` placeholder text — this is intentional, acting as a scaffold for a
+  `refine-issue` pass. Do not clear them and do not ask the user to fill them
+  during creation.
 - **Keep the title concise** — under 80 characters, no emoji prefix.
 - After creating the issue, **show the user the issue URL**.
