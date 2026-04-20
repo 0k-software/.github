@@ -43,7 +43,6 @@ runs:
   steps:
     - name: Hide fully-addressed reviews
       shell: bash
-      continue-on-error: true
       env:
         GH_TOKEN: ${{ inputs.github-token != '' && inputs.github-token || github.token }}
         PR_NUMBER: ${{ inputs.pr-number != '' && inputs.pr-number || github.event.pull_request.number }}
