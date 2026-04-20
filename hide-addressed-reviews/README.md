@@ -55,6 +55,17 @@ permissions:
 `contents: read` is also required if the workflow does anything else that reads
 the repo, but the action itself only talks to the GraphQL API.
 
+## Requirements
+
+The action shells out to `gh` (for `gh api graphql`) and `jq`. Both are
+pre-installed on GitHub-hosted Ubuntu runners, so no extra setup is required
+there. On self-hosted or custom runners, make sure both are on `PATH` before
+this step runs — otherwise install them first, e.g.:
+
+```yaml
+- run: sudo apt-get update && sudo apt-get install -y gh jq
+```
+
 ## How it works
 
 For each review on the PR:
