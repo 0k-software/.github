@@ -35,7 +35,13 @@ body:
     id: alternatives
     attributes:
       label: Alternatives
-      value: _What other solutions have you considered, if any?_
+      value: |
+        _Alternative approaches considered during design, with tradeoffs._
+
+        **{Decision point}:**
+        - Option A: ...
+        - Option B: ...
+        - ✅ Chosen: Option A — because ...
   - type: textarea
     id: impact
     attributes:

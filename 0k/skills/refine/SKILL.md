@@ -150,6 +150,15 @@ plan-init.
   sub-sections: **Architecture**, **Components**, **Data Flow**, **Error
   Handling**, and **Testing**. Do not omit any of these — this is where the
   brainstormed design lives.
+- The **Alternatives** section must be filled with every design decision where
+  multiple options were considered. For each, include a concise summary of each
+  option and its tradeoffs, and note which was chosen and why. Use this format:
+
+  > **{Decision point}:**
+  >
+  > - Option A: ... (tradeoff)
+  > - Option B: ... (tradeoff)
+  > - ✅ Chosen: Option A — because ...
 
 **Spec Self-Review:** After writing the spec document, look at it with fresh
 eyes:
