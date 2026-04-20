@@ -19,21 +19,21 @@ body:
   - type: textarea
     id: approach
     attributes:
-      label: Approach
+      label: Proposal
       value: |
-        _How could this be achieved technically?_
+        _What's the proposed solution? Describe how it should work._
 
         ### Architecture
         _High-level structure and key design decisions._
 
         ### Components
-        _What pieces change — purpose, interface, dependencies._
+        _What pieces are involved — purpose, interface, dependencies._
 
         ### Data Flow
-        _If relevant, how data moves or transforms._
+        _How data moves through the system._
 
         ### Error Handling
-        _How failures are handled._
+        _How failures are detected, handled, and surfaced._
 
         ### Testing
         _Testing strategy — unit, integration, end-to-end._
