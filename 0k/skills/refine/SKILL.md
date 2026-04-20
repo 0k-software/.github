@@ -145,8 +145,7 @@ plan-init.
 - Use elements-of-style:writing-clearly-and-concisely skill if available
 - Post the spec as the updated issue body on GitHub, filling in all sections of
   the issue type template. The issue body is the canonical, living spec.
-- The design section of the template (The Solution for Pitch, Proposal for
-  Feature, Approach for Enhancement, Approach for Task) must include the full
+- The **Proposal** section (present in all templates) must include the full
   spec detail as sub-sections: **Architecture**, **Components**, **Data Flow**,
   **Error Handling**, and **Testing**. Do not omit any of these — this is where
   the brainstormed design lives.

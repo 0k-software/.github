@@ -15,7 +15,7 @@ body:
     attributes:
       label: Proposal
       value: |
-        _What's the idea? Describe how it should work._
+        _What's the proposed solution? Describe how it should work._
 
         ### Architecture
         _High-level structure and key design decisions._
