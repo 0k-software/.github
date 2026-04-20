@@ -4,8 +4,8 @@ This is the [community health repository][gh-community-health] for the
 0k-software GitHub organization. Its contents serve as org-wide defaults for
 any repository that doesn't define its own.
 
-It contains two main things: **GitHub Issue Templates** and the **0k Claude
-Code Plugin**.
+It contains three main things: **GitHub Issue Templates**, **shared Composite
+Actions**, and the **0k Claude Code Plugin**.
 
 ## Issue Templates
 
@@ -24,6 +24,19 @@ Templates are numbered to control display order.
 
 Templates are tailored for an **Elixir/Phoenix** stack (Phoenix, Ecto, Oban,
 Backpex, PhoenixTest).
+
+## Composite Actions
+
+Shared GitHub composite actions live in top-level subdirectories (one directory
+per action, each containing an `action.yml` and a `README.md`). Consumers pin
+to the moving major tag, e.g.
+`uses: 0k-software/.github/hide-addressed-reviews@v1`.
+
+| Action                                                         | `uses:` path                                 | Purpose                                                              |
+| -------------------------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------- |
+| [`hide-addressed-reviews`](./hide-addressed-reviews/README.md) | `0k-software/.github/hide-addressed-reviews` | Minimize LGTM-style bot reviews and resolve the threads they opened. |
+
+See each action's own `README.md` for inputs, permissions, and examples.
 
 ## 0k Plugin
 
