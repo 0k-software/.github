@@ -35,7 +35,7 @@ as `uses: 0k-software/.github/check-pr-diff-size@v1`.
 ## Steps
 
 - [x] [Step 1: Add `check-pr-diff-size/action.yml` composite action](#step-1-add-check-pr-diff-sizeactionyml-composite-action)
-- [ ] [Step 2: Document the action in README](#step-2-document-the-action-in-readme)
+- [x] [Step 2: Document the action in README](#step-2-document-the-action-in-readme)
 
 ---
 
