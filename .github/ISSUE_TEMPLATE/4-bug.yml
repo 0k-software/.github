@@ -43,8 +43,8 @@ body:
   - type: textarea
     id: proposal
     attributes:
-      label: Proposal
-      value: _How should this be fixed? Describe the proposed approach._
+      label: Investigation Plan
+      value: _Where should we look first? What are the hypotheses about root cause?_
   - type: textarea
     id: alternatives
     attributes:
