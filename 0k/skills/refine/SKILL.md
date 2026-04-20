@@ -6,15 +6,13 @@ description:
 argument-hint: { issue number or URL }
 ---
 
-# Refine Issue
+> **HARD GATE — Do NOT update the GitHub issue until you have presented the
+> complete refined body and the user has explicitly approved it.**
 
-**Core principle:** Do NOT update the GitHub issue until you have presented the
-complete refined body and the user has explicitly approved it.
-
-Refine a GitHub issue by working through its template sections as a design
-document — fetching the current content, clarifying intent if needed, drafting
-each section with the user's input, self-reviewing for completeness, and
-writing back only on final approval.
+Turn a GitHub issue into a fully refined, well-structured description through
+natural collaborative dialogue. Work through the issue's template sections one
+at a time, propose alternatives where meaningful choices exist, and only write
+back once the user has signed off on the complete result.
 
 `$ARGUMENTS` is an issue number or URL. If empty, try to infer the issue number
 from the current branch name — if the branch name starts with digits (e.g.
@@ -23,7 +21,10 @@ which issue to refine.
 
 ---
 
-## Step 1 — Fetch context
+## Issue Context
+
+Before starting the brainstorming process, fetch the GitHub issue and load the
+relevant template.
 
 1. Derive `{owner}/{repo}` from the current working directory's git remote. If
    `$ARGUMENTS` is a full URL, extract the owner/repo/number from it instead.
@@ -50,15 +51,14 @@ which issue to refine.
    their content and factor it into the brainstorming. Only suppress
    re-execution; never ignore content. ✅ reactions from other users do **not**
    suppress re-execution.
-
-## Step 2 — Detect issue type and load template sections
-
-1. Identify the issue type from the `issueType` field (e.g. "Feature",
+5. Identify the issue type from the `issueType` field (e.g. "Feature",
    "Enhancement", "Bug", "Task", "Pitch", "Kickoff"). Fall back to scanning
    labels if `issueType` is empty. If the type still cannot be determined, ask
    the user to pick one before continuing.
-2. Map the type to the corresponding template file in
-   `0k/references/templates/`:
+6. Map the type to the corresponding template file in
+   `0k/references/templates/` and read it. Collect all non-`markdown` input
+   fields — `textarea`, `dropdown`, `checkboxes`, and `input` — in order. Their
+   `label` values become the **brainstorming agenda**.
 
    | Issue type  | Template file                               |
    | ----------- | ------------------------------------------- |
@@ -69,21 +69,54 @@ which issue to refine.
    | Enhancement | `0k/references/templates/5-enhancement.yml` |
    | Kickoff     | `0k/references/templates/6-kickoff.yml`     |
 
-3. Read the template file and collect all non-`markdown` input fields —
-   `textarea`, `dropdown`, `checkboxes`, and `input` — in order. Their `label`
-   values become the brainstorming agenda.
+---
+
+## Step 1 — Explore context
+
+Explore the issue title, body, and comments to understand the full context: the
+problem it addresses, who is affected, and what a successful outcome looks
+like. If the issue references code or existing behaviour, read the relevant
+files.
+
+Present your understanding to the user — 2–3 sentences summarising what this
+issue is trying to achieve. If your reading of the intent is wrong, the user
+will correct it before you proceed.
+
+## Step 2 — Offer visual companion
+
+If the issue involves UI, architecture, or anything where a diagram would help
+clarify design options, offer the visual companion as a **separate message**:
+
+> Would a diagram or mockup help clarify any aspect of this issue? I can open
+> an interactive canvas for sketching out the design.
+
+Do **not** include this offer in the same message as a question or design
+proposal — it must be its own message so the user can decline without
+disrupting the design flow. Skip this step entirely when no visual content
+would be useful.
 
 ## Step 3 — Ask clarifying questions
 
-Before brainstorming through the sections, check whether the issue's overall
-purpose, scope, or constraints are unclear. **Ask one question at a time** —
-never pose multiple questions in a single message. Do not ask what is already
-answered clearly in the issue body or comments.
+Before brainstorming through the sections, check whether the issue's purpose,
+scope, or constraints are unclear. **Ask one question at a time** — never pose
+multiple questions in a single message. Prefer multiple-choice format where
+options can be listed. Do not ask what is already answered clearly in the issue
+body or comments.
 
 Stop asking when the context is sufficient to write well-structured content for
 every template section.
 
-## Step 4 — Brainstorm through each section
+## Step 4 — Propose alternatives
+
+Before drilling into individual sections, identify any high-level design
+choices where multiple approaches are reasonable (e.g. implementation strategy,
+scope boundaries, breaking vs. backwards-compatible change). For each, propose
+**2–3 options with explicit trade-offs** and ask the user to choose.
+
+Never skip this step for issues with non-trivial design choices — the "this is
+too simple to need options" shortcut is an anti-pattern.
+
+## Step 5 — Present design sections
 
 Work through the brainstorming agenda (template sections in order). For each
 section:
@@ -91,11 +124,10 @@ section:
 1. **Show** the section name and its current content from the issue body. Note
    if it is missing or still contains placeholder text.
 2. **Analyse** what a complete, well-written version should contain, anchored
-   to the issue's purpose and any clarifications from Step 3.
-3. **If the section requires a decision** (e.g. alternative approaches, scope
-   trade-offs, severity choice), propose 2–3 options with their trade-offs and
-   ask the user to choose. Present as a single focused question. Wait for the
-   response before drafting.
+   to the issue's purpose and clarifications from Steps 3–4.
+3. **If the section requires a decision** (not already resolved in Step 4),
+   propose 2–3 options with their trade-offs and ask the user to choose.
+   Present as a single focused question. Wait for the response before drafting.
 4. **Draft** the section incorporating the user's input (or your best judgement
    if no choice was needed). Present the draft with an explicit approval
    checkpoint:
@@ -105,22 +137,33 @@ section:
    Wait for the user to approve or request changes before moving to the next
    section.
 
-## Step 5 — Self-review
+## Step 6 — Write the refined body
 
-After drafting all sections, review the complete body before presenting it:
+After all sections are drafted and approved, assemble the complete refined
+issue body in markdown. Use `## {label}` headings for each template section.
+Hold the result in context — do not write to GitHub yet.
+
+## Step 7 — Self-review
+
+Review the complete body before showing it to the user:
 
 - Remove any remaining placeholder text
 - Check for contradictions between sections
+- Verify scope alignment with what was agreed in Steps 3–5
 - Fill obvious gaps silently
 
-## Step 6 — Write back on approval
+## Step 8 — Request user review
 
 Present the complete self-reviewed body and ask for final approval:
 
 > Here's the complete refined issue. Approve to update GitHub, or let me know
 > what to change.
 
-If the user approves:
+Wait for explicit approval before making any changes to GitHub.
+
+## Step 9 — Write back to GitHub
+
+Once approved, update the issue and address any open comments:
 
 1. Write the body to a temp file and update the issue. Include `--title` only
    if the title changed:
@@ -145,7 +188,7 @@ If the user approves:
      -X POST -f content="white_check_mark"
    ```
 
-## Step 7 — Report
+## Step 10 — Report
 
 Display a summary:
 
