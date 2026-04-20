@@ -83,16 +83,7 @@ runs:
           "$total" "$LIMIT" "$emoji" "$status")
 
         # Minimize every previous matching review (pagination-aware GraphQL).
-        reviews_query='query($owner:String!,$repo:String!,$pr:Int!,$cursor:String){
-          repository(owner:$owner,name:$repo){
-            pullRequest(number:$pr){
-              reviews(first:100, after:$cursor){
-                pageInfo { hasNextPage endCursor }
-                nodes { id body }
-              }
-            }
-          }
-        }'
+        reviews_query='query($owner:String!,$repo:String!,$pr:Int!,$cursor:String){repository(owner:$owner,name:$repo){pullRequest(number:$pr){reviews(first:100,after:$cursor){pageInfo{hasNextPage endCursor}nodes{id body}}}}}'
         cursor=""
         while :; do
           if [[ -z "$cursor" ]]; then
