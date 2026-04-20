@@ -25,16 +25,17 @@ inputs:
   pr-number:
     description: >
       Pull request number to operate on. Defaults to the PR that triggered the
-      calling workflow.
+      calling workflow (`github.event.pull_request.number`).
     required: false
-    default: ${{ github.event.pull_request.number }}
+    default: ""
   github-token:
     description: >
       Token used to call the GitHub GraphQL API. Requires pull-requests:write.
       Composite actions do not inherit secrets from the calling workflow, so
-      pass the token explicitly if you need to override the default.
+      pass the token explicitly if you need to override the default
+      (`github.token`).
     required: false
-    default: ${{ github.token }}
+    default: ""
 
 runs:
   using: composite
@@ -42,10 +43,10 @@ runs:
     - name: Hide addressed reviews
       shell: bash
       env:
-        GH_TOKEN: ${{ inputs.github-token }}
+        GH_TOKEN: ${{ inputs.github-token != '' && inputs.github-token || github.token }}
         BODY_MATCH_PATTERN: ${{ inputs.body-match-pattern }}
         CLASSIFIER: ${{ inputs.classifier }}
-        PR_NUMBER: ${{ inputs.pr-number }}
+        PR_NUMBER: ${{ inputs.pr-number != '' && inputs.pr-number || github.event.pull_request.number }}
         REPO: ${{ github.repository }}
       run: |
         set -euo pipefail
