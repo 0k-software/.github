@@ -167,10 +167,9 @@ git add -p
 
 ## Attributions
 
-The `/0k:refine` skill — including its visual companion server, browser client,
-and frame template — is heavily inspired by and in parts directly copied from
-[obra/superpowers](https://github.com/obra/superpowers). Used with gratitude
-and in compliance with its license.
+Several skills in this plugin are heavily inspired by and in parts directly
+copied from [obra/superpowers](https://github.com/obra/superpowers). Used with
+gratitude and in compliance with their license.
 
 [gh-community-health]:
   https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/creating-a-default-community-health-file
