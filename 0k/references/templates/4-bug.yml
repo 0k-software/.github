@@ -39,4 +39,20 @@ body:
     id: expected
     attributes:
       label: Expected Behavior
-      value: _What should happen instead?d_
+      value: _What should happen instead?_
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      value: _How should this be fixed? Describe the proposed approach._
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      value: |
+        _Alternative approaches considered during design, with tradeoffs._
+
+        **{Decision point}:**
+        - Option A: ...
+        - Option B: ...
+        - ✅ Chosen: Option A — because ...
