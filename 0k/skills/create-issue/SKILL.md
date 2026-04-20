@@ -29,10 +29,12 @@ standardized templates. Do NOT create free-form issues.
    - The **title** is always sourced from `$ARGUMENTS` (verbatim or lightly
      cleaned for conciseness).
    - For all other fields, populate whichever ones best fit the context
-     provided in `$ARGUMENTS` — no specific field is required to be filled.
-   - For fields where `$ARGUMENTS` provides no useful information, **do not ask
-     the user** — retain the template's default `value` placeholder text as a
-     scaffold for a later `refine-issue` pass.
+     provided in `$ARGUMENTS`.
+   - For fields marked `validations.required: true`: try to infer a value; if
+     you cannot, ask the user a concise follow-up before creating the issue.
+   - For optional fields where `$ARGUMENTS` provides no useful information,
+     **do not ask the user** — retain the template's default `value`
+     placeholder text as a scaffold for a later `refine-issue` pass.
    - Do not invent content that wasn't provided or clearly implied by the user.
 6. **Create the issue** using the `gh` CLI (see "Creating the Issue" below).
    - Use the `type` property from the chosen template file as the issue type.
