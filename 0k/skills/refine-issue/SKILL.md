@@ -1,15 +1,19 @@
+# Adapted from obra/superpowers @ — skills/brainstorming/SKILL.md
+
 ---
-name: refine-issue
-description:
-  Refine a GitHub issue — review its description and all comments, address
-  feedback, reply to each comment, and update the title/description as needed
-argument-hint: { issue number or URL }
+
+name: refine-issue description: Refine a GitHub issue interactively —
+brainstorm through each template section with the user one at a time, then
+update the issue on approval argument-hint: { issue number or URL }
+
 ---
 
 # Refine Issue
 
-Review a GitHub issue's description and comments, address all feedback, and
-update the issue accordingly.
+Refine a GitHub issue by brainstorming through each of its template sections
+interactively — analysing the current content, proposing improvements, asking
+the user for decisions where choices are needed, and writing back the approved
+result.
 
 `$ARGUMENTS` is an issue number or URL. If empty, try to infer the issue number
 from the current branch name — if the branch name starts with digits (e.g.
@@ -18,97 +22,132 @@ which issue to refine.
 
 ---
 
-## Step 1 — Fetch the issue
+## Step 1 — Fetch context
 
 1. Derive `{owner}/{repo}` from the current working directory's git remote. If
    `$ARGUMENTS` is a full URL, extract the owner/repo/number from it instead.
-2. Fetch the issue details (title, body, labels) using `gh`:
+2. Fetch the issue details (title, body, issue type, labels) using `gh`:
    ```
-   gh issue view {number} --repo {owner}/{repo} --json title,body,labels,number,url,state
+   gh issue view {number} --repo {owner}/{repo} \
+     --json title,body,labels,number,url,state,issueType
    ```
-3. Fetch **all** comments on the issue, including their reactions:
+3. Fetch **all** comments on the issue including their reactions:
    ```
    gh api "repos/{owner}/{repo}/issues/{number}/comments" --paginate \
-     --jq '.[] | {id, author: .user.login, body, reactions: [.reactions.url]}'
+     --jq '.[] | {id, author: .user.login, body}'
    ```
-   For each comment, also fetch its reactions to check for the `eyes` (👀)
-   marker:
+   For each comment, fetch its reactions to check for the ✅
+   (`white_check_mark`) marker:
+   ```
+   viewer="$(gh api user --jq .login)"
+   gh api "repos/{owner}/{repo}/issues/comments/{comment-id}/reactions" \
+     --jq --arg viewer "$viewer" \
+     '[.[] | select(.content == "white_check_mark" and .user.login == $viewer)]'
+   ```
+4. **Read all comments as context.** For comments already marked ✅ by the
+   authenticated user, skip re-executing them in this run — but still read
+   their content and factor it into the brainstorming. Only suppress
+   re-execution; never ignore content. ✅ reactions from other users do **not**
+   suppress re-execution.
+
+## Step 2 — Detect issue type and load template sections
+
+1. Identify the issue type from the `issueType` field (e.g. "Feature",
+   "Enhancement", "Bug", "Task", "Pitch", "Kickoff"). Fall back to scanning
+   labels if `issueType` is empty.
+2. Map the type to the corresponding template file:
+
+   | Issue type  | Template file                                        |
+   | ----------- | ---------------------------------------------------- |
+   | Pitch       | `0k/skills/create-issue/templates/1-pitch.yml`       |
+   | Feature     | `0k/skills/create-issue/templates/2-feature.yml`     |
+   | Task        | `0k/skills/create-issue/templates/3-task.yml`        |
+   | Bug         | `0k/skills/create-issue/templates/4-bug.yml`         |
+   | Enhancement | `0k/skills/create-issue/templates/5-enhancement.yml` |
+   | Kickoff     | `0k/skills/create-issue/templates/6-kickoff.yml`     |
+
+   If the type cannot be determined, ask the user to pick one before
+   continuing.
+
+3. Read the template file and collect all non-`markdown` input fields —
+   `textarea`, `dropdown`, `checkboxes`, and `input` — in order. Their `label`
+   values become the brainstorming agenda.
+
+## Step 3 — Run the brainstorming rhythm
+
+Work through the template sections one at a time. **Never ask more than one
+question in a single message** — the user should never feel overwhelmed.
+
+For each section in the brainstorming agenda (in template order):
+
+1. **Show** the section name and its current content from the issue body. Note
+   if the section is missing or still contains the placeholder default text.
+2. **Analyse** what a well-written version should contain, anchored to the
+   issue's specific goal and context.
+3. **If the section involves a choice** (e.g. alternative approaches, severity
+   level, which option to take), propose 2–3 options with their trade-offs and
+   ask the user to decide. Wait for the response before drafting. Present the
+   decision as a single focused question.
+4. **Draft** the section incorporating the user's input (or your best judgement
+   if no choice was needed). Present the draft with an explicit approval
+   checkpoint:
+
+   > Does this look right for **{Section Name}**, or would you like any
+   > changes?
+
+   Wait for the user to approve or request changes before moving on to the next
+   section.
+
+After drafting all sections, **self-review** the complete body:
+
+- Remove any remaining placeholder text
+- Check for contradictions between sections
+- Fill obvious gaps silently
+
+Present the self-reviewed draft in full before moving to Step 4.
+
+## Step 4 — Write back on approval
+
+Ask the user for final approval of the complete draft:
+
+> Here's the complete refined issue. Approve to update GitHub, or let me know
+> what to change.
+
+If the user approves:
+
+1. Write the approved body to a temporary file. Update the issue, including
+   `--title` only if the title changed:
+
+   ```
+   gh issue edit {number} --repo {owner}/{repo} --body-file /tmp/issue-body.md
+   ```
+
+   If the title changed, add: `--title "{new title}"`
+
+2. If any comments raised questions or feedback that was incorporated into the
+   refined body, post a **single** reply comment on the issue (not one per
+   comment) addressing all of them. Reference each commenter by `@username`.
+   Append the AI attribution footer (see below).
+
+   ```
+   gh issue comment {number} --repo {owner}/{repo} --body-file /tmp/issue-reply.md
+   ```
+
+3. React with ✅ (`white_check_mark`) to every comment that was addressed or
+   incorporated in this run:
    ```
    gh api "repos/{owner}/{repo}/issues/comments/{comment-id}/reactions" \
-     --jq '[.[] | select(.content == "eyes")]'
-   ```
-4. **Skip already-addressed comments.** Any comment that has an `eyes` (👀)
-   reaction from the authenticated user has already been handled in a previous
-   run. Keep these comments as **context** (they may inform title/description
-   updates) but do **not** re-address them or reply to them again.
-
-## Step 2 — Analyse feedback
-
-Review the issue description and every comment. Identify all actionable
-feedback — suggestions, questions, corrections, requests for clarification, or
-proposed changes to the issue's scope, description, or title.
-
-Group the feedback into:
-
-| Category               | Criteria                                                              |
-| ---------------------- | --------------------------------------------------------------------- |
-| **Description change** | Comment suggests edits to the issue body (wording, scope, structure)  |
-| **Title change**       | Comment suggests a better or more accurate title                      |
-| **Question**           | Comment asks a question that can be answered from context or codebase |
-| **Acknowledgement**    | Comment that needs a short acknowledgement reply (e.g. "good point")  |
-| **No action needed**   | Resolved discussion, bot comments, or already-addressed feedback      |
-
-Proceed directly — do **not** ask the user for confirmation. Apply your best
-judgement to address all feedback.
-
-## Step 3 — Update the issue
-
-If any description or title changes were identified:
-
-1. Draft the updated title and/or body incorporating all feedback.
-2. Write the updated body to a temporary file, then apply the update:
-   ```
-   gh issue edit {number} --repo {owner}/{repo} --title "{new title}" --body-file /tmp/issue-body.md
-   ```
-   Only include `--title` or `--body-file` flags for fields that actually
-   changed.
-
-## Step 4 — Reply to comments
-
-For each comment that warrants a reply (questions, acknowledgements, or
-explanation of changes made):
-
-1. Draft a concise, helpful reply.
-2. Append the AI attribution footer (see below) to each reply.
-3. Write the reply to a temporary file, then post it:
-   ```
-   gh issue comment {number} --repo {owner}/{repo} --body-file /tmp/issue-comment.md
+     -X POST -f content="white_check_mark"
    ```
 
-**Important:** Do NOT post one comment per original comment — that creates
-noise. Instead, post a **single comment** that addresses all feedback points,
-referencing each commenter by `@username` and quoting the relevant part of
-their comment. This keeps the thread clean.
-
-## Step 5 — Mark comments as addressed
-
-After posting the reply and applying any issue updates, react with `eyes` (👀)
-to every comment that was addressed in this run. This prevents future runs from
-re-addressing the same feedback.
-
-```
-gh api "repos/{owner}/{repo}/issues/comments/{comment-id}/reactions" \
-  -f content="eyes"
-```
-
-## Step 6 — Report
+## Step 5 — Report
 
 Display a summary:
 
-- Whether the title was updated (old → new)
-- Whether the description was updated (brief summary of changes)
+- Whether the title changed (old → new)
+- Which sections were updated (brief description of changes per section)
 - How many comments were addressed
-- Any comments you skipped and why
+- Any items skipped and why
 
 ---
 

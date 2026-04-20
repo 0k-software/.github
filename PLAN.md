@@ -33,7 +33,7 @@ over:
 
 ## Steps
 
-- [ ] [Step 1: Rewrite `refine-issue/SKILL.md` with brainstorming adaptation](#step-1-rewrite-refine-issueskillmd-with-brainstorming-adaptation)
+- [x] [Step 1: Rewrite `refine-issue/SKILL.md` with brainstorming adaptation](#step-1-rewrite-refine-issueskillmd-with-brainstorming-adaptation)
 
 ---
 
