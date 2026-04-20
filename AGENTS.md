@@ -9,8 +9,14 @@ This is a [`.github` community health repository][gh-community-health] — its
 contents apply as defaults across all repositories in the GitHub
 account/organization that don't define their own.
 
-The only artifacts here are GitHub Issue Templates located in
-`.github/ISSUE_TEMPLATE/`.
+Three kinds of artifact live here:
+
+- GitHub Issue Templates under `.github/ISSUE_TEMPLATE/`.
+- The `0k` Claude Code plugin under `0k/`.
+- Shared **composite GitHub Actions**, one per top-level subdirectory (e.g.
+  `hide-addressed-reviews/`). Each action directory contains its own
+  `action.yml` and `README.md` and is consumed as
+  `uses: 0k-software/.github/<action-name>@<tag>`.
 
 ## Issue Template System
 
