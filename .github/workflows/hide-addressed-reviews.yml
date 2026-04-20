@@ -1,0 +1,15 @@
+name: Hide addressed reviews
+
+on:
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  hide-addressed-reviews:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./hide-addressed-reviews
