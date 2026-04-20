@@ -23,7 +23,7 @@ the floating `v1` tag exists for consumers to pin.
 ## Steps
 
 - [x] [Step 1: Create the hide-addressed-reviews composite action](#step-1-create-the-hide-addressed-reviews-composite-action)
-- [ ] [Step 2: Document the composite action](#step-2-document-the-composite-action)
+- [x] [Step 2: Document the composite action](#step-2-document-the-composite-action)
 - [ ] [Step 3: Advertise composite actions in the repo README](#step-3-advertise-composite-actions-in-the-repo-readme)
 - [ ] [Step 4: Publish the v1 GitHub Release](#step-4-publish-the-v1-github-release)
 
