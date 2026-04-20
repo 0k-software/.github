@@ -32,7 +32,7 @@ body:
     validations:
       required: true
   - type: textarea
-    id: proposal
+    id: solution
     attributes:
       label: The Solution
       value: _What's the proposed solution? Describe how it should work._
