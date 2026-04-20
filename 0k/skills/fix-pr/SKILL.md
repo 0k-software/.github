@@ -27,7 +27,7 @@ branch (`gh pr view --json number -q .number`).
              nodes {
                isResolved
                comments(first:100) {
-                 nodes { id databaseId path line body author { login } }
+                 nodes { id databaseId path line side body author { login } }
                }
              }
            }
@@ -153,9 +153,13 @@ extra API calls needed — `path` and `line` come from the GraphQL query in Step
    Use the full hex digest as `{hash}` — GitHub's diff fragments use the full
    SHA-256, not a prefix.
 
-3. **Line anchor** — append `L{line}` using the `line` field from the GraphQL
-   response. If `line` is `null` (file-level comment), omit the `L{line}`
-   suffix; the `#diff-{hash}` anchor alone still jumps to the right file.
+3. **Line anchor** — append the line anchor using `line` and `side` from the
+   GraphQL response. Use `R{line}` when `side` is `RIGHT` (the new side of the
+   diff — additions and unchanged context viewed from HEAD) and `L{line}` when
+   `side` is `LEFT` (the previous side — deletions and unchanged context viewed
+   from the base). If `line` is `null` (file-level comment), omit the line
+   anchor entirely; the `#diff-{hash}` fragment alone still jumps to the right
+   file.
 
 4. **Full URL:**
 
