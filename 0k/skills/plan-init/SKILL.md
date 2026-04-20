@@ -21,15 +21,16 @@ following the format defined in `PLAN_FORMAT.md`. Include the link, a summary
 of the issue, the overall approach, a TOC checklist with anchor links, and a
 detailed section for each step describing what to implement and how.
 
-**Before creating PLAN.md**, check the current branch:
+**Before creating PLAN.md**, check the current branch and handle it based on
+the session context (local vs. remote):
 
 ```
 git branch --show-current
 ```
 
-If the current branch is `main` or `master`, create a new branch derived from
-the issue. Build the branch name as `{issue-number}-{slug}` where `{slug}` is
-the issue title lowercased, spaces replaced with hyphens, special characters
+**On `main`/`master` (local session):** create a new branch derived from the
+issue. Build the branch name as `{issue-number}-{slug}` where `{slug}` is the
+issue title lowercased, spaces replaced with hyphens, special characters
 stripped, and kept to **≤ 20 characters** — pick 2–3 words that capture the
 area or context (the issue number already provides full traceability). Then
 run:
@@ -42,8 +43,8 @@ git fetch origin {branch-name} && git checkout {branch-name}
 `gh issue develop` creates the remote branch and links it to the issue on
 GitHub. `git fetch` + `git checkout` then checks out the branch locally.
 
-Otherwise (not on `main`/`master`), the session already has its own branch.
-Push the current branch to the standard-named branch so the GitHub naming
+**Not on `main`/`master` (remote/web session):** the session already has its
+own branch. Push it to the standard-named branch so the GitHub naming
 convention is followed:
 
 ```
