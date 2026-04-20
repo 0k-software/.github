@@ -20,7 +20,23 @@ body:
     id: approach
     attributes:
       label: Approach
-      value: _How could this be achieved technically?_
+      value: |
+        _How could this be achieved technically?_
+
+        ### Architecture
+        _High-level structure and key design decisions._
+
+        ### Components
+        _What pieces change — purpose, interface, dependencies._
+
+        ### Data Flow
+        _If relevant, how data moves or transforms._
+
+        ### Error Handling
+        _How failures are handled._
+
+        ### Testing
+        _Testing strategy — unit, integration, end-to-end._
   - type: textarea
     id: scope
     attributes:
