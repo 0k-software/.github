@@ -4,16 +4,24 @@ description:
   "You MUST use this before any creative work - creating features, building
   components, adding functionality, or modifying behavior. Explores user
   intent, requirements and design before implementation."
+argument-hint: "{ issue number or URL }"
 ---
 
 # Brainstorming Ideas Into Designs
 
-Help turn ideas into fully formed designs and specs through natural
-collaborative dialogue.
+`$ARGUMENTS` is a GitHub issue number or URL. If empty, try to infer the issue
+number from the current branch name — if the branch name starts with digits
+(e.g. `42-some-feature`), use that number. If no issue number can be found, ask
+the user to provide one before continuing. **This skill requires a GitHub issue
+— it does not run without one.**
 
-Start by understanding the current project context, then ask questions one at a
-time to refine the idea. Once you understand what you're building, present the
-design and get user approval.
+Help turn ideas into fully formed designs and specs through natural
+collaborative dialogue, grounded in the GitHub issue that describes what to
+build.
+
+Start by understanding the issue and the current project context, then ask
+questions one at a time to refine the idea. Once you understand what you're
+building, present the design and get user approval.
 
 <HARD-GATE>
 Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
@@ -30,9 +38,9 @@ sentences for truly simple projects), but you MUST present it and get approval.
 
 You MUST create a task for each of these items and complete them in order:
 
-1. **Explore project context** — check files, docs, recent commits; if an issue
-   number/URL is provided, fetch its title, body, issue type, and load the
-   matching type template from `0k/references/templates/`
+1. **Fetch issue and explore context** — fetch the issue title, body, issue
+   type, and load the matching type template from `0k/references/templates/`;
+   then check files, docs, and recent commits
 2. **Offer visual companion** (if topic will involve visual questions) — this
    is its own message, not combined with a clarifying question. See the Visual
    Companion section below.
@@ -41,9 +49,8 @@ You MUST create a task for each of these items and complete them in order:
 4. **Propose 2-3 approaches** — with trade-offs and your recommendation
 5. **Present design** — in sections scaled to their complexity, get user
    approval after each section
-6. **Write design doc** — save to
-   `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`, commit, and post the
-   spec as the issue body on GitHub (filling all template sections)
+6. **Write design doc** — post the spec as the updated issue body (filling all
+   template sections)
 7. **Spec self-review** — quick inline check for placeholders, contradictions,
    ambiguity, scope (see below)
 8. **User reviews spec on GitHub** — post a comment on the issue linking to the
@@ -75,10 +82,10 @@ digraph brainstorming {
     "Propose 2-3 approaches" -> "Present design sections";
     "Present design sections" -> "User approves design?";
     "User approves design?" -> "Present design sections" [label="no, revise"];
-    "User approves design?" -> "Write design doc\n(commit + post to issue)" [label="yes"];
-    "Write design doc\n(commit + post to issue)" -> "Spec self-review\n(fix inline)";
+    "User approves design?" -> "Write design doc\n(post to issue)" [label="yes"];
+    "Write design doc\n(post to issue)" -> "Spec self-review\n(fix inline)";
     "Spec self-review\n(fix inline)" -> "User reviews spec on GitHub?";
-    "User reviews spec on GitHub?" -> "Write design doc\n(commit + post to issue)" [label="changes requested"];
+    "User reviews spec on GitHub?" -> "Write design doc\n(post to issue)" [label="changes requested"];
     "User reviews spec on GitHub?" -> "Invoke plan-init skill" [label="approved"];
 }
 ```
@@ -91,11 +98,11 @@ brainstorming is plan-init.
 
 **Understanding the idea:**
 
-- Check out the current project state first (files, docs, recent commits)
-- If an issue number or URL was provided, fetch its title, body, issue type,
-  and load the matching type template from `0k/references/templates/`. Use the
-  issue title and body as the primary description of what is being built — they
-  set the starting scope and intent for everything that follows.
+- Fetch the issue (title, body, issue type) and load the matching type template
+  from `0k/references/templates/`. The issue title and body are the primary
+  description of what is being built — they set the starting scope and intent
+  for everything that follows.
+- Check out the current project state (files, docs, recent commits)
 - Before asking detailed questions, assess scope: if the request describes
   multiple independent subsystems (e.g., "build a platform with chat, file
   storage, billing, and analytics"), flag this immediately. Don't spend
@@ -157,14 +164,9 @@ brainstorming is plan-init.
 
 **Documentation:**
 
-- Write the validated design (spec) to
-  `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`
-  - (User preferences for spec location override this default)
 - Use elements-of-style:writing-clearly-and-concisely skill if available
-- Commit the design document to git
-- If an issue was provided, post the spec as the updated issue body on GitHub,
-  filling in all sections of the issue type template. The issue body becomes
-  the canonical, living spec — not just a link to the file.
+- Post the spec as the updated issue body on GitHub, filling in all sections of
+  the issue type template. The issue body is the canonical, living spec.
 
 **Spec Self-Review:** After writing the spec document, look at it with fresh
 eyes:
@@ -181,16 +183,15 @@ eyes:
 Fix any issues inline. No need to re-review — just fix and move on.
 
 **User Review Gate:** After the spec review loop passes, post a comment on the
-issue (if one was provided) linking to the updated issue body, then ask the
-user to review the spec there before proceeding:
+issue linking to the updated issue body, then ask the user to review it there
+before proceeding:
 
-> "Spec written, committed to `<path>`, and posted to the issue body. Please
-> review it at <issue-url> and let me know if you want any changes before we
-> create the implementation plan."
+> "Spec posted to the issue body. Please review it at <issue-url> and let me
+> know if you want any changes before we create the implementation plan."
 
-If no issue was provided, ask the user to review the spec file directly. Wait
-for the user's response. If they request changes, make them and re-run the spec
-review loop. Only proceed once the user approves.
+Wait for the user's response. If they request changes, make them, update the
+issue body again, and re-run the spec review loop. Only proceed once the user
+approves.
 
 **Implementation:**
 
