@@ -1,5 +1,5 @@
 name: "Check PR diff size"
-description: "Count changed lines on a PR (ignoring configured paths) and post a REQUEST_CHANGES review when the PR exceeds a configurable limit."
+description: "Count added lines on a PR (excluding configured paths) and post a REQUEST_CHANGES review when the PR exceeds a configurable limit."
 author: "0k-software"
 
 branding:
@@ -8,20 +8,27 @@ branding:
 
 inputs:
   limit:
-    description: "Maximum number of changed lines allowed on the PR."
+    description: "Maximum number of added lines allowed on the PR."
     required: true
   warn-threshold:
-    description: "Fraction of `limit` (between 0 and 1) at which the status badge flips to warning."
+    description: "Fraction of `limit` (between 0 and 1) above which the badge colour flips to warning."
     required: false
     default: "0.8"
   ignored-paths:
-    description: "Newline- or comma-separated path globs excluded from the line count."
+    description: |
+      Newline- or comma-separated list of git pathspec excludes applied to
+      the line count. Each entry may be given as a bare path (`priv/static/**`)
+      or with the pathspec magic prefix already attached (`:!priv/static/**`).
     required: false
     default: ""
   body-match-pattern:
-    description: "POSIX ERE matching previous diff-size review bodies so stale ones get minimized."
+    description: |
+      Literal prefix written at the top of every posted review. Reviews from
+      `github-actions[bot]` whose body starts with this prefix are treated as
+      stale on the next run and get dismissed (if still blocking) and
+      minimised as OUTDATED.
     required: false
-    default: "^📏 \\*\\*PR diff size\\*\\*"
+    default: "<!-- pr-diff-size -->"
 
 runs:
   using: "composite"
@@ -30,100 +37,147 @@ runs:
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
-        OWNER: ${{ github.event.pull_request.base.repo.owner.login }}
-        REPO: ${{ github.event.pull_request.base.repo.name }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
-        LIMIT: ${{ inputs.limit }}
+        BASE_REF: ${{ github.base_ref }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        REPO: ${{ github.repository }}
+        MAX_LINES: ${{ inputs.limit }}
         WARN_THRESHOLD: ${{ inputs.warn-threshold }}
         IGNORED_PATHS: ${{ inputs.ignored-paths }}
-        BODY_MATCH_PATTERN: ${{ inputs.body-match-pattern }}
+        MARKER: ${{ inputs.body-match-pattern }}
       run: |
-        set -euo pipefail
-        shopt -s globstar extglob
+        set -eo pipefail
 
-        mapfile -t ignored < <(
-          printf '%s\n' "${IGNORED_PATHS}" \
-            | tr ',' '\n' \
-            | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' \
-            | grep -v '^$' || true
-        )
+        BASE="origin/${BASE_REF}"
 
-        path_ignored() {
-          local path="$1" pattern
-          for pattern in "${ignored[@]:-}"; do
-            [[ -z "$pattern" ]] && continue
-            # shellcheck disable=SC2053
-            [[ "$path" == $pattern ]] && return 0
-          done
-          return 1
-        }
+        # Parse ignored-paths: accept newline- or comma-separated entries,
+        # strip whitespace, normalise to git pathspec excludes (`:!<pattern>`).
+        EXCLUDES=()
+        while IFS= read -r line; do
+          line="${line#"${line%%[![:space:]]*}"}"
+          line="${line%"${line##*[![:space:]]}"}"
+          [ -z "$line" ] && continue
+          stripped="${line#:!}"
+          EXCLUDES+=(":!${stripped}")
+        done < <(printf '%s' "${IGNORED_PATHS}" | tr ',' '\n')
 
-        # Pagination-aware list of changed files (REST, per_page=100).
-        total=0
-        while IFS=$'\t' read -r path add del; do
-          [[ -z "$path" ]] && continue
-          path_ignored "$path" && continue
-          total=$(( total + add + del ))
-        done < <(
-          gh api --paginate \
-            "repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}/files?per_page=100" \
-            --jq '.[] | [.filename, .additions, .deletions] | @tsv'
-        )
+        echo "::group::Inputs"
+        echo "Repo:         ${REPO}"
+        echo "PR number:    ${PR_NUMBER}"
+        echo "Base ref:     ${BASE}"
+        echo "Head sha:     ${HEAD_SHA}"
+        echo "Max lines:    ${MAX_LINES}"
+        echo "Excludes:     ${EXCLUDES[*]}"
+        echo "Marker:       ${MARKER}"
+        echo "::endgroup::"
 
-        warn_limit=$(awk -v l="$LIMIT" -v w="$WARN_THRESHOLD" 'BEGIN { printf "%d", l * w }')
-        if (( total > LIMIT )); then
-          status="over"; emoji="❌"; event="REQUEST_CHANGES"
-        elif (( total >= warn_limit )); then
-          status="warn"; emoji="⚠️"; event="COMMENT"
+        echo "::group::Count diff lines"
+        ADDED=$(git diff --diff-filter=ACMR "${BASE}...HEAD" -- . "${EXCLUDES[@]}" \
+          | grep -cE '^\+([^+]|$)' || true)
+        TOTAL_ADDED=$(git diff --diff-filter=ACMR "${BASE}...HEAD" \
+          | grep -cE '^\+([^+]|$)' || true)
+        TOTAL_DELETED=$(git diff --diff-filter=ACMR "${BASE}...HEAD" \
+          | grep -cE '^-([^-]|$)' || true)
+        IGNORED=$((TOTAL_ADDED - ADDED))
+        echo "Counted added:   ${ADDED}"
+        echo "Total added:     ${TOTAL_ADDED}"
+        echo "Total deleted:   ${TOTAL_DELETED}"
+        echo "Ignored:         ${IGNORED}"
+        echo "::endgroup::"
+
+        echo "::group::Decide verdict"
+        WARN_LINES=$(awk -v l="$MAX_LINES" -v w="$WARN_THRESHOLD" 'BEGIN { printf "%d", l * w }')
+        if [ "$ADDED" -gt "$MAX_LINES" ]; then
+          EVENT="REQUEST_CHANGES"
+          ICON=":warning:"
+          BADGE_STATUS="over%20the%20limit"
+          COLOR="cf222e"
         else
-          status="ok"; emoji="✅"; event="COMMENT"
-        fi
-
-        body=$(printf '📏 **PR diff size**: %d / %d changed lines\n\nStatus: %s %s\n' \
-          "$total" "$LIMIT" "$emoji" "$status")
-
-        # Minimize every previous matching review (pagination-aware GraphQL).
-        reviews_query='query($owner:String!,$repo:String!,$pr:Int!,$cursor:String){repository(owner:$owner,name:$repo){pullRequest(number:$pr){reviews(first:100,after:$cursor){pageInfo{hasNextPage endCursor}nodes{id body}}}}}'
-        cursor=""
-        while :; do
-          if [[ -z "$cursor" ]]; then
-            page=$(gh api graphql \
-              -F owner="$OWNER" -F repo="$REPO" -F pr="$PR_NUMBER" \
-              -F cursor=null -f query="$reviews_query")
+          EVENT="COMMENT"
+          ICON=":white_check_mark:"
+          BADGE_STATUS="under%20the%20limit"
+          if [ "$ADDED" -gt "$WARN_LINES" ]; then
+            COLOR="bf8700"
           else
-            page=$(gh api graphql \
-              -F owner="$OWNER" -F repo="$REPO" -F pr="$PR_NUMBER" \
-              -F cursor="$cursor" -f query="$reviews_query")
+            COLOR="2ea44f"
           fi
-          while IFS=$'\t' read -r review_id review_body; do
-            [[ -z "$review_id" ]] && continue
-            if [[ "$review_body" =~ $BODY_MATCH_PATTERN ]]; then
-              gh api graphql \
-                -F id="$review_id" \
-                -f query='mutation($id:ID!){minimizeComment(input:{subjectId:$id, classifier:OUTDATED}){minimizedComment{isMinimized}}}' \
-                >/dev/null || true
-            fi
-          done < <(echo "$page" | jq -r '.data.repository.pullRequest.reviews.nodes[] | [.id, (.body // "")] | @tsv')
-          has_next=$(echo "$page" | jq -r '.data.repository.pullRequest.reviews.pageInfo.hasNextPage')
-          [[ "$has_next" != "true" ]] && break
-          cursor=$(echo "$page" | jq -r '.data.repository.pullRequest.reviews.pageInfo.endCursor')
-        done
-
-        # Post the current status as a fresh review.
-        gh api \
-          "repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}/reviews" \
-          -f event="$event" -f body="$body" >/dev/null
-
-        {
-          echo "### ${emoji} PR diff size"
-          echo ""
-          echo "- Total changed lines: **${total}**"
-          echo "- Limit: **${LIMIT}**"
-          echo "- Warn threshold: **${warn_limit}** lines (${WARN_THRESHOLD} × limit)"
-          echo "- Status: **${status}**"
-        } >> "$GITHUB_STEP_SUMMARY"
-
-        if [[ "$status" == "over" ]]; then
-          echo "::error::PR diff size ${total} exceeds limit ${LIMIT}"
-          exit 1
         fi
+        echo "Event:  ${EVENT}"
+        echo "Icon:   ${ICON}"
+        echo "Badge:  ${BADGE_STATUS}"
+        echo "Color:  ${COLOR}"
+        echo "::endgroup::"
+
+        BODY=$(cat <<EOF
+        ${MARKER}
+        ## ${ICON} PR size ![](https://img.shields.io/badge/${ADDED}%20lines%20-${BADGE_STATUS}-${COLOR})
+
+        > [!NOTE]
+        > Only **added/modified lines** count toward the limit.
+        > Deleted lines and ignored file patterns are excluded.
+
+        | | Lines |
+        |--------|------:|
+        | :white_circle: Ignored | ${IGNORED} |
+        | :green_circle: Counted | **${ADDED}** |
+        | :red_circle: Limit | ${MAX_LINES} |
+
+        <details>
+        <summary>Ignored file patterns</summary>
+
+        $(printf -- '- <code>%s</code>\n' "${EXCLUDES[@]//:!/}")
+
+        </details>
+
+        ### Total Lines
+        \`\`\`diff
+        + Added:    ${TOTAL_ADDED}
+        - Deleted:  ${TOTAL_DELETED}
+        \`\`\`
+        EOF
+        )
+
+        # Clean up previous diff-size reviews from github-actions[bot].
+        # Submitted reviews can't be deleted via the REST API, so we dismiss
+        # CHANGES_REQUESTED ones (to clear the merge block) and minimize all
+        # of them as OUTDATED (matches the UI's "Hide" -> "Outdated" action)
+        # so they don't clutter the PR timeline.
+        # --paginate is required: the reviews endpoint returns 30 per page,
+        # and PRs with many comment-style reviews push older bot reviews
+        # off the first page, causing them to silently escape cleanup.
+        # The jq filter emits a stream of objects (no outer array) so each
+        # page's output concatenates into a single valid stream.
+        echo "::group::GET repos/${REPO}/pulls/${PR_NUMBER}/reviews"
+        PREVIOUS=$(gh api --paginate "repos/${REPO}/pulls/${PR_NUMBER}/reviews" \
+          --jq ".[] | select(.user.login == \"github-actions[bot]\") | select(.body | startswith(\"${MARKER}\")) | {id, node_id, state}")
+        echo "Matching previous reviews:"
+        echo "$PREVIOUS" | jq -s .
+        echo "::endgroup::"
+
+        echo "$PREVIOUS" | jq -r '[.id, .node_id, .state] | @tsv' \
+          | while IFS=$'\t' read -r rid node_id rstate; do
+              echo "::group::Hide previous review ${rid} (state=${rstate})"
+              if [ "$rstate" = "CHANGES_REQUESTED" ]; then
+                echo "PUT repos/${REPO}/pulls/${PR_NUMBER}/reviews/${rid}/dismissals"
+                DISMISS=$(gh api "repos/${REPO}/pulls/${PR_NUMBER}/reviews/${rid}/dismissals" \
+                  -X PUT -f message="Superseded by new check")
+                echo "Dismissal response:"
+                echo "$DISMISS" | jq '{id, state, submitted_at}'
+              fi
+              echo "GraphQL minimizeComment(subjectId=${node_id}, classifier=OUTDATED)"
+              MINIMIZE=$(gh api graphql -f query='mutation($id: ID!) {
+                minimizeComment(input: { subjectId: $id, classifier: OUTDATED }) {
+                  minimizedComment { isMinimized }
+                }
+              }' -f id="$node_id")
+              echo "Minimize response:"
+              echo "$MINIMIZE" | jq .
+              echo "::endgroup::"
+            done
+
+        echo "::group::POST repos/${REPO}/pulls/${PR_NUMBER}/reviews (event=${EVENT})"
+        CREATED=$(gh api "repos/${REPO}/pulls/${PR_NUMBER}/reviews" \
+          -X POST -f body="$BODY" -f event="$EVENT" -f commit_id="${HEAD_SHA}")
+        echo "New review:"
+        echo "$CREATED" | jq '{id, state, html_url, submitted_at, commit_id}'
+        echo "::endgroup::"
