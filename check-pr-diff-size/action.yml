@@ -88,12 +88,12 @@ runs:
         while :; do
           if [[ -z "$cursor" ]]; then
             page=$(gh api graphql \
-              -F owner="$OWNER" -F repo="$REPO" -f pr="$PR_NUMBER" \
-              -f cursor=null -f query="$reviews_query")
+              -F owner="$OWNER" -F repo="$REPO" -F pr="$PR_NUMBER" \
+              -F cursor=null -f query="$reviews_query")
           else
             page=$(gh api graphql \
-              -F owner="$OWNER" -F repo="$REPO" -f pr="$PR_NUMBER" \
-              -f cursor="$cursor" -f query="$reviews_query")
+              -F owner="$OWNER" -F repo="$REPO" -F pr="$PR_NUMBER" \
+              -F cursor="$cursor" -f query="$reviews_query")
           fi
           while IFS=$'\t' read -r review_id review_body; do
             [[ -z "$review_id" ]] && continue
