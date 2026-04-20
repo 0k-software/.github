@@ -1,19 +1,20 @@
-# Adapted from obra/superpowers @ — skills/brainstorming/SKILL.md
-
 ---
-
-name: refine-issue description: Refine a GitHub issue interactively —
-brainstorm through each template section with the user one at a time, then
-update the issue on approval argument-hint: { issue number or URL }
-
+name: refine-issue
+description:
+  Refine a GitHub issue interactively — brainstorm through each template
+  section with the user one at a time, then update the issue on approval
+argument-hint: { issue number or URL }
 ---
 
 # Refine Issue
 
-Refine a GitHub issue by brainstorming through each of its template sections
-interactively — analysing the current content, proposing improvements, asking
-the user for decisions where choices are needed, and writing back the approved
-result.
+**Core principle:** Do NOT update the GitHub issue until you have presented the
+complete refined body and the user has explicitly approved it.
+
+Refine a GitHub issue by working through its template sections as a design
+document — fetching the current content, clarifying intent if needed, drafting
+each section with the user's input, self-reviewing for completeness, and
+writing back only on final approval.
 
 `$ARGUMENTS` is an issue number or URL. If empty, try to infer the issue number
 from the current branch name — if the branch name starts with digits (e.g.
@@ -31,12 +32,12 @@ which issue to refine.
    gh issue view {number} --repo {owner}/{repo} \
      --json title,body,labels,number,url,state,issueType
    ```
-3. Fetch **all** comments on the issue including their reactions:
+3. Fetch **all** comments on the issue:
    ```
    gh api "repos/{owner}/{repo}/issues/{number}/comments" --paginate \
      --jq '.[] | {id, author: .user.login, body}'
    ```
-   For each comment, fetch its reactions to check for the ✅
+   Then, for each comment, fetch its reactions to check for the ✅
    (`white_check_mark`) marker:
    ```
    viewer="$(gh api user --jq .login)"
@@ -54,69 +55,75 @@ which issue to refine.
 
 1. Identify the issue type from the `issueType` field (e.g. "Feature",
    "Enhancement", "Bug", "Task", "Pitch", "Kickoff"). Fall back to scanning
-   labels if `issueType` is empty.
-2. Map the type to the corresponding template file:
+   labels if `issueType` is empty. If the type still cannot be determined, ask
+   the user to pick one before continuing.
+2. Map the type to the corresponding template file in
+   `0k/references/templates/`:
 
-   | Issue type  | Template file                                        |
-   | ----------- | ---------------------------------------------------- |
-   | Pitch       | `0k/skills/create-issue/templates/1-pitch.yml`       |
-   | Feature     | `0k/skills/create-issue/templates/2-feature.yml`     |
-   | Task        | `0k/skills/create-issue/templates/3-task.yml`        |
-   | Bug         | `0k/skills/create-issue/templates/4-bug.yml`         |
-   | Enhancement | `0k/skills/create-issue/templates/5-enhancement.yml` |
-   | Kickoff     | `0k/skills/create-issue/templates/6-kickoff.yml`     |
-
-   If the type cannot be determined, ask the user to pick one before
-   continuing.
+   | Issue type  | Template file                               |
+   | ----------- | ------------------------------------------- |
+   | Pitch       | `0k/references/templates/1-pitch.yml`       |
+   | Feature     | `0k/references/templates/2-feature.yml`     |
+   | Task        | `0k/references/templates/3-task.yml`        |
+   | Bug         | `0k/references/templates/4-bug.yml`         |
+   | Enhancement | `0k/references/templates/5-enhancement.yml` |
+   | Kickoff     | `0k/references/templates/6-kickoff.yml`     |
 
 3. Read the template file and collect all non-`markdown` input fields —
    `textarea`, `dropdown`, `checkboxes`, and `input` — in order. Their `label`
    values become the brainstorming agenda.
 
-## Step 3 — Run the brainstorming rhythm
+## Step 3 — Ask clarifying questions
 
-Work through the template sections one at a time. **Never ask more than one
-question in a single message** — the user should never feel overwhelmed.
+Before brainstorming through the sections, check whether the issue's overall
+purpose, scope, or constraints are unclear. **Ask one question at a time** —
+never pose multiple questions in a single message. Do not ask what is already
+answered clearly in the issue body or comments.
 
-For each section in the brainstorming agenda (in template order):
+Stop asking when the context is sufficient to write well-structured content for
+every template section.
+
+## Step 4 — Brainstorm through each section
+
+Work through the brainstorming agenda (template sections in order). For each
+section:
 
 1. **Show** the section name and its current content from the issue body. Note
-   if the section is missing or still contains the placeholder default text.
-2. **Analyse** what a well-written version should contain, anchored to the
-   issue's specific goal and context.
-3. **If the section involves a choice** (e.g. alternative approaches, severity
-   level, which option to take), propose 2–3 options with their trade-offs and
-   ask the user to decide. Wait for the response before drafting. Present the
-   decision as a single focused question.
+   if it is missing or still contains placeholder text.
+2. **Analyse** what a complete, well-written version should contain, anchored
+   to the issue's purpose and any clarifications from Step 3.
+3. **If the section requires a decision** (e.g. alternative approaches, scope
+   trade-offs, severity choice), propose 2–3 options with their trade-offs and
+   ask the user to choose. Present as a single focused question. Wait for the
+   response before drafting.
 4. **Draft** the section incorporating the user's input (or your best judgement
    if no choice was needed). Present the draft with an explicit approval
    checkpoint:
 
-   > Does this look right for **{Section Name}**, or would you like any
-   > changes?
+   > Does this look right for **{Section Name}**, or would you like changes?
 
-   Wait for the user to approve or request changes before moving on to the next
+   Wait for the user to approve or request changes before moving to the next
    section.
 
-After drafting all sections, **self-review** the complete body:
+## Step 5 — Self-review
+
+After drafting all sections, review the complete body before presenting it:
 
 - Remove any remaining placeholder text
 - Check for contradictions between sections
 - Fill obvious gaps silently
 
-Present the self-reviewed draft in full before moving to Step 4.
+## Step 6 — Write back on approval
 
-## Step 4 — Write back on approval
-
-Ask the user for final approval of the complete draft:
+Present the complete self-reviewed body and ask for final approval:
 
 > Here's the complete refined issue. Approve to update GitHub, or let me know
 > what to change.
 
 If the user approves:
 
-1. Write the approved body to a temporary file. Update the issue, including
-   `--title` only if the title changed:
+1. Write the body to a temp file and update the issue. Include `--title` only
+   if the title changed:
 
    ```
    gh issue edit {number} --repo {owner}/{repo} --body-file /tmp/issue-body.md
@@ -124,28 +131,26 @@ If the user approves:
 
    If the title changed, add: `--title "{new title}"`
 
-2. If any comments raised questions or feedback that was incorporated into the
-   refined body, post a **single** reply comment on the issue (not one per
-   comment) addressing all of them. Reference each commenter by `@username`.
-   Append the AI attribution footer (see below).
+2. If any comments raised questions or feedback incorporated into the refined
+   body, post a **single** reply comment addressing all of them. Reference each
+   commenter by `@username`. Append the AI attribution footer (see below).
 
    ```
    gh issue comment {number} --repo {owner}/{repo} --body-file /tmp/issue-reply.md
    ```
 
-3. React with ✅ (`white_check_mark`) to every comment that was addressed or
-   incorporated in this run:
+3. React with ✅ (`white_check_mark`) to every comment addressed in this run:
    ```
    gh api "repos/{owner}/{repo}/issues/comments/{comment-id}/reactions" \
      -X POST -f content="white_check_mark"
    ```
 
-## Step 5 — Report
+## Step 7 — Report
 
 Display a summary:
 
 - Whether the title changed (old → new)
-- Which sections were updated (brief description of changes per section)
+- Which sections were updated (brief description per section)
 - How many comments were addressed
 - Any items skipped and why
 
