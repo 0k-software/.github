@@ -61,34 +61,21 @@ You MUST create a task for each of these items and complete them in order:
 
 ## Process Flow
 
-```dot
-digraph brainstorming {
-    "Explore project context" [shape=box];
-    "Visual questions ahead?" [shape=diamond];
-    "Offer Visual Companion" [shape=box];
-    "Ask clarifying questions" [shape=box];
-    "Propose 2-3 approaches" [shape=box];
-    "Present design sections" [shape=box];
-    "User approves design?" [shape=diamond];
-    "Write design doc" [shape=box];
-    "Spec self-review" [shape=box];
-    "User reviews spec on GitHub?" [shape=diamond];
-    "Invoke plan-init skill" [shape=doublecircle];
-
-    "Explore project context" -> "Visual questions ahead?";
-    "Visual questions ahead?" -> "Offer Visual Companion" [label="yes"];
-    "Visual questions ahead?" -> "Ask clarifying questions" [label="no"];
-    "Offer Visual Companion" -> "Ask clarifying questions";
-    "Ask clarifying questions" -> "Propose 2-3 approaches";
-    "Propose 2-3 approaches" -> "Present design sections";
-    "Present design sections" -> "User approves design?";
-    "User approves design?" -> "Present design sections" [label="no, revise"];
-    "User approves design?" -> "Write design doc" [label="yes"];
-    "Write design doc" -> "Spec self-review";
-    "Spec self-review" -> "User reviews spec on GitHub?";
-    "User reviews spec on GitHub?" -> "Write design doc" [label="changes requested"];
-    "User reviews spec on GitHub?" -> "Invoke plan-init skill" [label="approved"];
-}
+```mermaid
+flowchart TD
+    A[Explore project context] --> B{Visual questions ahead?}
+    B -->|yes| C[Offer Visual Companion]
+    B -->|no| D[Ask clarifying questions]
+    C --> D
+    D --> E[Propose 2-3 approaches]
+    E --> F[Present design sections]
+    F --> G{User approves design?}
+    G -->|no, revise| F
+    G -->|yes| H[Write design doc]
+    H --> I[Spec self-review]
+    I --> J{User reviews spec on GitHub?}
+    J -->|changes requested| H
+    J -->|approved| K(((Invoke plan-init)))
 ```
 
 **The terminal state is invoking plan-init.** Do NOT invoke plan-execute or any
