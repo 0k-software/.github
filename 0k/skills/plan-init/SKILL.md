@@ -16,13 +16,15 @@ from the current branch name — if the branch name starts with digits (e.g.
 `42-some-feature`), use that number. If no number can be inferred, ask the user
 which issue to plan.
 
-Plan the GH issue at `$ARGUMENTS`. Fetch the issue details, then create PLAN.md
-following the format defined in `PLAN_FORMAT.md`. Include the link, a summary
-of the issue, the overall approach, a TOC checklist with anchor links, and a
-detailed section for each step describing what to implement and how.
+## Step 1 — Fetch the issue
 
-**Before creating PLAN.md**, check the current branch and handle it based on
-the session context (local vs. remote):
+Fetch the issue details at `$ARGUMENTS`. You'll need the title, body, and
+comments to write the plan.
+
+## Step 2 — Set up the branch
+
+Check the current branch and prepare the remote origin branch for the push and
+PR that will follow.
 
 ```
 git branch --show-current
@@ -56,9 +58,14 @@ This maps the session branch to the `{issue-number}-{slug}` convention on
 GitHub and renames the local branch to match, so subsequent commands (including
 `create-pr`) use the correct name.
 
-After creating PLAN.md, perform a **scope check** before committing:
+## Step 3 — Create PLAN.md
 
-## Scope Check
+Create PLAN.md following the format defined in `PLAN_FORMAT.md`. Include the
+link, a summary of the issue, the overall approach, a TOC checklist with anchor
+links, and a detailed section for each step describing what to implement and
+how.
+
+## Step 4 — Scope check
 
 Count the unchecked steps in the TOC (lines matching `- [ ]`). Each step maps
 to roughly one commit; use this to predict PR size:
@@ -93,8 +100,10 @@ finalizing:
    - Leave a comment on the issue listing the extracted follow-up issues with
      links, e.g.: "Extracted to: #X (group 2 title), #Y (group 3 title)."
 
-Then — whether the step count was ≤ 6, or the user chose A (after the
-scope-down steps above), or the user chose B — finalize:
+## Step 5 — Finalize
+
+Whether the step count was ≤ 6, or the user chose A (after the scope-down steps
+above), or the user chose B:
 
 1. Run `/0k:commit ! plan: {issue title}` to commit PLAN.md.
 2. Invoke `/0k:create-pr draft {issue-number}` to push the branch and open a
