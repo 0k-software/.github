@@ -49,14 +49,17 @@ standardized templates. Do NOT create free-form issues.
 The template `.yml` files are GitHub Issue Form definitions. Convert them to a
 markdown issue body as follows:
 
-- **`textarea`** fields → `## {label}` heading followed by the content.
-  - If content can be inferred from `$ARGUMENTS`, use it.
-  - If no content is available, use the template `value` verbatim so it remains
-    as a reference scaffold for a later `refine-issue` pass.
-- **`dropdown`** fields → `## {label}` heading followed by the selected value.
-- **`checkboxes`** fields → `## {label}` heading followed by the checkbox list.
-- **`markdown`** fields → skip (these are instructions, not issue content).
-- **`input`** fields → `## {label}` heading followed by the value.
+For every field (except `markdown`):
+
+- **If content can be inferred from `$ARGUMENTS`**: render `## {label}`
+  followed by the inferred value. For `checkboxes`, check only the inferred
+  items and leave the rest unchecked.
+- **If no content is available**: render `## {label}` followed by the template
+  `value` verbatim (fall back to `attributes.description` if absent) so it
+  remains as a scaffold. For `dropdown`, list all options; for `checkboxes`,
+  render all options unchecked.
+
+**`markdown`** fields → skip (instructions only, not issue content).
 
 ## Creating the Issue
 
