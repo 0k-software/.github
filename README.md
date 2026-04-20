@@ -48,14 +48,15 @@ The `0k` Claude Code plugin lives in `0k/`. Each skill is a subdirectory under
 | ---------------- | -------------------- | ---------------------------------------------------- |
 | `commit`         | `/0k:commit`         | Stage all changes and generate a Conventional Commit |
 | `create-issue`   | `/0k:create-issue`   | Create a GitHub issue using the org issue templates  |
-| `fix-pr`         | `/0k:fix-pr`         | Address unresolved PR review comments                |
+| `create-pr`      | `/0k:create-pr`      | Create a pull request for the current branch         |
+| `fix`            | `/0k:fix`            | Address unresolved PR review or issue comments       |
+| `refine`         | `/0k:refine`         | Brainstorm and refine a GitHub issue into a spec     |
 | `plan-init`      | `/0k:plan-init`      | Create an implementation plan from a GitHub issue    |
 | `plan-add`       | `/0k:plan-add`       | Add a new step to an existing PLAN.md                |
 | `plan-execute`   | `/0k:plan-execute`   | Run all remaining plan steps autonomously            |
 | `rebase`         | `/0k:rebase`         | Rebase current branch onto another                   |
 | `cleanup-branch` | `/0k:cleanup-branch` | Clean up a branch's commit history                   |
 | `split-branch`   | `/0k:split-branch`   | Split a large branch into smaller stacked branches   |
-| `refine-issue`   | `/0k:refine-issue`   | Refine a GitHub issue from comment feedback          |
 | `kitty`          | `/0k:kitty`          | Open kitty terminal for the current directory        |
 
 ### Installing the plugin
@@ -163,6 +164,13 @@ git add 0k/skills/create-issue/templates/
 npx prettier --write "**/*.md"
 git add -p
 ```
+
+## Attributions
+
+The `/0k:refine` skill — including its visual companion server, browser client,
+and frame template — is heavily inspired by and in parts directly copied from
+[obra/superpowers](https://github.com/obra/superpowers). Used with gratitude
+and in compliance with its license.
 
 [gh-community-health]:
   https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/creating-a-default-community-health-file
