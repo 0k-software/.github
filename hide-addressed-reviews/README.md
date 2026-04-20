@@ -1,47 +1,46 @@
 # hide-addressed-reviews
 
 A reusable composite GitHub Action that keeps a pull request's conversation
-pane clean: it finds LGTM-style bot reviews, resolves every review thread each
-one opened, and then minimizes the review itself so it collapses under the
-"hidden" fold.
+pane clean: it finds wrap-up reviews (bare `LGTM`/`LBTM`/`ACK`/`NACK`-style
+bodies, plus Copilot PR reviews) whose every review thread has already been
+resolved, and minimizes them so they collapse under the "hidden" fold.
 
-Use it in any 0k-software repo that has a checker/bot which signs off with an
-`lgtm` review — the action removes the repeated "LGTM" noise once sign-off is
-no longer interesting.
+The action never resolves threads for you — it only hides reviews whose threads
+are **already** addressed. Reviews with outstanding asks stay visible.
 
 ## Usage
 
 Pin to the major tag:
 
 ```yaml
-name: PR hygiene
+name: Check
 
 on:
-  pull_request_review:
-    types: [submitted, edited, dismissed]
+  pull_request:
 
 permissions:
   pull-requests: write
 
 jobs:
-  hide-addressed-reviews:
+  check:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5
       - uses: 0k-software/.github/hide-addressed-reviews@v1
 ```
 
-`pull_request_review` is a natural trigger, but any event that runs in the
-context of a PR works — just make sure `github.event.pull_request.number` is
-populated, or pass `pr-number` explicitly.
+Any event running in the context of a PR works — just make sure
+`github.event.pull_request.number` is populated, or pass `pr-number`
+explicitly.
 
 ## Inputs
 
-| Name                 | Description                                                                                                                                                                                            | Default                                             |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------- |
-| `body-match-pattern` | Case-insensitive extended regex (`grep -iE`) matched against each review body. Only matching reviews are hidden.                                                                                       | `^[[:space:]]*(lgtm\|lbtm\|ack\|nack)[[:space:]]*$` |
-| `classifier`         | `minimizeComment` classifier applied to hidden reviews. One of `RESOLVED`, `OUTDATED`, `OFF_TOPIC`, `DUPLICATE`, `SPAM`, `ABUSE`.                                                                      | `RESOLVED`                                          |
-| `pr-number`          | Pull request number to operate on. Falls back to `github.event.pull_request.number` when empty.                                                                                                        | _(empty — auto-infers from the PR event)_           |
-| `github-token`       | Token used to call the GraphQL API. Needs `pull-requests: write`. Composite actions do not inherit `secrets` from the calling workflow, so pass a PAT explicitly if the default token is insufficient. | _(empty — falls back to `github.token`)_            |
+| Name                 | Description                                                                                                                                                                                                 | Default                                   |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `body-match-pattern` | Case-insensitive PCRE regex (evaluated via `jq test()`) matched against each review body after `ascii_downcase`. A review is a candidate if it matches OR if its author is `copilot-pull-request-reviewer`. | `^\s*(lgtm\|lbtm\|ack\|nack)?\s*$`        |
+| `classifier`         | `minimizeComment` classifier applied to hidden reviews. One of `RESOLVED`, `OUTDATED`, `OFF_TOPIC`, `DUPLICATE`, `SPAM`, `ABUSE`.                                                                           | `RESOLVED`                                |
+| `pr-number`          | Pull request number to operate on. Falls back to `github.event.pull_request.number` when empty.                                                                                                             | _(empty — auto-infers from the PR event)_ |
+| `github-token`       | Token used to call the GraphQL API. Needs `pull-requests: write`. Composite actions do not inherit `secrets` from the calling workflow, so pass a PAT explicitly if the default token is insufficient.      | _(empty — falls back to `github.token`)_  |
 
 ## Permissions
 
@@ -51,9 +50,6 @@ The calling workflow needs at least:
 permissions:
   pull-requests: write
 ```
-
-`contents: read` is also required if the workflow does anything else that reads
-the repo, but the action itself only talks to the GraphQL API.
 
 ## Requirements
 
@@ -68,12 +64,22 @@ this step runs — otherwise install them first, e.g.:
 
 ## How it works
 
-For each review on the PR:
+In a single GraphQL round-trip, the action fetches every review on the PR (with
+its body, author, `isMinimized` flag, and the `databaseId`s of the review
+comments it opened) plus every `reviewThread` (with `isResolved` and the
+`databaseId`s of its comments). Then, in jq:
 
-1. Match `body-match-pattern` against the review body.
-2. Find every review thread whose first comment belongs to that review.
-3. Resolve any of those threads that aren't already resolved.
-4. Minimize the review with the configured `classifier`.
+1. Drop already-minimized reviews.
+2. Keep reviews whose body matches `body-match-pattern` **or** whose author is
+   `copilot-pull-request-reviewer`.
+3. For each remaining review, find the review threads it opened by intersecting
+   its review-comment `databaseId`s with each thread's comment `databaseId`s.
+4. Keep only reviews where **every** opened thread is resolved.
+5. Call `minimizeComment` with the configured `classifier` for each surviving
+   review.
+
+The internal step is wrapped in `continue-on-error: true`, so a transient
+GraphQL failure won't fail the calling workflow.
 
 ## Versioning & releases
 
