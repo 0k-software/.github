@@ -35,23 +35,7 @@ body:
     id: solution
     attributes:
       label: Proposal
-      value: |
-        _What's the proposed solution? Describe how it should work._
-
-        ### Architecture
-        _High-level structure and key design decisions._
-
-        ### Components
-        _What pieces are involved — purpose, interface, dependencies._
-
-        ### Data Flow
-        _How data moves through the system._
-
-        ### Error Handling
-        _How failures are detected, handled, and surfaced._
-
-        ### Testing
-        _Testing strategy — unit, integration, end-to-end._
+      value: _What's the proposed solution? Describe how it should work._
   - type: textarea
     id: alternatives
     attributes:
