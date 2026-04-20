@@ -13,43 +13,31 @@ result.
 
 ## Approach
 
-1. Fetch the brainstorming source from `obra/superpowers` to capture the
-   structured back-and-forth rhythm it defines.
-2. Rewrite `0k/skills/refine-issue/SKILL.md` to replace the current
-   feedback-analysis workflow with a brainstorming-driven one: detect the issue
-   type, load its template sections, iterate through each section brainstorming
-   and prompting for decisions, then update the issue on approval. Add the
-   attribution header.
+Rewrite `0k/skills/refine-issue/SKILL.md` entirely, replacing the current
+reactive six-step workflow with a brainstorming-adapted one modelled on
+`obra/superpowers/skills/brainstorming/SKILL.md`. The key patterns to carry
+over:
+
+- **Single questions only** — never ask more than one clarifying question at a
+  time, so the user is never overwhelmed.
+- **Options with trade-offs** — when a section requires a decision (e.g.
+  alternative approaches, severity level), propose 2–3 options with their
+  trade-offs and let the user choose before continuing.
+- **Per-section approval checkpoints** — present each drafted section and wait
+  for the user to approve or request changes before moving to the next.
+- **Self-review before write-back** — after all sections are drafted, review
+  the complete body for placeholders, contradictions, and gaps before
+  presenting it to the user for final approval.
+- **Approval-gated write-back** — only update the GitHub issue once the user
+  explicitly approves the complete refined body.
 
 ## Steps
 
-- [ ] [Step 1: Fetch brainstorming source skill](#step-1-fetch-brainstorming-source-skill)
-- [ ] [Step 2: Rewrite `refine-issue/SKILL.md` with brainstorming adaptation](#step-2-rewrite-refine-issueskillmd-with-brainstorming-adaptation)
+- [ ] [Step 1: Rewrite `refine-issue/SKILL.md` with brainstorming adaptation](#step-1-rewrite-refine-issueskillmd-with-brainstorming-adaptation)
 
 ---
 
-## Step 1: Fetch brainstorming source skill
-
-Retrieve the brainstorming skill from the `obra/superpowers` repository so it
-can serve as the foundation for the adaptation.
-
-```
-gh api repos/obra/superpowers/contents/skills/brainstorming.md \
-  --jq '.content' | base64 -d
-```
-
-Read through the skill carefully, noting:
-
-- The rhythm structure (how rounds of brainstorming are structured)
-- How it prompts the user for decisions
-- How it accumulates and synthesises output
-- Any conventions (e.g. markers, section headers, attribution format)
-
-This step produces no file changes — it is research. The output informs Step 2.
-
----
-
-## Step 2: Rewrite `refine-issue/SKILL.md` with brainstorming adaptation
+## Step 1: Rewrite `refine-issue/SKILL.md` with brainstorming adaptation
 
 Rewrite `0k/skills/refine-issue/SKILL.md` entirely, replacing the current
 reactive six-step workflow with the brainstorming-adapted version. The new
@@ -60,15 +48,16 @@ skill must cover the following in order:
 At the very top of the file, before the frontmatter separator, add:
 
 ```
-# Adapted from obra/superpowers @ — skills/brainstorming.md
+# Adapted from obra/superpowers @ — skills/brainstorming/SKILL.md
 ```
 
 ### Step 1 — Fetch context
 
-Same as today: derive `{owner}/{repo}` from the git remote (or from the URL
-argument), then fetch the issue's title, body, labels, and issue type. Also
-fetch all comments with their reactions. Skip comments already marked with the
-`eyes` (👀) reaction from a previous run.
+Derive `{owner}/{repo}` from the git remote (or from the URL argument), then
+fetch the issue's title, body, labels, and issue type. Also fetch all comments
+with their reactions. Skip only comments already marked with the `eyes` (👀)
+reaction **by the authenticated user** from a previous run; `eyes` reactions
+from other users must not cause a comment to be skipped.
 
 ### Step 2 — Detect issue type and load template sections
 
@@ -84,35 +73,39 @@ corresponding template file in `0k/skills/create-issue/templates/`:
 | Enhancement | `5-enhancement.yml` |
 | Kickoff     | `6-kickoff.yml`     |
 
-Parse the template's `textarea` fields to get the ordered list of section
-labels. These become the brainstorming agenda.
+Parse the template's non-`markdown` input fields — `textarea`, `dropdown`,
+`checkboxes`, and `input` — to get the ordered list of section labels. These
+become the brainstorming agenda.
 
 ### Step 3 — Run the brainstorming rhythm
 
-For each template section (in template order):
+Follow the brainstorming rhythm from `obra/superpowers`:
 
-1. Show the section name and its current content from the issue body (or note
-   if it is missing/uses the placeholder default).
-2. Analyse what a well-written version of this section should contain, anchored
-   to the issue's stated goal.
-3. Draft a proposal for the section. If the section involves a choice (e.g.
-   alternatives, approach options, severity level), present the options and
-   **ask the user to decide** before continuing.
-4. After the user responds, incorporate their input and present a refined draft
-   of the section.
+- Ask clarifying questions **one at a time** — never ask multiple questions in
+  a single message.
+- For each template section (in template order):
+  1. Show the section name and its current content from the issue body (or note
+     if it is missing/uses the placeholder default).
+  2. Analyse what a well-written version should contain, anchored to the
+     issue's stated goal.
+  3. If the section involves a choice (e.g. alternatives, approach options,
+     severity level), propose 2–3 options with trade-offs and **ask the user to
+     decide** before drafting. Wait for the response before continuing.
+  4. Draft the section and present it with an approval checkpoint. Wait for the
+     user to approve or request changes before moving to the next section.
 
-Adapt the brainstorming rhythm's round structure from the source skill — the
-same structured back-and-forth, now anchored to template sections instead of
-free-form topics.
+After all sections are drafted, **self-review** the complete body for
+placeholders, contradictions, and gaps. Fix any issues silently before
+presenting the final draft.
 
 ### Step 4 — Write back on approval
 
-Once all sections have been brainstormed, present the complete refined issue
-body and ask the user to approve or request changes. If the user approves:
+Present the complete refined issue body and ask the user for final approval. If
+the user approves:
 
-1. Update the issue body (and title if changed):
+1. Update the issue body, and include `--title` only if the title changed:
    ```
-   gh issue edit {number} --repo {owner}/{repo} --body-file /tmp/issue-body.md
+   gh issue edit {number} --repo {owner}/{repo} --body-file /tmp/issue-body.md [--title "{new title}"]
    ```
 2. Post a single reply comment addressing any open questions raised in existing
    comments, referencing each commenter by `@username`. Append the AI
