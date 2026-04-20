@@ -22,7 +22,7 @@ the floating `v1` tag exists for consumers to pin.
 
 ## Steps
 
-- [ ] [Step 1: Create the hide-addressed-reviews composite action](#step-1-create-the-hide-addressed-reviews-composite-action)
+- [x] [Step 1: Create the hide-addressed-reviews composite action](#step-1-create-the-hide-addressed-reviews-composite-action)
 - [ ] [Step 2: Document the composite action](#step-2-document-the-composite-action)
 - [ ] [Step 3: Advertise composite actions in the repo README](#step-3-advertise-composite-actions-in-the-repo-readme)
 - [ ] [Step 4: Publish the v1 GitHub Release](#step-4-publish-the-v1-github-release)
@@ -31,38 +31,51 @@ the floating `v1` tag exists for consumers to pin.
 
 ## Step 1: Create the hide-addressed-reviews composite action
 
-Create `hide-addressed-reviews/action.yml` as a composite action. Port the
-shell script and embedded GraphQL from the "Hide addressed reviews" step of
-`0k-software/kingdone`'s `.github/workflows/check.yml` verbatim — including the
-recent pagination fix applied to the sibling "Check PR diff size" step, if it
-also applies here.
+Create `hide-addressed-reviews/action.yml` as a composite action implementing
+the behavior described in the issue: match reviews whose body matches an
+LGTM-style pattern, resolve every review thread each matching review opened,
+and minimize the review itself via `minimizeComment`.
+
+**Deviation from plan:** The intended "port verbatim from
+`0k-software/kingdone`'s `.github/workflows/check.yml`" was not possible — that
+repo is private and not reachable from this session, and this repo's MCP scope
+is restricted to `0k-software/.github`. The action was implemented from scratch
+against the issue's behavioral spec instead. The consuming PR in kingdone
+should verify parity (query shape, pagination, edge cases) before swapping its
+inline step for this action.
 
 Metadata:
 
 - `name`: `Hide addressed reviews`
-- `description`: one-line summary of the behavior (minimize LGTM-style bot
-  reviews whose threads are all resolved).
-- `branding`: a reasonable `icon`/`color` pair so the action shows up nicely in
-  the GitHub Actions marketplace listing.
+- `description`: one-line summary of the behavior.
+- `branding`: `icon: eye-off`, `color: purple`.
 
 Inputs:
 
-- `body-match-pattern` — regex matched against review body to decide whether
-  the review is an LGTM-style review. Default: `^\s*lgtm\s*$`.
+- `body-match-pattern` — case-insensitive extended regex matched via `grep -iE`
+  against each review body. Default: `^\s*lgtm\s*$`.
 - `classifier` — the `minimizeComment` classifier to use when hiding the
   review. Default: `RESOLVED`.
+- `pr-number` — pull request number to operate on. Default:
+  `${{ github.event.pull_request.number }}`, so the action works out of the box
+  inside `pull_request*` workflows and stays overridable otherwise.
 - `github-token` — token used to call the GraphQL API. Default:
   `${{ github.token }}`. Needed because composite actions do not inherit
   `secrets` from the calling workflow.
 
 Implementation notes:
 
-- Use `runs.using: composite` with a single `run:` step (bash) that embeds the
-  GraphQL queries via heredocs and calls `gh api graphql`.
-- Reference inputs via `${{ inputs.* }}` inside the `run:` block.
-- Wire `GH_TOKEN` from `inputs.github-token` into the step's `env:` so `gh`
+- Uses `runs.using: composite` with a single `run:` step (bash) that embeds the
+  GraphQL queries via `-f query='...'` on `gh api graphql`.
+- Paginates both `reviews` and `reviewThreads` (100 at a time) to avoid the
+  same bug the sibling "Check PR diff size" step had to fix.
+- Links each thread to the review that opened it via the first comment's
+  `pullRequestReview.id` — this is how `reviewThreads` exposes ownership.
+- Wires `GH_TOKEN` from `inputs.github-token` into the step's `env:` so `gh`
   picks it up.
-- The step must also set `shell: bash`.
+- Fails fast if `pr-number` is empty (e.g. if the action is invoked outside a
+  PR context without an explicit `pr-number` input), with a clear `::error::`
+  message.
 
 This step is self-contained — it leaves the action fully functional end-to-end
 so reviewers can evaluate behavior in one commit.
