@@ -32,6 +32,17 @@ body:
         ### Testing
         _How will this be verified?_
   - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      value: |
+        _Alternative approaches considered during design, with tradeoffs._
+
+        **{Decision point}:**
+        - Option A: ...
+        - Option B: ...
+        - ✅ Chosen: Option A — because ...
+  - type: textarea
     id: steps
     attributes:
       label: Steps / Plan
