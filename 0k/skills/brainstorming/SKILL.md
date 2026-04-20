@@ -91,9 +91,9 @@ digraph brainstorming {
 }
 ```
 
-**The terminal state is invoking plan-init.** Do NOT invoke frontend-design,
-mcp-builder, or any other implementation skill. The ONLY skill you invoke after
-brainstorming is plan-init.
+**The terminal state is invoking plan-init.** Do NOT invoke plan-execute or any
+other implementation skill. The ONLY skill you invoke after brainstorming is
+plan-init.
 
 ## The Process
 
