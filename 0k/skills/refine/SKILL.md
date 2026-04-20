@@ -97,6 +97,22 @@ plan-init.
   into multiple questions
 - Focus on understanding: purpose, constraints, success criteria
 
+**Refining bugs:**
+
+Bug issues follow a different flow from feature/task/enhancement issues. The
+filer often doesn't know the fix — they know the symptom. Refinement here is
+investigation-first:
+
+- Ask questions to narrow down root cause: when did it start, how consistently
+  does it reproduce, any recent changes nearby?
+- Form 2-3 hypotheses about what could cause the observed behavior
+- Propose an **Investigation Plan**: where to look first, what to instrument or
+  log, how to confirm or rule out each hypothesis
+- Only once root cause is understood should a fix approach be proposed
+- Fill **Investigation Plan** (not Proposal) with the debugging strategy and
+  hypotheses; fill **Alternatives** with any competing fix approaches once root
+  cause is known
+
 **Exploring approaches:**
 
 - Propose 2-3 different approaches with trade-offs
@@ -145,12 +161,13 @@ plan-init.
 - Use elements-of-style:writing-clearly-and-concisely skill if available
 - Post the spec as the updated issue body on GitHub, filling in all sections of
   the issue type template. The issue body is the canonical, living spec.
-- The **Proposal** section (called **The Solution** in the Pitch template) must
-  contain the full spec detail from the brainstorming session. Structure it
-  freely — use headings, paragraphs, or lists as the content warrants. Cover
-  architecture, components, data flow, error handling, and testing where
-  relevant, but do not impose headings that don't apply to the scope of the
-  issue.
+- The **Proposal** section (called **The Solution** in the Pitch template, and
+  **Investigation Plan** in the Bug template) must contain the full spec detail
+  from the brainstorming session. Structure it freely — use headings,
+  paragraphs, or lists as the content warrants. Cover architecture, components,
+  data flow, error handling, and testing where relevant, but do not impose
+  headings that don't apply to the scope of the issue. For bugs, this section
+  describes the investigation strategy and hypotheses, not a fix proposal.
 - The **Alternatives** section must be filled with every design decision where
   multiple options were considered. For each, include a concise summary of each
   option and its tradeoffs, and note which was chosen and why. Use this format:
