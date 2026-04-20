@@ -1,18 +1,30 @@
 ---
-name: fix-pr
+name: fix
 description:
-  Address unresolved PR review comments — answer questions or implement
-  requested changes
+  Address unresolved feedback — review comments on a PR, or issue comments on a
+  GitHub issue — and implement or reply to each item
+argument-hint: { PR or issue number or URL }
 ---
 
-Address all **unresolved** review comments on a pull request.
+Address all **unresolved** feedback on a pull request or GitHub issue.
 
-`$ARGUMENTS` is a PR number or URL. If empty, find the open PR for the current
-branch (`gh pr view --json number -q .number`).
+`$ARGUMENTS` is a PR number, issue number, PR URL, or issue URL.
+
+- If the argument contains `/pull/` or is a PR number on the current branch →
+  treat as a **PR** and address review comments.
+- If the argument contains `/issues/` or is explicitly an issue number (and no
+  open PR exists for the current branch) → treat as an **issue** and address
+  issue comments.
+- If empty → find the open PR for the current branch
+  (`gh pr view --json number -q .number`) and treat as a PR.
 
 ---
 
-## Step 1 — Gather comments
+## Part A — Fixing a Pull Request
+
+Follow this part when the target is a PR.
+
+### A1 — Gather review comments
 
 1. Derive `{owner}/{repo}` and `{pr-number}` from the argument or current
    branch.
@@ -58,7 +70,7 @@ branch (`gh pr view --json number -q .number`).
    in the thread** takes precedence — if a later reply changes or overrides the
    original request, follow the latest instruction.
 
-## Step 2 — Classify and group
+### A2 — Classify and group
 
 Classify every unresolved thread into one of two categories:
 
@@ -72,7 +84,7 @@ when their changes are truly inseparable (e.g. renaming a symbol that must be
 updated in multiple files atomically). When in doubt, keep them separate. Never
 batch unrelated changes just because they are small.
 
-## Step 3 — Handle questions
+### A3 — Handle questions
 
 For every question thread:
 
@@ -89,17 +101,17 @@ For every question thread:
 After posting all question replies, if there are no change requests, stop and
 tell the user you answered the questions and are waiting for further feedback.
 
-## Step 4 — Implement change requests
+### A4 — Implement change requests
 
-Each group of related change requests (as classified in Step 2) gets its own
-commit. Complete **all** groups (implement + commit) before pushing or
-replying. Do **not** accumulate multiple groups into one commit.
+Each group of related change requests gets its own commit. Complete **all**
+groups (implement + commit) before pushing or replying. Do **not** accumulate
+multiple groups into one commit.
 
-### 4a — Commit loop (repeat for every group)
+**4a — Commit loop (repeat for every group)**
 
 Before starting this loop, use `TodoWrite` to create **one task per group** (in
 order), so the full work queue is visible upfront. This queue must be fully
-completed before moving on to Step 4b.
+completed before moving on to step 4b.
 
 For each group of related change requests, in order:
 
@@ -108,10 +120,10 @@ For each group of related change requests, in order:
 3. Invoke the `/0k:commit` skill with the `!` flag, passing the change request
    context as the argument.
 4. Record the resulting commit SHA alongside the group (you will need it in
-   Step 4c). Mark the corresponding `TodoWrite` task as completed. Then
+   step 4c). Mark the corresponding `TodoWrite` task as completed. Then
    **immediately continue to the next group** — do not push yet.
 
-### 4b — Push once
+**4b — Push once**
 
 After **all** groups have been committed, push the branch a single time:
 
@@ -119,11 +131,10 @@ After **all** groups have been committed, push the branch a single time:
 git push -u origin {branch-name}
 ```
 
-### 4c — Reply to every thread
+**4c — Reply to every thread**
 
 For each group (now that the commit SHA is known), reply to **every** comment
-in the thread on GitHub using the `gh` CLI, appending the AI attribution footer
-(see below):
+in the thread on GitHub, appending the AI attribution footer (see below):
 
 ```
 gh api "repos/{owner}/{repo}/pulls/{pr-number}/comments" \
@@ -199,7 +210,7 @@ extra API calls needed — `path` and `line` come from the GraphQL query in Step
 All comments in the same review thread share the same `path`/`line`, so use the
 thread's first comment when constructing the link.
 
-## Step 5 — Mark threads as addressed
+### A5 — Mark threads as addressed
 
 After posting all replies and pushing, react with `eyes` (👀) to the **first
 comment** of every thread that was addressed in this run (both questions and
@@ -211,13 +222,105 @@ gh api "repos/{owner}/{repo}/pulls/comments/{databaseId}/reactions" \
   -X POST -f content="eyes"
 ```
 
-## Step 6 — Report
+### A6 — Report
 
-After all comments are handled, display a summary:
+Display a summary:
 
 - How many questions were answered
 - How many change requests were addressed (with commit links)
 - Any comments you skipped and why
+
+---
+
+## Part B — Fixing an Issue
+
+Follow this part when the target is a GitHub issue.
+
+### B1 — Fetch the issue
+
+1. Derive `{owner}/{repo}` from the current working directory's git remote. If
+   `$ARGUMENTS` is a full URL, extract the owner/repo/number from it instead.
+2. Fetch the issue details (title, body, labels):
+   ```
+   gh issue view {number} --repo {owner}/{repo} \
+     --json title,body,labels,number,url,state
+   ```
+3. Fetch **all** comments on the issue:
+   ```
+   gh api "repos/{owner}/{repo}/issues/{number}/comments" --paginate \
+     --jq '.[] | {id, author: .user.login, body}'
+   ```
+   For each comment, fetch its reactions to check for the `eyes` (👀) marker:
+   ```
+   viewer="$(gh api user --jq .login)"
+   gh api "repos/{owner}/{repo}/issues/comments/{comment-id}/reactions" \
+     --jq --arg viewer "$viewer" \
+     '[.[] | select(.content == "eyes" and .user.login == $viewer)]'
+   ```
+4. **Skip already-addressed comments.** Any comment that has an `eyes` (👀)
+   reaction from the authenticated user has already been handled in a previous
+   run. Keep these comments as **context** but do **not** re-address them or
+   reply to them again.
+
+### B2 — Analyse feedback
+
+Review the issue description and every comment. Identify all actionable
+feedback — suggestions, questions, corrections, requests for clarification, or
+proposed changes to the issue's scope, description, or title.
+
+Group the feedback into:
+
+| Category               | Criteria                                                              |
+| ---------------------- | --------------------------------------------------------------------- |
+| **Description change** | Comment suggests edits to the issue body (wording, scope, structure)  |
+| **Title change**       | Comment suggests a better or more accurate title                      |
+| **Question**           | Comment asks a question that can be answered from context or codebase |
+| **Acknowledgement**    | Comment that needs a short acknowledgement reply (e.g. "good point")  |
+| **No action needed**   | Resolved discussion, bot comments, or already-addressed feedback      |
+
+Proceed directly — do **not** ask the user for confirmation. Apply your best
+judgement to address all feedback.
+
+### B3 — Update the issue
+
+If any description or title changes were identified:
+
+1. Draft the updated title and/or body incorporating all feedback.
+2. Write the updated body to a temporary file, then apply the update:
+   ```
+   gh issue edit {number} --repo {owner}/{repo} --body-file /tmp/issue-body.md
+   ```
+   Include `--title "{new title}"` only if the title changed.
+
+### B4 — Reply to comments
+
+For each comment that warrants a reply (questions, acknowledgements, or
+explanation of changes made), draft a concise reply. Post a **single** comment
+that addresses all feedback points, referencing each commenter by `@username`.
+Append the AI attribution footer (see below).
+
+```
+gh issue comment {number} --repo {owner}/{repo} --body-file /tmp/issue-comment.md
+```
+
+### B5 — Mark comments as addressed
+
+After posting the reply, react with `eyes` (👀) to every comment that was
+addressed in this run:
+
+```
+gh api "repos/{owner}/{repo}/issues/comments/{comment-id}/reactions" \
+  -f content="eyes"
+```
+
+### B6 — Report
+
+Display a summary:
+
+- Whether the title was updated (old → new)
+- Whether the description was updated (brief summary of changes)
+- How many comments were addressed
+- Any comments skipped and why
 
 ---
 
