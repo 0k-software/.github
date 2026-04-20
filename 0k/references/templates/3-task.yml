@@ -13,11 +13,8 @@ body:
   - type: textarea
     id: design
     attributes:
-      label: Design
+      label: Approach
       value: |
-        _Technical design for this task._
-
-        ### Approach
         _How will this be done technically?_
 
         ### Components
