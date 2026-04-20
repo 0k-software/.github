@@ -1,5 +1,5 @@
 ---
-name: brainstorming
+name: refine
 description:
   "You MUST use this before any creative work - creating features, building
   components, adding functionality, or modifying behavior. Explores user
@@ -221,4 +221,4 @@ personality mean in this context?" is a conceptual question — use the terminal
 "Which wizard layout works better?" is a visual question — use the browser.
 
 If they agree to the companion, read the detailed guide before proceeding:
-`skills/brainstorming/visual-companion.md`
+`skills/refine/visual-companion.md`
