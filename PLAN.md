@@ -25,7 +25,7 @@ the floating `v1` tag exists for consumers to pin.
 - [x] [Step 1: Create the hide-addressed-reviews composite action](#step-1-create-the-hide-addressed-reviews-composite-action)
 - [x] [Step 2: Document the composite action](#step-2-document-the-composite-action)
 - [x] [Step 3: Advertise composite actions in the repo README](#step-3-advertise-composite-actions-in-the-repo-readme)
-- [ ] [Step 4: Publish the v1 GitHub Release](#step-4-publish-the-v1-github-release)
+- [x] [Step 4: Publish the v1 GitHub Release](#step-4-publish-the-v1-github-release)
 
 ---
 
@@ -120,18 +120,20 @@ directory convention so future AI sessions know where composite actions live.
 
 ## Step 4: Publish the v1 GitHub Release
 
-After the PR from the previous steps is merged to `main`:
+Post-merge runbook — executed by whoever merges this PR, not by the
+implementation branch itself:
 
 1. Check out `main` and pull the merge commit.
 2. Create a GitHub Release tagged `v1` on that commit using
    `gh release create v1 --title "hide-addressed-reviews v1" --notes "..."` (or
-   the repo UI). The release notes should link to the issue and the action's
+   the repo UI). The release notes should link to #83 and the action's
    `README.md`.
-3. Because `uses: ...@v1` resolves to a moving tag, the release creates the
-   `v1` tag automatically — no manual `git tag` push. This tag will be advanced
-   when future compatible versions ship.
+3. `uses: ...@v1` resolves to a moving tag, so the release creates the `v1` tag
+   automatically — no manual `git tag` push. Advance it when future compatible
+   versions ship.
 4. Verify the action is consumable by referencing `@v1` from a scratch workflow
    in another repo (or a dry-run branch in kingdone) before closing the issue.
 
-This step is intentionally separated from the implementation PR because release
-creation happens after merge, not within it.
+The runbook is also captured in `hide-addressed-reviews/README.md` (under
+"Versioning & releases") and in the PR description, so it survives deletion of
+this PLAN.md at the end of execution.
