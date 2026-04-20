@@ -32,7 +32,7 @@ the skill's existing flow — no new API calls are needed.
 
 ## Steps
 
-- [ ] [Step 1: Update fix-pr reply link to anchor at the commented line](#step-1-update-fix-pr-reply-link-to-anchor-at-the-commented-line)
+- [x] [Step 1: Update fix-pr reply link to anchor at the commented line](#step-1-update-fix-pr-reply-link-to-anchor-at-the-commented-line)
 
 ---
 
