@@ -161,11 +161,29 @@ extra API calls needed — `path` and `line` come from the GraphQL query in Step
    anchor entirely; the `#diff-{hash}` fragment alone still jumps to the right
    file.
 
-4. **Full URL:**
+4. **Full URL** — pick the form that matches the reply's scope:
+   - **Line comment** (`path` and `line` both present) — anchor at the exact
+     line:
 
-   ```
-   https://github.com/{owner}/{repo}/pull/{pr-number}/changes/{commit_sha}#diff-{hash}L{line}
-   ```
+     ```
+     https://github.com/{owner}/{repo}/pull/{pr-number}/changes/{commit_sha}#diff-{hash}{R|L}{line}
+     ```
+
+   - **File-level comment** (`path` present, `line` is `null`) — anchor at the
+     file only:
+
+     ```
+     https://github.com/{owner}/{repo}/pull/{pr-number}/changes/{commit_sha}#diff-{hash}
+     ```
+
+   - **File irrelevant to the reply** (the reply doesn't discuss any specific
+     file's diff — e.g., a general answer that doesn't need to point the reader
+     at a particular file) — drop the `#diff-{hash}` fragment and link to the
+     commit's changes view:
+
+     ```
+     https://github.com/{owner}/{repo}/pull/{pr-number}/changes/{commit_sha}
+     ```
 
 5. **Format the link manually** in the reply body as a markdown link with the
    short SHA as the visible text:
