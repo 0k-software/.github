@@ -117,5 +117,5 @@ by a blank line:
   `value` placeholder text — this is intentional, acting as a scaffold for a
   `refine-issue` pass. Do not clear them and do not ask the user to fill them
   during creation.
-- **Keep the title concise** — under 80 characters, no emoji prefix.
+- **Keep the title concise** — under 50 characters, no emoji prefix.
 - After creating the issue, **show the user the issue URL**.
