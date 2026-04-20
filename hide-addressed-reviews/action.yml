@@ -1,8 +1,8 @@
 name: Hide addressed reviews
 description: >
-  Minimize LGTM-style bot reviews on a pull request and resolve every review
-  thread they opened. Keeps the conversation pane clean once an automated check
-  has signed off.
+  Minimize LGTM-style bot reviews (and Copilot PR reviews) on a pull request
+  once every review thread they opened is resolved. Keeps the conversation
+  pane clean without hiding reviews that still have outstanding asks.
 
 branding:
   icon: eye-off
@@ -11,11 +11,12 @@ branding:
 inputs:
   body-match-pattern:
     description: >
-      Case-insensitive extended regex matched against each review body to decide
-      whether the review is an LGTM-style review. Only matching reviews are
-      hidden.
+      Case-insensitive PCRE regex (evaluated by jq `test()`) matched against
+      each review body (after `ascii_downcase`). Reviews whose body matches,
+      OR whose author is `copilot-pull-request-reviewer`, are candidates for
+      hiding. The default matches an empty body or a bare wrap-up acronym.
     required: false
-    default: '^[[:space:]]*(lgtm|lbtm|ack|nack)[[:space:]]*$'
+    default: '^\s*(lgtm|lbtm|ack|nack)?\s*$'
   classifier:
     description: >
       minimizeComment classifier applied when hiding the review. One of
@@ -40,145 +41,104 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Hide addressed reviews
+    - name: Hide fully-addressed reviews
       shell: bash
+      continue-on-error: true
       env:
         GH_TOKEN: ${{ inputs.github-token != '' && inputs.github-token || github.token }}
+        PR_NUMBER: ${{ inputs.pr-number != '' && inputs.pr-number || github.event.pull_request.number }}
+        OWNER: ${{ github.repository_owner }}
+        REPO_NAME: ${{ github.event.repository.name }}
         BODY_MATCH_PATTERN: ${{ inputs.body-match-pattern }}
         CLASSIFIER: ${{ inputs.classifier }}
-        PR_NUMBER: ${{ inputs.pr-number != '' && inputs.pr-number || github.event.pull_request.number }}
-        REPO: ${{ github.repository }}
       run: |
-        set -euo pipefail
+        # A review is "addressed" when both conditions hold:
+        #   1. its body is empty, one of the wrap-up acronyms — LGTM,
+        #      LBTM, ACK, NACK (case-insensitive, whitespace-trimmed),
+        #      OR it was submitted by Copilot (which always writes a
+        #      summary body but carries all of its feedback as thread
+        #      comments, so the body itself has no outstanding asks)
+        #   2. every thread it opened is already resolved
+        # Condition (1) guards against hiding reviews whose main comment
+        # still carries new requests, and (2) means the outstanding work
+        # the reviewer flagged is closed — so the review is a wrap-up
+        # signal either way (approval, rejection, or silent) with nothing
+        # loose hanging off it.
+        echo "::group::Fetch reviews and threads"
+        DATA=$(gh api graphql \
+          -F owner="$OWNER" -F repo="$REPO_NAME" -F pr="$PR_NUMBER" \
+          -f query='
+            query($owner:String!, $repo:String!, $pr:Int!) {
+              repository(owner:$owner, name:$repo) {
+                pullRequest(number:$pr) {
+                  reviews(first:100) {
+                    nodes {
+                      id
+                      databaseId
+                      body
+                      state
+                      isMinimized
+                      author { login }
+                      comments(first:100) { nodes { databaseId } }
+                    }
+                  }
+                  reviewThreads(first:100) {
+                    nodes {
+                      isResolved
+                      comments(first:100) { nodes { databaseId } }
+                    }
+                  }
+                }
+              }
+            }')
+        echo "$DATA" | jq '.data.repository.pullRequest
+          | { reviews: (.reviews.nodes | length),
+              threads: (.reviewThreads.nodes | length) }'
+        echo "::endgroup::"
 
-        if [ -z "${PR_NUMBER:-}" ]; then
-          echo "::error::pr-number is empty — call this action from a pull_request* workflow or pass pr-number explicitly."
-          exit 1
+        echo "::group::Pick reviews to hide"
+        TARGETS=$(echo "$DATA" | jq -r --arg pattern "$BODY_MATCH_PATTERN" '
+          .data.repository.pullRequest as $pr
+          | ($pr.reviewThreads.nodes
+              | map({
+                  isResolved,
+                  commentIds: (.comments.nodes | map(.databaseId))
+                })) as $threads
+          | $pr.reviews.nodes[]
+          | select(.isMinimized == false)
+          | select(
+              (.author.login == "copilot-pull-request-reviewer")
+              or ((.body // "") | ascii_downcase | test($pattern)))
+          | . as $r
+          | ($r.comments.nodes | map(.databaseId)) as $rCommentIds
+          | ($threads
+              | map(select(.commentIds
+                  | any(. as $id | $rCommentIds | index($id)))))
+            as $rThreads
+          | select($rThreads | all(.isResolved))
+          | [$r.id, $r.author.login, $r.state, ($r.body // "" | .[0:20])]
+            | @tsv')
+
+        if [ -z "$TARGETS" ]; then
+          echo "No reviews to hide."
+          echo "::endgroup::"
+          exit 0
         fi
 
-        owner="${REPO%/*}"
-        name="${REPO#*/}"
+        echo "Candidates (id, author, state, body):"
+        echo "$TARGETS"
+        echo "::endgroup::"
 
-        # Paginate all reviews on the PR.
-        reviews='[]'
-        cursor=""
-        while :; do
-          if [ -z "$cursor" ]; then
-            resp=$(gh api graphql \
-              -F owner="$owner" -F name="$name" -F number="$PR_NUMBER" \
-              -f query='
-                query($owner:String!,$name:String!,$number:Int!) {
-                  repository(owner:$owner,name:$name) {
-                    pullRequest(number:$number) {
-                      reviews(first:100) {
-                        nodes { id body author { login } }
-                        pageInfo { hasNextPage endCursor }
-                      }
-                    }
+        echo "$TARGETS" \
+          | while IFS=$'\t' read -r rid author rstate rbody; do
+              echo "::group::Minimize ${rid} (${author}, ${rstate}, ${rbody})"
+              RESP=$(gh api graphql \
+                -f id="$rid" -f classifier="$CLASSIFIER" \
+                -f query='mutation($id: ID!, $classifier: ReportedContentClassifiers!) {
+                  minimizeComment(input: { subjectId: $id, classifier: $classifier }) {
+                    minimizedComment { isMinimized }
                   }
-                }
-              ')
-          else
-            resp=$(gh api graphql \
-              -F owner="$owner" -F name="$name" -F number="$PR_NUMBER" -F cursor="$cursor" \
-              -f query='
-                query($owner:String!,$name:String!,$number:Int!,$cursor:String!) {
-                  repository(owner:$owner,name:$name) {
-                    pullRequest(number:$number) {
-                      reviews(first:100, after:$cursor) {
-                        nodes { id body author { login } }
-                        pageInfo { hasNextPage endCursor }
-                      }
-                    }
-                  }
-                }
-              ')
-          fi
-          reviews=$(jq -c --argjson acc "$reviews" \
-            '$acc + .data.repository.pullRequest.reviews.nodes' <<<"$resp")
-          [ "$(jq -r '.data.repository.pullRequest.reviews.pageInfo.hasNextPage' <<<"$resp")" = "true" ] || break
-          cursor=$(jq -r '.data.repository.pullRequest.reviews.pageInfo.endCursor' <<<"$resp")
-        done
-
-        # Paginate all review threads on the PR, tagged with the review id that opened each.
-        threads='[]'
-        cursor=""
-        while :; do
-          if [ -z "$cursor" ]; then
-            resp=$(gh api graphql \
-              -F owner="$owner" -F name="$name" -F number="$PR_NUMBER" \
-              -f query='
-                query($owner:String!,$name:String!,$number:Int!) {
-                  repository(owner:$owner,name:$name) {
-                    pullRequest(number:$number) {
-                      reviewThreads(first:100) {
-                        nodes {
-                          id
-                          isResolved
-                          comments(first:1) { nodes { pullRequestReview { id } } }
-                        }
-                        pageInfo { hasNextPage endCursor }
-                      }
-                    }
-                  }
-                }
-              ')
-          else
-            resp=$(gh api graphql \
-              -F owner="$owner" -F name="$name" -F number="$PR_NUMBER" -F cursor="$cursor" \
-              -f query='
-                query($owner:String!,$name:String!,$number:Int!,$cursor:String!) {
-                  repository(owner:$owner,name:$name) {
-                    pullRequest(number:$number) {
-                      reviewThreads(first:100, after:$cursor) {
-                        nodes {
-                          id
-                          isResolved
-                          comments(first:1) { nodes { pullRequestReview { id } } }
-                        }
-                        pageInfo { hasNextPage endCursor }
-                      }
-                    }
-                  }
-                }
-              ')
-          fi
-          threads=$(jq -c --argjson acc "$threads" \
-            '$acc + .data.repository.pullRequest.reviewThreads.nodes' <<<"$resp")
-          [ "$(jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.hasNextPage' <<<"$resp")" = "true" ] || break
-          cursor=$(jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.endCursor' <<<"$resp")
-        done
-
-        # For each matching review: resolve every thread it opened, then minimize it.
-        jq -c '.[]' <<<"$reviews" | while read -r review; do
-          review_id=$(jq -r '.id' <<<"$review")
-          body=$(jq -r '.body' <<<"$review")
-          author=$(jq -r '.author.login // "unknown"' <<<"$review")
-          if ! grep -qiE -- "$BODY_MATCH_PATTERN" <<<"$body"; then
-            continue
-          fi
-          echo "Hiding LGTM-style review $review_id by @$author"
-
-          jq -c --arg rid "$review_id" \
-            '.[] | select(.comments.nodes[0].pullRequestReview.id == $rid)' <<<"$threads" \
-            | while read -r thread; do
-              tid=$(jq -r '.id' <<<"$thread")
-              resolved=$(jq -r '.isResolved' <<<"$thread")
-              if [ "$resolved" != "true" ]; then
-                echo "  Resolving thread $tid"
-                gh api graphql -F id="$tid" -f query='
-                  mutation($id:ID!) {
-                    resolveReviewThread(input:{threadId:$id}) { thread { id } }
-                  }
-                ' >/dev/null
-              fi
+                }')
+              echo "$RESP" | jq .
+              echo "::endgroup::"
             done
-
-          gh api graphql -F id="$review_id" -f classifier="$CLASSIFIER" -f query='
-            mutation($id:ID!, $classifier:ReportedContentClassifiers!) {
-              minimizeComment(input:{subjectId:$id, classifier:$classifier}) {
-                minimizedComment { isMinimized }
-              }
-            }
-          ' >/dev/null
-        done
