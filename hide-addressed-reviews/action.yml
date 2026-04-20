@@ -15,7 +15,7 @@ inputs:
       whether the review is an LGTM-style review. Only matching reviews are
       hidden.
     required: false
-    default: '^\s*lgtm\s*$'
+    default: '^[[:space:]]*(lgtm|lbtm|ack|nack)[[:space:]]*$'
   classifier:
     description: >
       minimizeComment classifier applied when hiding the review. One of

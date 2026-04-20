@@ -36,12 +36,12 @@ populated, or pass `pr-number` explicitly.
 
 ## Inputs
 
-| Name                 | Description                                                                                                                                                                                            | Default                                   |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
-| `body-match-pattern` | Case-insensitive extended regex (`grep -iE`) matched against each review body. Only matching reviews are hidden.                                                                                       | `^\s*lgtm\s*$`                            |
-| `classifier`         | `minimizeComment` classifier applied to hidden reviews. One of `RESOLVED`, `OUTDATED`, `OFF_TOPIC`, `DUPLICATE`, `SPAM`, `ABUSE`.                                                                      | `RESOLVED`                                |
-| `pr-number`          | Pull request number to operate on.                                                                                                                                                                     | `${{ github.event.pull_request.number }}` |
-| `github-token`       | Token used to call the GraphQL API. Needs `pull-requests: write`. Composite actions do not inherit `secrets` from the calling workflow, so pass a PAT explicitly if the default token is insufficient. | `${{ github.token }}`                     |
+| Name                 | Description                                                                                                                                                                                            | Default                                             |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------- |
+| `body-match-pattern` | Case-insensitive extended regex (`grep -iE`) matched against each review body. Only matching reviews are hidden.                                                                                       | `^[[:space:]]*(lgtm\|lbtm\|ack\|nack)[[:space:]]*$` |
+| `classifier`         | `minimizeComment` classifier applied to hidden reviews. One of `RESOLVED`, `OUTDATED`, `OFF_TOPIC`, `DUPLICATE`, `SPAM`, `ABUSE`.                                                                      | `RESOLVED`                                          |
+| `pr-number`          | Pull request number to operate on. Falls back to `github.event.pull_request.number` when empty.                                                                                                        | _(empty — auto-infers from the PR event)_           |
+| `github-token`       | Token used to call the GraphQL API. Needs `pull-requests: write`. Composite actions do not inherit `secrets` from the calling workflow, so pass a PAT explicitly if the default token is insufficient. | _(empty — falls back to `github.token`)_            |
 
 ## Permissions
 
