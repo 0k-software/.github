@@ -22,7 +22,8 @@ which issue to refine.
 
 1. Derive `{owner}/{repo}` from the current working directory's git remote. If
    `$ARGUMENTS` is a full URL, extract the owner/repo/number from it instead.
-2. Fetch the issue details (title, body, labels, type) using `gh`:
+2. Fetch the issue details (title, body, labels, number, url, state, type)
+   using `gh`:
    ```
    gh issue view {number} --repo {owner}/{repo} --json title,body,labels,number,url,state,issueType
    ```
