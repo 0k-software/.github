@@ -75,7 +75,7 @@ digraph brainstorming {
     "User reviews spec?" [shape=diamond];
     "Invoke plan-init skill" [shape=doublecircle];
 
-    "Explore project context\n(+ fetch issue if provided)" -> "Visual questions ahead?";
+    "Explore project context" -> "Visual questions ahead?";
     "Visual questions ahead?" -> "Offer Visual Companion\n(own message, no other content)" [label="yes"];
     "Visual questions ahead?" -> "Ask clarifying questions" [label="no"];
     "Offer Visual Companion\n(own message, no other content)" -> "Ask clarifying questions";
