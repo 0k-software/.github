@@ -42,6 +42,17 @@ git fetch origin {branch-name} && git checkout {branch-name}
 `gh issue develop` creates the remote branch and links it to the issue on
 GitHub. `git fetch` + `git checkout` then checks out the branch locally.
 
+Otherwise (not on `main`/`master`), the session already has its own branch.
+Push the current branch to the standard-named branch so the GitHub naming
+convention is followed:
+
+```
+git push -u origin HEAD:{branch-name}
+```
+
+This establishes upstream tracking to the properly-named branch without
+requiring a local branch switch.
+
 After creating PLAN.md, perform a **scope check** before committing:
 
 ## Scope Check

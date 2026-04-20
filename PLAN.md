@@ -25,7 +25,7 @@ appears in plan-init).
 ## Steps
 
 - [x] [Step 1: Replace `wt switch` with `git checkout` on the main/master path](#step-1-replace-wt-switch-with-git-checkout-on-the-mainmaster-path)
-- [ ] [Step 2: Add `git push` handling for non-main/master sessions](#step-2-add-git-push-handling-for-non-mainmaster-sessions)
+- [x] [Step 2: Add `git push` handling for non-main/master sessions](#step-2-add-git-push-handling-for-non-mainmaster-sessions)
 - [ ] [Step 3: Update prose to describe both code paths accurately](#step-3-update-prose-to-describe-both-code-paths-accurately)
 
 ---
