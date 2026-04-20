@@ -50,7 +50,7 @@ body:
     attributes:
       label: Alternatives
       value: |
-        _Alternative approaches considered during design, with tradeoffs._
+        _Other investigation strategies considered but not chosen first — useful fallbacks if the primary plan doesn't pan out._
 
         **{Decision point}:**
         - Option A: ...
