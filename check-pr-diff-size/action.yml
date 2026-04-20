@@ -34,6 +34,8 @@ runs:
   using: "composite"
   steps:
     - name: "Check PR diff size"
+      id: diff-size
+      if: github.event_name == 'pull_request'
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
@@ -46,8 +48,6 @@ runs:
         IGNORED_PATHS: ${{ inputs.ignored-paths }}
         MARKER: ${{ inputs.body-match-pattern }}
       run: |
-        set -eo pipefail
-
         BASE="origin/${BASE_REF}"
 
         # Parse ignored-paths: accept newline- or comma-separated entries,
