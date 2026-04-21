@@ -29,8 +29,8 @@ set -euo pipefail
 ORG="${GITHUB_ORG:-0k-software}"
 REQUIRED_STATUSES=(Backlog Refining Ready Planning Coding Done)
 declare -A STATUS_COLORS=(
-  [Backlog]=PURPLE [Refining]=BLUE [Ready]=GREEN
-  [Planning]=YELLOW [Coding]=ORANGE [Done]=GRAY
+  [Backlog]=GRAY [Refining]=BLUE [Ready]=GREEN
+  [Planning]=YELLOW [Coding]=ORANGE [Done]=PURPLE
 )
 declare -A STATUS_DESCRIPTIONS=(
   [Backlog]="To be refined"
