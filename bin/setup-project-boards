@@ -29,8 +29,16 @@ set -euo pipefail
 ORG="${GITHUB_ORG:-0k-software}"
 REQUIRED_STATUSES=(Backlog Refining Ready Planning Coding Done)
 declare -A STATUS_COLORS=(
-  [Backlog]=GRAY [Refining]=BLUE [Ready]=GREEN
-  [Planning]=YELLOW [Coding]=ORANGE [Done]=GREEN
+  [Backlog]=PURPLE [Refining]=BLUE [Ready]=GREEN
+  [Planning]=YELLOW [Coding]=ORANGE [Done]=GRAY
+)
+declare -A STATUS_DESCRIPTIONS=(
+  [Backlog]="Not yet scheduled"
+  [Refining]="Being clarified and sized"
+  [Ready]="Ready to be picked up"
+  [Planning]="Design or spec in progress"
+  [Coding]="Implementation in progress"
+  [Done]="Shipped and verified"
 )
 LABEL_NAME="to-review"
 LABEL_COLOR="0075ca"
@@ -153,7 +161,7 @@ apply_label() {
 
 set_item_status() {
   local pid="$1" item_id="$2" field_id="$3" option_id="$4" desc="$5"
-  gql_mutate "set Coding on $desc" "$(jq -n \
+  gql_mutate "$desc" "$(jq -n \
     --arg pid "$pid" --arg iid "$item_id" --arg fid "$field_id" --arg oid "$option_id" '{
       query: "mutation($pid:ID!,$iid:ID!,$fid:ID!,$oid:String!){ updateProjectV2ItemFieldValue(input:{projectId:$pid,itemId:$iid,fieldId:$fid,value:{singleSelectOptionId:$oid}}){ projectV2Item{id} } }",
       variables: { pid: $pid, iid: $iid, fid: $fid, oid: $oid }
@@ -163,7 +171,8 @@ set_item_status() {
 set_field_options() {
   local field_id="$1" opts
   opts=$(for s in "${REQUIRED_STATUSES[@]}"; do
-    printf '{"name":"%s","color":"%s","description":""}\n' "$s" "${STATUS_COLORS[$s]:-GRAY}"
+    printf '{"name":"%s","color":"%s","description":"%s"}\n' \
+      "$s" "${STATUS_COLORS[$s]:-GRAY}" "${STATUS_DESCRIPTIONS[$s]:-}"
   done | jq -sc '.')
   gql_mutate "set Status options to [${REQUIRED_STATUSES[*]}]" "$(jq -n \
     --arg fid "$field_id" --argjson opts "$opts" '{
@@ -203,9 +212,9 @@ main() {
   done
 
   # 4. Per-project restructure.
-  local -a to_migrate opt_names
+  local -a to_reassign opt_names
   local field_json field_id item status item_id issue_num repo_path
-  local entry new_field target_name nid i j opt
+  local entry new_field target_name nid i opt
 
   for pid in "${projects[@]}"; do
     info "--- project $pid ---"
@@ -250,7 +259,8 @@ main() {
         migrate_to["$opt"]="$target_name"
       fi
 
-      [[ "$opt" =~ ^(In\ Review|Reviewing\ .+)$ ]] && is_review["$opt"]=1
+      # Case-insensitive match for review-type columns.
+      [[ "${opt,,}" =~ ^(in\ review|reviewing\ .+)$ ]] && is_review["$opt"]=1
     done
 
     # Log required options that don't yet exist and will be created.
@@ -269,61 +279,57 @@ main() {
       info "  Deleting '$opt' → items move to '${migrate_to[$opt]}'$tag"
     done
 
-    # Scan items: apply to-review labels; record all items that need migration.
-    to_migrate=()
+    # Scan ALL items with any status. updateProjectV2Field recreates every option
+    # ID — even options whose names are kept — so every item needs re-assigning.
+    to_reassign=()
     while IFS= read -r item; do
       status=$(jq -r '[.fieldValues.nodes[] | select(.field.name == "Status") | .name] | first // empty' <<< "$item")
       [[ -n "$status" ]] || continue
-      [[ -n "${migrate_to[$status]:-}" ]] || continue
 
       item_id=$(jq -r '.id' <<< "$item")
       owner=$(jq -r '.content.repository.owner.login // empty' <<< "$item")
       repo_name=$(jq -r '.content.repository.name // empty' <<< "$item")
       issue_num=$(jq -r '.content.number // empty' <<< "$item")
       repo_path="$owner/$repo_name"
-      target_name="${migrate_to[$status]}"
 
-      [[ -n "${is_review[$status]:-}" && -n "$owner" && -n "$issue_num" ]] && \
-        apply_label "$repo_path" "$issue_num"
+      if [[ -n "${migrate_to[$status]:-}" ]]; then
+        target_name="${migrate_to[$status]}"
+        [[ -n "${is_review[$status]:-}" && -n "$owner" && -n "$issue_num" ]] && \
+          apply_label "$repo_path" "$issue_num"
+      elif [[ -n "${req_set[$status]:-}" ]]; then
+        target_name="$status"
+      else
+        continue
+      fi
 
-      to_migrate+=("$item_id|$status|$repo_path|$issue_num|$target_name")
+      to_reassign+=("$item_id|$status|$repo_path|$issue_num|$target_name")
     done < <(iter_items "$pid")
 
-    # Restructure the Status field: delete non-standard options (including
-    # In progress), create any missing required options, reorder.
+    # Restructure the Status field: replace all options with the required set.
     set_field_options "$field_id"
 
-    # Re-assign all migrated items to their target using the post-update option IDs.
-    if [[ ${#to_migrate[@]} -gt 0 ]]; then
+    # Re-assign all items using post-update option IDs. In dry-run, option IDs
+    # are placeholders — gql_mutate logs the intent without executing.
+    if [[ ${#to_reassign[@]} -gt 0 ]]; then
+      declare -A new_opt_ids=()
       if [[ "$MODE" == apply ]]; then
-        declare -A new_opt_ids=()
         new_field=$(get_status_field "$pid")
         while IFS=$'\t' read -r noid noname; do
           new_opt_ids["$noname"]="$noid"
         done < <(jq -r '.options[] | [.id, .name] | @tsv' <<< "$new_field")
-
-        for entry in "${to_migrate[@]}"; do
-          IFS='|' read -r item_id status repo_path issue_num target_name <<< "$entry"
-          nid="${new_opt_ids[$target_name]:-}"
-          if [[ -n "$nid" ]]; then
-            set_item_status "$pid" "$item_id" "$field_id" "$nid" \
-              "$status → $target_name ($repo_path#$issue_num)"
-          else
-            info "  WARNING: target '$target_name' not found post-update for item $item_id"
-          fi
-        done
-        unset new_opt_ids
-      else
-        declare -A dry_counts=()
-        for entry in "${to_migrate[@]}"; do
-          IFS='|' read -r _ _ _ _ target_name <<< "$entry"
-          dry_counts["$target_name"]=$(( ${dry_counts["$target_name"]:-0} + 1 ))
-        done
-        for tgt in "${!dry_counts[@]}"; do
-          info "  WOULD move ${dry_counts[$tgt]} item(s) → $tgt"
-        done
-        unset dry_counts
       fi
+
+      for entry in "${to_reassign[@]}"; do
+        IFS='|' read -r item_id status repo_path issue_num target_name <<< "$entry"
+        nid="${new_opt_ids[$target_name]:-}"
+        if [[ "$MODE" == apply && -z "$nid" ]]; then
+          info "  WARNING: target '$target_name' not found post-update for item $item_id"
+          continue
+        fi
+        set_item_status "$pid" "$item_id" "$field_id" "${nid:-(tbd)}" \
+          "$status → $target_name ($repo_path#$issue_num)"
+      done
+      unset new_opt_ids
     fi
 
     unset req_set migrate_to is_review
