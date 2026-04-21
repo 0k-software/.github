@@ -261,6 +261,14 @@ main() {
       info "  Deleting '$opt' → items move to '${migrate_to[$opt]}'$tag"
     done
 
+    # Log required options that don't yet exist and will be created.
+    local found
+    for s in "${REQUIRED_STATUSES[@]}"; do
+      found=0
+      for o in "${opt_names[@]}"; do [[ "$o" == "$s" ]] && { found=1; break; }; done
+      (( found )) || info "  Creating '$s'"
+    done
+
     # Scan items: apply to-review labels; record all items that need migration.
     to_migrate=()
     while IFS= read -r item; do
