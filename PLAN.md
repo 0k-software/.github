@@ -50,6 +50,24 @@ the commit copied from, date).
   (Fill in actual SHA and date at implementation time by running
   `git ls-remote https://github.com/obra/superpowers refs/heads/main`.)
 
+- `0k/skills/refine/README.md` — attribution note for the existing `/refine`
+  skill (same commit, same upstream, same SHA):
+
+  ```
+  # refine
+
+  Adapted from [`obra/superpowers`](https://github.com/obra/superpowers) —
+  `skills/brainstorming/SKILL.md` @ {SHA} ({date}).
+
+  The upstream skill was copied verbatim and then evolved to match 0k
+  conventions: fetch the GitHub issue as starting context, write the approved
+  design back to the issue body, and route all commits through `/0k:commit`.
+  ```
+
+  Use the same SHA as for `fix-pr/README.md` — both skills were adapted from
+  `obra/superpowers` and the SHA documents the upstream state at the time of
+  the copy.
+
 The SKILL.md frontmatter should be updated to match our skill conventions:
 
 ```yaml
