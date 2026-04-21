@@ -48,12 +48,9 @@ WHEN receiving code review feedback:
 
 ```
 IF any item is unclear:
-  POST a question in that item's review thread (see A3)
-  SKIP the unclear item in this run
-  CONTINUE processing all other items
-
-WHY: Questions stay in the PR where context lives. Other items can still be
-addressed while waiting for the reply.
+  POST a question in that item's review thread (see A3) — do not ask
+  in the local Claude Code session
+  STOP — do not implement anything until all items are understood
 ```
 
 **Example:**
@@ -62,8 +59,8 @@ addressed while waiting for the reply.
 Reviewer: "Fix 1-6"
 You understand 1,2,3,6. Unclear on 4,5.
 
-❌ WRONG: Stop everything and ask locally
-✅ RIGHT: Post a question about items 4 and 5 in their review threads, then address 1,2,3,6
+❌ WRONG: Ask locally in the Claude Code session
+✅ RIGHT: Post questions about items 4 and 5 in their review threads, then wait
 ```
 
 ## Reviewing All Feedback
