@@ -62,17 +62,18 @@ following behaviour:
 
 **Per-project restructure** For each targeted project:
 
-1. Rename `In progress` → `Coding` using the appropriate GitHub GraphQL
-   mutation to update the status option name.
-2. Find all items in `In Review` or any `Reviewing *` column.
-3. For each such item: move its status field to `Coding`; apply the `to-review`
+1. For every status option **not** in the required set, compute its migration
+   target: the nearest preceding required option in the project's current
+   option order (falling back to `Backlog` if none precedes it). `In progress`
+   is always mapped to `Coding` regardless of position (it is the coding slot).
+2. For items in `In Review` or any `Reviewing *` column: apply the `to-review`
    label to the underlying issue in its source repo.
-4. Delete `In Review` / `Reviewing *` status options.
-5. Delete any remaining status options not in the required set (`Backlog`,
-   `Refining`, `Ready`, `Planning`, `Coding`, `Done`).
-6. Create any status options missing from the required set.
-7. Reorder status options to:
-   `Backlog → Refining → Ready → Planning → Coding → Done`.
+3. Update the Status field to exactly the required set in the required order
+   (`Backlog → Refining → Ready → Planning → Coding → Done`). This removes all
+   non-standard options (including `In progress`, `In Review`, `Reviewing *`,
+   and any others) and creates any that are missing.
+4. Re-assign every item that was in a removed status to its computed migration
+   target, using the option IDs from the post-update field.
 
 **Output**
 
