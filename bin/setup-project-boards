@@ -33,7 +33,7 @@ declare -A STATUS_COLORS=(
   [Planning]=YELLOW [Coding]=ORANGE [Done]=GRAY
 )
 declare -A STATUS_DESCRIPTIONS=(
-  [Backlog]="Not yet scheduled"
+  [Backlog]="To be refined"
   [Refining]="Being clarified and sized"
   [Ready]="Ready to be picked up"
   [Planning]="Design or spec in progress"
