@@ -1,0 +1,280 @@
+#!/usr/bin/env bash
+#
+# bin/setup-project-boards
+#
+# Restructures all non-Roadmap GitHub org project boards to a consistent
+# 6-column status layout (Backlog → Refining → Ready → Planning → Coding →
+# Done), migrates items from "In Review" / "Reviewing *" columns to "Coding"
+# with the "to-review" label applied, and creates the label in the .github
+# repo and all source repos that have items in affected projects.
+#
+# Usage:
+#   bin/setup-project-boards [--dry-run] [--apply] [--project <node-id>]
+#
+# Flags:
+#   --dry-run        Print all planned actions without executing (default).
+#   --apply          Execute all mutations against the GitHub API.
+#   --project <id>   Restrict to a single project by GraphQL node ID; skips
+#                    org-wide discovery.
+#   -h, --help       Show this help and exit.
+#
+# Environment:
+#   GITHUB_ORG       GitHub organisation to operate on (default: 0k-software).
+#
+
+set -euo pipefail
+
+# ── constants ─────────────────────────────────────────────────────────────────
+
+ORG="${GITHUB_ORG:-0k-software}"
+REQUIRED_STATUSES=(Backlog Refining Ready Planning Coding Done)
+declare -A STATUS_COLORS=(
+  [Backlog]=GRAY [Refining]=BLUE [Ready]=GREEN
+  [Planning]=YELLOW [Coding]=ORANGE [Done]=GREEN
+)
+LABEL_NAME="to-review"
+LABEL_COLOR="0075ca"
+LABEL_DESC="Waiting for code review"
+
+# ── argument parsing ──────────────────────────────────────────────────────────
+
+MODE="dry-run"
+SINGLE_PROJECT=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --apply)   MODE=apply ;;
+    --dry-run) MODE=dry-run ;;
+    --project)
+      [[ $# -ge 2 ]] || { echo "error: --project requires a node ID argument" >&2; exit 1; }
+      SINGLE_PROJECT="$2"; shift ;;
+    -h | --help)
+      sed -n '/^# bin\/setup-project-boards/,/^[^#]/{ /^#/{ s/^# \?//; p } }' "$0"
+      exit 0 ;;
+    *) echo "error: unknown argument: $1" >&2; exit 1 ;;
+  esac
+  shift
+done
+
+# ── helpers ───────────────────────────────────────────────────────────────────
+
+info() { echo "[$MODE] $*"; }
+
+# Run a read-only GraphQL query ($1 = full JSON request body).
+gql_query() {
+  gh api graphql --input - <<< "$1"
+}
+
+# Run a GraphQL mutation. Prints intent in dry-run; sends $2 (JSON) in apply.
+gql_mutate() {
+  local desc="$1" payload="$2"
+  info "MUTATE  $desc"
+  [[ "$MODE" == apply ]] || return 0
+  gh api graphql --input - <<< "$payload"
+}
+
+# Run a REST write. Prints intent in dry-run; runs gh api in apply (ignores errors).
+rest_write() {
+  local desc="$1"; shift
+  info "REST    $desc"
+  [[ "$MODE" == apply ]] || return 0
+  gh api "$@" 2>/dev/null || info "        (already exists or request failed — continuing)"
+}
+
+# ── project discovery ─────────────────────────────────────────────────────────
+
+list_projects() {
+  if [[ -n "$SINGLE_PROJECT" ]]; then
+    echo "$SINGLE_PROJECT"
+    return
+  fi
+
+  local cursor="" result has_next
+  while true; do
+    result=$(gql_query "$(jq -n --arg org "$ORG" --arg cursor "$cursor" '{
+      query: "query($org:String!,$cursor:String){ organization(login:$org){ projectsV2(first:50,after:$cursor){ nodes{id title} pageInfo{hasNextPage endCursor} } } }",
+      variables: { org: $org, cursor: (if $cursor == "" then null else $cursor end) }
+    }')")
+
+    jq -r '.data.organization.projectsV2.nodes[]
+           | select(.title | test("Roadmap"; "i") | not) | .id' <<< "$result"
+
+    has_next=$(jq -r '.data.organization.projectsV2.pageInfo.hasNextPage' <<< "$result")
+    [[ "$has_next" == true ]] || break
+    cursor=$(jq -r '.data.organization.projectsV2.pageInfo.endCursor' <<< "$result")
+  done
+}
+
+# ── status field query ────────────────────────────────────────────────────────
+
+get_status_field() {
+  local pid="$1"
+  gql_query "$(jq -n --arg id "$pid" '{
+    query: "query($id:ID!){ node(id:$id){ ... on ProjectV2{ fields(first:30){ nodes{ ... on ProjectV2SingleSelectField{ id name options{id name color description} } } } } } }",
+    variables: { id: $id }
+  }')" | jq -c 'first(.data.node.fields.nodes[] | select(type == "object" and .name == "Status")) // empty'
+}
+
+# ── item iteration ────────────────────────────────────────────────────────────
+
+iter_items() {
+  local pid="$1" cursor="" result has_next
+  while true; do
+    result=$(gql_query "$(jq -n --arg id "$pid" --arg cursor "$cursor" '{
+      query: "query($id:ID!,$cursor:String){ node(id:$id){ ... on ProjectV2{ items(first:100,after:$cursor){ nodes{ id fieldValues(first:20){ nodes{ ... on ProjectV2ItemFieldSingleSelectValue{ field{... on ProjectV2SingleSelectField{name}} name optionId } } } content{ ... on Issue{number repository{name owner{login}}} ... on PullRequest{number repository{name owner{login}}} } } pageInfo{hasNextPage endCursor} } } } }",
+      variables: { id: $id, cursor: (if $cursor == "" then null else $cursor end) }
+    }')")
+
+    jq -c '.data.node.items.nodes[]' <<< "$result"
+
+    has_next=$(jq -r '.data.node.items.pageInfo.hasNextPage' <<< "$result")
+    [[ "$has_next" == true ]] || break
+    cursor=$(jq -r '.data.node.items.pageInfo.endCursor' <<< "$result")
+  done
+}
+
+# ── label management ──────────────────────────────────────────────────────────
+
+ensure_label() {
+  local repo="$1"
+  rest_write "create '$LABEL_NAME' in $repo" \
+    "repos/$repo/labels" -X POST \
+    -f name="$LABEL_NAME" -f color="$LABEL_COLOR" -f description="$LABEL_DESC"
+}
+
+apply_label() {
+  local repo="$1" number="$2"
+  rest_write "apply '$LABEL_NAME' to $repo#$number" \
+    "repos/$repo/issues/$number/labels" -X POST \
+    --input - <<< "{\"labels\":[\"$LABEL_NAME\"]}"
+}
+
+# ── project mutations ─────────────────────────────────────────────────────────
+
+set_item_status() {
+  local pid="$1" item_id="$2" field_id="$3" option_id="$4" desc="$5"
+  gql_mutate "set Coding on $desc" "$(jq -n \
+    --arg pid "$pid" --arg iid "$item_id" --arg fid "$field_id" --arg oid "$option_id" '{
+      query: "mutation($pid:ID!,$iid:ID!,$fid:ID!,$oid:String!){ updateProjectV2ItemFieldValue(input:{projectId:$pid,itemId:$iid,fieldId:$fid,value:{singleSelectOptionId:$oid}}){ projectV2Item{id} } }",
+      variables: { pid: $pid, iid: $iid, fid: $fid, oid: $oid }
+    }')"
+}
+
+set_field_options() {
+  local field_id="$1" opts
+  opts=$(for s in "${REQUIRED_STATUSES[@]}"; do
+    printf '{"name":"%s","color":"%s","description":""}\n' "$s" "${STATUS_COLORS[$s]:-GRAY}"
+  done | jq -sc '.')
+  gql_mutate "set Status options to [${REQUIRED_STATUSES[*]}]" "$(jq -n \
+    --arg fid "$field_id" --argjson opts "$opts" '{
+      query: "mutation($fid:ID!,$opts:[ProjectV2SingleSelectFieldOptionInput!]!){ updateProjectV2Field(input:{fieldId:$fid,singleSelectOptions:$opts}){ projectV2Field{ ... on ProjectV2SingleSelectField{id options{id name}} } } }",
+      variables: { fid: $fid, opts: $opts }
+    }')"
+}
+
+# ── main ──────────────────────────────────────────────────────────────────────
+
+main() {
+  info "=== setup-project-boards | mode=$MODE | org=$ORG ==="
+
+  # 1. Discover projects.
+  mapfile -t projects < <(list_projects)
+  info "Projects to process: ${#projects[@]}"
+  [[ ${#projects[@]} -gt 0 ]] || { info "No projects found."; exit 0; }
+
+  # 2. Collect all source repos across targeted projects (labels must exist before migration).
+  declare -A source_repos=()
+  local owner="" repo_name=""
+  info "Scanning items for source repo list…"
+  for pid in "${projects[@]}"; do
+    while IFS= read -r item; do
+      owner=$(jq -r '.content.repository.owner.login // empty' <<< "$item")
+      repo_name=$(jq -r '.content.repository.name // empty' <<< "$item")
+      [[ -n "$owner" && -n "$repo_name" ]] && source_repos["$owner/$repo_name"]=1
+    done < <(iter_items "$pid")
+  done
+  info "Source repos: ${!source_repos[*]:-none}"
+
+  # 3. Create the to-review label in .github and each source repo.
+  ensure_label "$ORG/.github"
+  for rp in "${!source_repos[@]}"; do
+    ensure_label "$rp"
+  done
+
+  # 4. Per-project restructure.
+  local -a to_migrate
+  local field_json field_id current_coding_id
+  local item status item_id issue_num repo_path
+  local need_move need_label entry
+  local new_field new_coding_id
+
+  for pid in "${projects[@]}"; do
+    info "--- project $pid ---"
+
+    field_json=$(get_status_field "$pid" || true)
+    if [[ -z "$field_json" ]]; then
+      info "  No Status field found — skipping."
+      continue
+    fi
+    field_id=$(jq -r '.id' <<< "$field_json")
+    info "  Status field: $field_id"
+
+    current_coding_id=$(jq -r '.options[] | select(.name == "Coding") | .id // empty' <<< "$field_json" | head -1)
+
+    # Scan items: apply to-review labels; record candidates for migration to Coding.
+    to_migrate=()
+    while IFS= read -r item; do
+      status=$(jq -r '[.fieldValues.nodes[] | select(.field.name == "Status") | .name] | first // empty' <<< "$item")
+      [[ -n "$status" ]] || continue
+
+      need_move=false; need_label=false
+      if [[ "$status" == "In progress" ]]; then
+        need_move=true
+      elif [[ "$status" =~ ^(In\ Review|Reviewing\ .+)$ ]]; then
+        need_move=true; need_label=true
+      fi
+      [[ "$need_move" == true ]] || continue
+
+      item_id=$(jq -r '.id' <<< "$item")
+      owner=$(jq -r '.content.repository.owner.login // empty' <<< "$item")
+      repo_name=$(jq -r '.content.repository.name // empty' <<< "$item")
+      issue_num=$(jq -r '.content.number // empty' <<< "$item")
+      repo_path="$owner/$repo_name"
+
+      [[ "$need_label" == true && -n "$owner" && -n "$issue_num" ]] && \
+        apply_label "$repo_path" "$issue_num"
+
+      # Move now if Coding already exists; otherwise defer until after field update.
+      if [[ -n "$current_coding_id" ]]; then
+        set_item_status "$pid" "$item_id" "$field_id" "$current_coding_id" \
+          "$status ($repo_path#$issue_num)"
+      fi
+
+      to_migrate+=("$item_id|$status|$repo_path|$issue_num")
+    done < <(iter_items "$pid")
+
+    # Restructure the Status field: rename In progress→Coding, delete non-standard
+    # options, create any missing required options, reorder to the required sequence.
+    set_field_options "$field_id"
+
+    # Re-assign all migrated items to Coding using the post-update option ID.
+    # This handles both: Coding didn't exist before (new ID) and ID may have changed.
+    if [[ ${#to_migrate[@]} -gt 0 ]]; then
+      if [[ "$MODE" == apply ]]; then
+        new_field=$(get_status_field "$pid")
+        new_coding_id=$(jq -r '.options[] | select(.name == "Coding") | .id' <<< "$new_field")
+        for entry in "${to_migrate[@]}"; do
+          IFS='|' read -r item_id status repo_path issue_num <<< "$entry"
+          set_item_status "$pid" "$item_id" "$field_id" "$new_coding_id" \
+            "$status ($repo_path#$issue_num) [post-update]"
+        done
+      else
+        info "  WOULD re-assign ${#to_migrate[@]} item(s) to Coding after field update"
+      fi
+    fi
+  done
+
+  info "=== done ==="
+}
+
+main "$@"
