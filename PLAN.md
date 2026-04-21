@@ -18,7 +18,7 @@ evolve → split" pattern used for `/0k:refine`.
 
 ## Steps
 
-- [ ] [Step 1: Copy `receiving-code-review` verbatim into `fix-pr/`](#step-1-copy-receiving-code-review-verbatim-into-fix-pr)
+- [x] [Step 1: Copy `receiving-code-review` verbatim into `fix-pr/`](#step-1-copy-receiving-code-review-verbatim-into-fix-pr)
 - [ ] [Step 2: Evolve `fix-pr/SKILL.md` — merge in all `/fix` PR mechanics and 0k additions](#step-2-evolve-fix-prskillmd--merge-in-all-fix-pr-mechanics-and-0k-additions)
 - [ ] [Step 3: Split — extract `fix-issue`, rewrite router, add aliases, update issues #80 and #63](#step-3-split--extract-fix-issue-rewrite-router-add-aliases-update-issues-80-and-63)
 
