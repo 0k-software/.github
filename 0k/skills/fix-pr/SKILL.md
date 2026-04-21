@@ -48,20 +48,22 @@ WHEN receiving code review feedback:
 
 ```
 IF any item is unclear:
-  STOP - do not implement anything yet
-  ASK for clarification on unclear items
+  POST a question in that item's review thread (see A3)
+  SKIP the unclear item in this run
+  CONTINUE processing all other items
 
-WHY: Items may be related. Partial understanding = wrong implementation.
+WHY: Questions stay in the PR where context lives. Other items can still be
+addressed while waiting for the reply.
 ```
 
 **Example:**
 
 ```
-your human partner: "Fix 1-6"
+Reviewer: "Fix 1-6"
 You understand 1,2,3,6. Unclear on 4,5.
 
-❌ WRONG: Implement 1,2,3,6 now, ask about 4,5 later
-✅ RIGHT: "I understand items 1,2,3,6. Need clarification on 4 and 5 before proceeding."
+❌ WRONG: Stop everything and ask locally
+✅ RIGHT: Post a question about items 4 and 5 in their review threads, then address 1,2,3,6
 ```
 
 ## Source-Specific Handling
@@ -224,6 +226,11 @@ You understand 1,2,3,6. Unclear on 4,5.
 ```
 
 ## GitHub Thread Replies
+
+`/fix-pr` is **non-stop and async**: every question, clarification request, and
+answer is posted as a reply in the relevant review thread — never as a local
+stop awaiting input. This keeps all context in the PR where it belongs and
+allows the reviewer to respond asynchronously.
 
 When replying to inline review comments on GitHub, reply in the comment thread,
 not as a top-level PR comment. The detailed mechanics for fetching threads and
