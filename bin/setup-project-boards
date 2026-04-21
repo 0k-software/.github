@@ -34,7 +34,7 @@ declare -A STATUS_COLORS=(
 )
 declare -A STATUS_DESCRIPTIONS=(
   [Backlog]="To be refined"
-  [Refining]="Being clarified and sized"
+  [Refining]="Spec in progress"
   [Ready]="Ready to be picked up"
   [Planning]="Design or spec in progress"
   [Coding]="Implementation in progress"
