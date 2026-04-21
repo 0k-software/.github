@@ -213,12 +213,14 @@ main() {
   done
 
   # 4. Per-project restructure.
+  local state_dir="${XDG_CACHE_HOME:-$HOME/.cache}/setup-project-boards"
   local -a to_reassign opt_names
   local field_json field_id item status item_id issue_num repo_path
-  local entry new_field target_name nid i opt
+  local entry new_field target_name nid i opt state_file
 
   for pid in "${projects[@]}"; do
     info "--- project $pid ---"
+    state_file="$state_dir/$pid.pending"
 
     field_json=$(get_status_field "$pid" || true)
     if [[ -z "$field_json" ]]; then
@@ -228,84 +230,98 @@ main() {
     field_id=$(jq -r '.id' <<< "$field_json")
     info "  Status field: $field_id"
 
-    # Build: required-status lookup, migration-target map, review-column set.
-    declare -A req_set=() migrate_to=() is_review=()
-    for s in "${REQUIRED_STATUSES[@]}"; do req_set["$s"]=1; done
+    if [[ "$MODE" == apply && -f "$state_file" ]]; then
+      # Field was already updated in a previous interrupted run; skip scan + field update.
+      mapfile -t to_reassign < "$state_file"
+      info "  Resuming from saved state: ${#to_reassign[@]} item(s) pending ($state_file)"
+    else
+      # Build: required-status lookup, migration-target map, review-column set.
+      declare -A req_set=() migrate_to=() is_review=()
+      for s in "${REQUIRED_STATUSES[@]}"; do req_set["$s"]=1; done
 
-    mapfile -t opt_names < <(jq -r '.options[].name' <<< "$field_json")
-    for i in "${!opt_names[@]}"; do
-      opt="${opt_names[$i]}"
-      [[ -n "${req_set[$opt]:-}" ]] && continue  # keep required options as-is
+      mapfile -t opt_names < <(jq -r '.options[].name' <<< "$field_json")
+      for i in "${!opt_names[@]}"; do
+        opt="${opt_names[$i]}"
+        [[ -n "${req_set[$opt]:-}" ]] && continue  # keep required options as-is
 
-      if [[ "$opt" == "In progress" ]]; then
-        # "In progress" is the coding slot — items belong in Coding.
-        migrate_to["$opt"]="Coding"
-      else
-        # Target is the effective status of the immediately preceding option.
-        # Required options resolve to themselves; deleted options propagate their
-        # own target, so chains like [Planning, In progress, In Review, Ready to deploy]
-        # correctly route everything after In progress to Coding rather than Planning.
-        if (( i > 0 )); then
-          local prev="${opt_names[$((i-1))]}"
-          if [[ -n "${req_set[$prev]:-}" ]]; then
-            target_name="$prev"
-          elif [[ -n "${migrate_to[$prev]:-}" ]]; then
-            target_name="${migrate_to[$prev]}"
+        if [[ "$opt" == "In progress" ]]; then
+          # "In progress" is the coding slot — items belong in Coding.
+          migrate_to["$opt"]="Coding"
+        else
+          # Target is the effective status of the immediately preceding option.
+          # Required options resolve to themselves; deleted options propagate their
+          # own target, so chains like [Planning, In progress, In Review, Ready to deploy]
+          # correctly route everything after In progress to Coding rather than Planning.
+          if (( i > 0 )); then
+            local prev="${opt_names[$((i-1))]}"
+            if [[ -n "${req_set[$prev]:-}" ]]; then
+              target_name="$prev"
+            elif [[ -n "${migrate_to[$prev]:-}" ]]; then
+              target_name="${migrate_to[$prev]}"
+            else
+              target_name="${REQUIRED_STATUSES[0]}"
+            fi
           else
             target_name="${REQUIRED_STATUSES[0]}"
           fi
-        else
-          target_name="${REQUIRED_STATUSES[0]}"
+          migrate_to["$opt"]="$target_name"
         fi
-        migrate_to["$opt"]="$target_name"
+
+        # Case-insensitive match for review-type columns.
+        [[ "${opt,,}" =~ ^(in\ review|reviewing\ .+)$ ]] && is_review["$opt"]=1
+      done
+
+      # Scan ALL items with any status. updateProjectV2Field recreates every option
+      # ID — even options whose names are kept — so every item needs re-assigning.
+      to_reassign=()
+      while IFS= read -r item; do
+        status=$(jq -r '[.fieldValues.nodes[] | select(.field.name == "Status") | .name] | first // empty' <<< "$item")
+        [[ -n "$status" ]] || continue
+
+        item_id=$(jq -r '.id' <<< "$item")
+        owner=$(jq -r '.content.repository.owner.login // empty' <<< "$item")
+        repo_name=$(jq -r '.content.repository.name // empty' <<< "$item")
+        issue_num=$(jq -r '.content.number // empty' <<< "$item")
+        repo_path="$owner/$repo_name"
+
+        if [[ -n "${migrate_to[$status]:-}" ]]; then
+          target_name="${migrate_to[$status]}"
+          [[ -n "${is_review[$status]:-}" && -n "$owner" && -n "$issue_num" ]] && \
+            apply_label "$repo_path" "$issue_num"
+        elif [[ -n "${req_set[$status]:-}" ]]; then
+          target_name="$status"
+        else
+          continue
+        fi
+
+        to_reassign+=("$item_id|$status|$repo_path|$issue_num|$target_name")
+      done < <(iter_items "$pid")
+
+      # Log what the field update will do, immediately before the mutation.
+      local found
+      for s in "${REQUIRED_STATUSES[@]}"; do
+        found=0
+        for o in "${opt_names[@]}"; do [[ "$o" == "$s" ]] && { found=1; break; }; done
+        (( found )) || info "  Creating '$s'"
+      done
+      for opt in "${opt_names[@]}"; do
+        [[ -n "${migrate_to[$opt]:-}" ]] || continue
+        local tag=""
+        [[ -n "${is_review[$opt]:-}" ]] && tag=" (items had to-review label applied)"
+        info "  Removing '$opt' (items re-assigned to '${migrate_to[$opt]}'$tag)"
+      done
+
+      # Restructure the Status field: replace all options with the required set.
+      set_field_options "$field_id"
+
+      # Save item list immediately after the field update so a failed re-assignment
+      # run can be resumed without re-running the (destructive) field update.
+      if [[ "$MODE" == apply && ${#to_reassign[@]} -gt 0 ]]; then
+        mkdir -p "$state_dir"
+        printf '%s\n' "${to_reassign[@]}" > "$state_file"
+        info "  State saved — re-run with --apply --project $pid to resume if interrupted."
       fi
-
-      # Case-insensitive match for review-type columns.
-      [[ "${opt,,}" =~ ^(in\ review|reviewing\ .+)$ ]] && is_review["$opt"]=1
-    done
-
-    # Scan ALL items with any status. updateProjectV2Field recreates every option
-    # ID — even options whose names are kept — so every item needs re-assigning.
-    to_reassign=()
-    while IFS= read -r item; do
-      status=$(jq -r '[.fieldValues.nodes[] | select(.field.name == "Status") | .name] | first // empty' <<< "$item")
-      [[ -n "$status" ]] || continue
-
-      item_id=$(jq -r '.id' <<< "$item")
-      owner=$(jq -r '.content.repository.owner.login // empty' <<< "$item")
-      repo_name=$(jq -r '.content.repository.name // empty' <<< "$item")
-      issue_num=$(jq -r '.content.number // empty' <<< "$item")
-      repo_path="$owner/$repo_name"
-
-      if [[ -n "${migrate_to[$status]:-}" ]]; then
-        target_name="${migrate_to[$status]}"
-        [[ -n "${is_review[$status]:-}" && -n "$owner" && -n "$issue_num" ]] && \
-          apply_label "$repo_path" "$issue_num"
-      elif [[ -n "${req_set[$status]:-}" ]]; then
-        target_name="$status"
-      else
-        continue
-      fi
-
-      to_reassign+=("$item_id|$status|$repo_path|$issue_num|$target_name")
-    done < <(iter_items "$pid")
-
-    # Log what the field update will do, immediately before the mutation.
-    local found
-    for s in "${REQUIRED_STATUSES[@]}"; do
-      found=0
-      for o in "${opt_names[@]}"; do [[ "$o" == "$s" ]] && { found=1; break; }; done
-      (( found )) || info "  Creating '$s'"
-    done
-    for opt in "${opt_names[@]}"; do
-      [[ -n "${migrate_to[$opt]:-}" ]] || continue
-      local tag=""
-      [[ -n "${is_review[$opt]:-}" ]] && tag=" (items had to-review label applied)"
-      info "  Removing '$opt' (items re-assigned to '${migrate_to[$opt]}'$tag)"
-    done
-
-    # Restructure the Status field: replace all options with the required set.
-    set_field_options "$field_id"
+    fi
 
     # Re-assign all items using post-update option IDs. In dry-run, option IDs
     # are placeholders — gql_mutate logs the intent without executing.
@@ -330,6 +346,9 @@ main() {
       done
       unset new_opt_ids
     fi
+
+    # All items re-assigned successfully — clear the state file.
+    [[ "$MODE" == apply ]] && rm -f "$state_file"
 
     info "  NOTE: if board columns look stale, open the view → ··· menu → 'Edit view' and re-save."
 
