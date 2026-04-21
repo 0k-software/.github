@@ -263,22 +263,6 @@ main() {
       [[ "${opt,,}" =~ ^(in\ review|reviewing\ .+)$ ]] && is_review["$opt"]=1
     done
 
-    # Log required options that don't yet exist and will be created.
-    local found
-    for s in "${REQUIRED_STATUSES[@]}"; do
-      found=0
-      for o in "${opt_names[@]}"; do [[ "$o" == "$s" ]] && { found=1; break; }; done
-      (( found )) || info "  Creating '$s'"
-    done
-
-    # Log the computed deletions so dry-run output is self-explanatory.
-    for opt in "${opt_names[@]}"; do
-      [[ -n "${migrate_to[$opt]:-}" ]] || continue
-      local tag=""
-      [[ -n "${is_review[$opt]:-}" ]] && tag=" (+ to-review label on linked issues)"
-      info "  Deleting '$opt' → items move to '${migrate_to[$opt]}'$tag"
-    done
-
     # Scan ALL items with any status. updateProjectV2Field recreates every option
     # ID — even options whose names are kept — so every item needs re-assigning.
     to_reassign=()
@@ -304,6 +288,20 @@ main() {
 
       to_reassign+=("$item_id|$status|$repo_path|$issue_num|$target_name")
     done < <(iter_items "$pid")
+
+    # Log what the field update will do, immediately before the mutation.
+    local found
+    for s in "${REQUIRED_STATUSES[@]}"; do
+      found=0
+      for o in "${opt_names[@]}"; do [[ "$o" == "$s" ]] && { found=1; break; }; done
+      (( found )) || info "  Creating '$s'"
+    done
+    for opt in "${opt_names[@]}"; do
+      [[ -n "${migrate_to[$opt]:-}" ]] || continue
+      local tag=""
+      [[ -n "${is_review[$opt]:-}" ]] && tag=" (items had to-review label applied)"
+      info "  Removing '$opt' (items re-assigned to '${migrate_to[$opt]}'$tag)"
+    done
 
     # Restructure the Status field: replace all options with the required set.
     set_field_options "$field_id"
