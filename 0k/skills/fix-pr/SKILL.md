@@ -454,10 +454,17 @@ comment** in every thread that was addressed in this run (both questions and
 change requests). This prevents future runs from re-addressing the same
 feedback.
 
+For each addressed thread, iterate over every comment `databaseId` and mark
+each one individually — do not skip any:
+
 ```
-gh api "repos/{owner}/{repo}/pulls/comments/{databaseId}/reactions" \
-  -X POST -f content="eyes"
+for databaseId in {all databaseIds from this thread's comments}; do
+  gh api "repos/{owner}/{repo}/pulls/comments/${databaseId}/reactions" \
+    -X POST -f content="eyes"
+done
 ```
+
+Repeat this loop for every addressed thread.
 
 ### A6 — Report
 
