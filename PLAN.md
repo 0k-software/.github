@@ -19,7 +19,7 @@ change.
 
 ## Steps
 
-- [ ] [Step 1: Update SKILL.md with title-update instruction](#step-1-update-skillmd-with-title-update-instruction)
+- [x] [Step 1: Update SKILL.md with title-update instruction](#step-1-update-skillmd-with-title-update-instruction)
 
 ---
 
