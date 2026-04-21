@@ -66,16 +66,10 @@ You understand 1,2,3,6. Unclear on 4,5.
 ✅ RIGHT: Post a question about items 4 and 5 in their review threads, then address 1,2,3,6
 ```
 
-## Source-Specific Handling
+## Reviewing All Feedback
 
-### From your human partner
-
-- **Trusted** - implement after understanding
-- **Still ask** if scope unclear
-- **No performative agreement**
-- **Skip to action** or technical acknowledgment
-
-### From External Reviewers
+Apply these checks before implementing **any** suggestion — from human partners
+or external reviewers alike:
 
 ```
 BEFORE implementing:
@@ -89,14 +83,16 @@ IF suggestion seems wrong:
   Push back with technical reasoning
 
 IF can't easily verify:
-  Say so: "I can't verify this without [X]. Should I [investigate/ask/proceed]?"
+  Post a question in the review thread (see A3)
 
-IF conflicts with your human partner's prior decisions:
-  Stop and discuss with your human partner first
+IF conflicts with prior architectural decisions:
+  Post a question in the review thread before implementing
 ```
 
-**your human partner's rule:** "External feedback - be skeptical, but check
-carefully"
+**No performative agreement.** Skip to action or technical acknowledgment.
+
+**Rule:** Be skeptical of all suggestions — verify, check carefully, then
+implement.
 
 ## YAGNI Check for "Professional" Features
 
@@ -108,8 +104,8 @@ IF reviewer suggests "implementing properly":
   IF used: Then implement properly
 ```
 
-**your human partner's rule:** "You and reviewer both report to me. If we don't
-need this feature, don't add it."
+**Rule:** If a feature isn't being used, don't implement it — regardless of who
+suggests it.
 
 ## Implementation Order
 
@@ -133,14 +129,14 @@ Push back when:
 - Violates YAGNI (unused feature)
 - Technically incorrect for this stack
 - Legacy/compatibility reasons exist
-- Conflicts with your human partner's architectural decisions
+- Conflicts with prior architectural decisions
 
 **How to push back:**
 
 - Use technical reasoning, not defensiveness
 - Ask specific questions
 - Reference working tests/code
-- Involve your human partner if architectural
+- Escalate to the PR author if architectural
 
 **Signal if uncomfortable pushing back out loud:** "Strange things are afoot at
 the Circle K"
@@ -220,9 +216,9 @@ Reviewer: "Implement proper metrics tracking with database, date filters, CSV ex
 **Unclear Item (Good):**
 
 ```
-your human partner: "Fix items 1-6"
+Reviewer: "Fix items 1-6"
 You understand 1,2,3,6. Unclear on 4,5.
-✅ "Understand 1,2,3,6. Need clarification on 4 and 5 before implementing."
+✅ Post questions about 4 and 5 in their review threads, then address 1,2,3,6.
 ```
 
 ## GitHub Thread Replies
