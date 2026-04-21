@@ -36,7 +36,7 @@ declare -A STATUS_DESCRIPTIONS=(
   [Backlog]="To be refined"
   [Refining]="Spec in progress"
   [Ready]="Ready to be picked up"
-  [Planning]="Design or spec in progress"
+  [Planning]="Building implementation plan"
   [Coding]="Implementation in progress"
   [Done]="Shipped and verified"
 )
