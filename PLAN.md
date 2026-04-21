@@ -62,7 +62,8 @@ following behaviour:
 
 **Per-project restructure** For each targeted project:
 
-1. Rename `In progress` → `Coding` (PATCH the option name via GraphQL).
+1. Rename `In progress` → `Coding` using the appropriate GitHub GraphQL
+   mutation to update the status option name.
 2. Find all items in `In Review` or any `Reviewing *` column.
 3. For each such item: move its status field to `Coding`; apply the `to-review`
    label to the underlying issue in its source repo.
