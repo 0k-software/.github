@@ -24,7 +24,7 @@ authenticated in a remote session.
 ## Steps
 
 - [x] [Step 1: Write `bin/setup-project-boards`](#step-1-write-binsetup-project-boards)
-- [ ] [Step 2: Staged rollout on temp project](#step-2-staged-rollout-on-temp-project)
+- [x] [Step 2: Staged rollout on temp project](#step-2-staged-rollout-on-temp-project)
 - [ ] [Step 3: Full rollout after sign-off](#step-3-full-rollout-after-sign-off)
 - [ ] [Step 4: Cleanup and verification](#step-4-cleanup-and-verification)
 
