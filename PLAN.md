@@ -40,8 +40,8 @@ following behaviour:
 - `--dry-run` (default): print every action that would be taken without making
   any changes.
 - `--apply`: execute all mutations.
-- `--project <node-id>`: restrict execution to a single project; skip discovery
-  of others.
+- `--project <id>`: restrict execution to a single project; skip discovery of
+  others.
 
 **Discovery**
 
@@ -90,7 +90,7 @@ Make the script executable (`chmod +x bin/setup-project-boards`).
    the project duplication UI or `gh api graphql`). Note its project node ID.
 2. Run the script against it:
    ```
-   bin/setup-project-boards --apply --project <temp-project-node-id>
+   bin/setup-project-boards --apply --project <temp-project-id>
    ```
 3. Open the temp project on GitHub and inspect:
    - Columns are in the correct order:
