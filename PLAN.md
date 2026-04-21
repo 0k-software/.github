@@ -68,9 +68,10 @@ following behaviour:
 3. For each such item: move its status field to `Coding`; apply the `to-review`
    label to the underlying issue in its source repo.
 4. Delete `In Review` / `Reviewing *` status options.
-5. Create any status options missing from the required set: `Backlog`,
-   `Refining`, `Ready`, `Planning`, `Coding`, `Done`.
-6. Reorder status options to:
+5. Delete any remaining status options not in the required set (`Backlog`,
+   `Refining`, `Ready`, `Planning`, `Coding`, `Done`).
+6. Create any status options missing from the required set.
+7. Reorder status options to:
    `Backlog → Refining → Ready → Planning → Coding → Done`.
 
 **Output**
