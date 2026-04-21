@@ -172,7 +172,7 @@ update_board_views() {
   local pid="$1" field_id="$2"
   local views_json view_id view_name
   views_json=$(gql_query "$(jq -n --arg id "$pid" '{
-    query: "query($id:ID!){ node(id:$id){ ... on ProjectV2{ views(first:20){ nodes{ id name layout groupByFields(first:5){ nodes{ ... on ProjectV2SingleSelectField{id} } } } } } } }",
+    query: "query($id:ID!){ node(id:$id){ ... on ProjectV2{ views(first:20){ nodes{ id name layout } } } } }",
     variables: { id: $id }
   }')")
 
@@ -182,9 +182,9 @@ update_board_views() {
         query: "mutation($pid:ID!,$vid:ID!,$fid:ID!){ updateProjectV2View(input:{projectId:$pid,viewId:$vid,groupByFieldIds:[$fid]}){ projectV2View{id} } }",
         variables: { pid: $pid, vid: $vid, fid: $fid }
       }')"
-  done < <(jq -r --arg fid "$field_id" '
+  done < <(jq -r '
     .data.node.views.nodes[]
-    | select(.layout == "BOARD_LAYOUT" and (any(.groupByFields.nodes[]; .id == $fid)))
+    | select(.layout == "BOARD_LAYOUT")
     | [.id, .name] | @tsv
   ' <<< "$views_json")
 }
