@@ -90,8 +90,9 @@ current `/fix` Part A into the `receiving-code-review` base. The result is the
 complete `/fix-pr` skill with both the evaluation mindset and the GitHub
 mechanics.
 
-**Evaluation mindset to preserve from `receiving-code-review`** (keep all
-existing sections):
+**Evaluation mindset to preserve from `receiving-code-review`** — keep
+**everything** from the upstream skill unless it directly conflicts with the
+GitHub mechanics being merged in. When in doubt, keep it:
 
 - Core principle, response pattern, forbidden responses
 - Handling unclear feedback (stop and clarify all items before implementing
@@ -99,6 +100,12 @@ existing sections):
 - Source-specific trust (human partner = trusted; external reviewer = evaluate
   skeptically — codebase fit, YAGNI, breaking changes, missing context)
 - When/how to push back; gracefully correcting a wrong pushback
+- All examples, tables, and "Common Mistakes" sections
+- Any other section present in the verbatim copy from Step 1
+
+Only remove or replace a section if it directly contradicts a mechanic from
+`/fix` Part A (e.g. a generic "commit the fix" instruction that conflicts with
+the `/0k:commit` routing requirement). Everything else stays.
 
 **GitHub mechanics to add from current `/fix` Part A:**
 
