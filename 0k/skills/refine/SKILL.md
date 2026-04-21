@@ -43,7 +43,8 @@ You MUST create a task for each of these items and complete them in order:
 3. **Ask clarifying questions** — one at a time
 4. **Propose 2-3 approaches** — with trade-offs and recommendation
 5. **Present design** — section by section, get approval as you go
-6. **Write design doc** — post as issue body, filling all template sections
+6. **Write design doc** — update issue title and body, filling all template
+   sections
 7. **Spec self-review** — fix placeholders, contradictions, ambiguity inline
 8. **User reviews spec on GitHub** — post comment with link, suggest `/fix` for
    feedback
@@ -162,6 +163,10 @@ investigation-first:
 - Use elements-of-style:writing-clearly-and-concisely skill if available
 - Post the spec as the updated issue body on GitHub, filling in all sections of
   the issue type template. The issue body is the canonical, living spec.
+- Also update the issue title to reflect the refined purpose. A good title is
+  specific (captures what was actually discovered in refinement, not the
+  original placeholder), concise (readable in the issue list without
+  truncation), and written as a short noun phrase or imperative verb phrase.
 - The **Proposal** section (field `id: solution` called **The Solution** in the
   Pitch template, and **Investigation Plan** in the Bug template) must contain
   the full spec detail from the brainstorming session. Structure it freely —
@@ -198,9 +203,10 @@ Fix any issues inline. No need to re-review — just fix and move on.
 issue linking to the updated issue body, then ask the user to review it there
 before proceeding:
 
-> "Spec posted to the issue body. Please review it at <issue-url> and let me
-> know if you want any changes before we create the implementation plan. If you
-> leave comments on the issue, run `/fix` to address them."
+> "Updated the title to `{new title}` and posted the spec to the issue body.
+> Please review at <issue-url> and let me know if you want any changes before
+> we create the implementation plan. If you leave comments on the issue, run
+> `/fix` to address them."
 
 Wait for the user's response. If they request changes, make them, update the
 issue body again, and re-run the spec review loop. Only proceed once the user
