@@ -183,6 +183,7 @@ main() {
   [[ ${#projects[@]} -gt 0 ]] || { info "No projects found."; exit 0; }
 
   # 2. Collect all source repos across targeted projects (labels must exist before migration).
+  #    Always include .github as the org-wide label default.
   declare -A source_repos=()
   local owner="" repo_name=""
   info "Scanning items for source repo list…"
@@ -193,10 +194,10 @@ main() {
       [[ -n "$owner" && -n "$repo_name" ]] && source_repos["$owner/$repo_name"]=1
     done < <(iter_items "$pid")
   done
-  info "Source repos: ${!source_repos[*]:-none}"
+  source_repos["$ORG/.github"]=1
+  info "Source repos: ${!source_repos[*]}"
 
-  # 3. Create the to-review label in .github and each source repo.
-  ensure_label "$ORG/.github"
+  # 3. Create the to-review label in .github and all source repos.
   for rp in "${!source_repos[@]}"; do
     ensure_label "$rp"
   done
@@ -230,17 +231,34 @@ main() {
         # "In progress" is the coding slot — items belong in Coding.
         migrate_to["$opt"]="Coding"
       else
-        # Move items to the nearest preceding required option; fall back to Backlog.
-        target_name="${REQUIRED_STATUSES[0]}"
-        for (( j = i - 1; j >= 0; j-- )); do
-          if [[ -n "${req_set[${opt_names[$j]}]:-}" ]]; then
-            target_name="${opt_names[$j]}"; break
+        # Target is the effective status of the immediately preceding option.
+        # Required options resolve to themselves; deleted options propagate their
+        # own target, so chains like [Planning, In progress, In Review, Ready to deploy]
+        # correctly route everything after In progress to Coding rather than Planning.
+        if (( i > 0 )); then
+          local prev="${opt_names[$((i-1))]}"
+          if [[ -n "${req_set[$prev]:-}" ]]; then
+            target_name="$prev"
+          elif [[ -n "${migrate_to[$prev]:-}" ]]; then
+            target_name="${migrate_to[$prev]}"
+          else
+            target_name="${REQUIRED_STATUSES[0]}"
           fi
-        done
+        else
+          target_name="${REQUIRED_STATUSES[0]}"
+        fi
         migrate_to["$opt"]="$target_name"
       fi
 
       [[ "$opt" =~ ^(In\ Review|Reviewing\ .+)$ ]] && is_review["$opt"]=1
+    done
+
+    # Log the computed deletions so dry-run output is self-explanatory.
+    for opt in "${opt_names[@]}"; do
+      [[ -n "${migrate_to[$opt]:-}" ]] || continue
+      local tag=""
+      [[ -n "${is_review[$opt]:-}" ]] && tag=" (+ to-review label on linked issues)"
+      info "  Deleting '$opt' → items move to '${migrate_to[$opt]}'$tag"
     done
 
     # Scan items: apply to-review labels; record all items that need migration.
