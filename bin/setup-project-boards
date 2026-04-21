@@ -253,20 +253,20 @@ main() {
       [[ "$opt" =~ ^(In\ Review|Reviewing\ .+)$ ]] && is_review["$opt"]=1
     done
 
-    # Log the computed deletions so dry-run output is self-explanatory.
-    for opt in "${opt_names[@]}"; do
-      [[ -n "${migrate_to[$opt]:-}" ]] || continue
-      local tag=""
-      [[ -n "${is_review[$opt]:-}" ]] && tag=" (+ to-review label on linked issues)"
-      info "  Deleting '$opt' → items move to '${migrate_to[$opt]}'$tag"
-    done
-
     # Log required options that don't yet exist and will be created.
     local found
     for s in "${REQUIRED_STATUSES[@]}"; do
       found=0
       for o in "${opt_names[@]}"; do [[ "$o" == "$s" ]] && { found=1; break; }; done
       (( found )) || info "  Creating '$s'"
+    done
+
+    # Log the computed deletions so dry-run output is self-explanatory.
+    for opt in "${opt_names[@]}"; do
+      [[ -n "${migrate_to[$opt]:-}" ]] || continue
+      local tag=""
+      [[ -n "${is_review[$opt]:-}" ]] && tag=" (+ to-review label on linked issues)"
+      info "  Deleting '$opt' → items move to '${migrate_to[$opt]}'$tag"
     done
 
     # Scan items: apply to-review labels; record all items that need migration.
