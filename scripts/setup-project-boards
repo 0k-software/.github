@@ -100,12 +100,12 @@ list_projects() {
   local cursor="" result has_next
   while true; do
     result=$(gql_query "$(jq -n --arg org "$ORG" --arg cursor "$cursor" '{
-      query: "query($org:String!,$cursor:String){ organization(login:$org){ projectsV2(first:50,after:$cursor){ nodes{id title} pageInfo{hasNextPage endCursor} } } }",
+      query: "query($org:String!,$cursor:String){ organization(login:$org){ projectsV2(first:50,after:$cursor){ nodes{id title closed} pageInfo{hasNextPage endCursor} } } }",
       variables: { org: $org, cursor: (if $cursor == "" then null else $cursor end) }
     }')")
 
     jq -r '.data.organization.projectsV2.nodes[]
-           | select(.title | test("Roadmap"; "i") | not) | .id' <<< "$result"
+           | select(.closed == false and (.title | test("Roadmap"; "i") | not)) | .id' <<< "$result"
 
     has_next=$(jq -r '.data.organization.projectsV2.pageInfo.hasNextPage' <<< "$result")
     [[ "$has_next" == true ]] || break
