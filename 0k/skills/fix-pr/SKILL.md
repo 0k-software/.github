@@ -275,19 +275,27 @@ what to implement).
    ```
 3. **Discard** every thread where `isResolved` is `true`. Keep only unresolved
    threads.
-4. For each remaining thread, check whether **any** comment (using its
-   `databaseId` — not the opaque GraphQL `id`) has a 👀 (`eyes`) reaction from
-   the authenticated user:
+4. For each remaining thread, iterate over **every** comment `databaseId` in
+   that thread and check whether any of them has a 👀 (`eyes`) reaction from
+   the authenticated user. Check all comments — not just the first — because
+   any comment in the thread may have been marked in a previous run:
 
    ```
    viewer="$(gh api user --jq .login)"
-   gh api --paginate "repos/{owner}/{repo}/pulls/comments/{databaseId}/reactions" \
-     --jq --arg viewer "$viewer" '[.[] | select(.content == "eyes" and .user.login == $viewer)]'
+   already_marked=false
+   for databaseId in {all databaseIds from this thread's comments}; do
+     has_eyes="$(gh api --paginate "repos/{owner}/{repo}/pulls/comments/${databaseId}/reactions" \
+       --jq --arg viewer "$viewer" 'any(.[]; .content == "eyes" and .user.login == $viewer)')"
+     if [ "$has_eyes" = "true" ]; then
+       already_marked=true
+       break
+     fi
+   done
    ```
 
-   Threads where any comment is already marked with 👀 have been addressed in a
-   previous run. Keep them as **context** (they may inform code changes) but do
-   **not** re-classify, re-implement, or reply to them again.
+   If `already_marked=true`, the thread has been addressed in a previous run.
+   Keep it as **context** (it may inform code changes) but do **not**
+   re-classify, re-implement, or reply to it again.
 
    **Important:** All REST API calls under `pulls/comments/` expect the numeric
    `databaseId` from the GraphQL response, not the opaque `id`.
