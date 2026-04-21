@@ -33,7 +33,7 @@ WHEN receiving code review feedback:
 
 **NEVER:**
 
-- "You're absolutely right!" (explicit CLAUDE.md violation)
+- "You're absolutely right!" (overly affirming; verify first)
 - "Great point!" / "Excellent feedback!" (performative)
 - "Let me implement that now" (before verification)
 
