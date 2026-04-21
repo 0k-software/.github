@@ -111,9 +111,9 @@ the `/0k:commit` routing requirement). Everything else stays.
 
 - **A1 — Gather review comments**: GraphQL query for all review threads with
   `isResolved`; discard resolved threads; idempotency check — skip any thread
-  where **any** comment has a ✅ (`white_check_mark`) reaction from the
-  authenticated viewer (check all comments, not just the first); last comment
-  in thread takes precedence
+  where **any** comment has a 👀 (`eyes`) reaction from the authenticated
+  viewer (check all comments, not just the first); last comment in thread takes
+  precedence
 - **A2 — Classify and group**: Question vs Change request taxonomy; one commit
   per thread by default, only merge truly inseparable changes
 - **A3 — Handle questions**: post reply with attribution footer, then stop and
@@ -125,7 +125,7 @@ the `/0k:commit` routing requirement). Everything else stays.
 - **Commit link construction**: changes view URL (`/pull/{pr}/changes/{sha}`),
   SHA-256 file anchor (`printf '%s' "{path}" | sha256sum | awk '{print $1}'`),
   `R{line}`/`L{line}` side encoding, formatted as ``[`{short_sha}`]({url})``
-- **A5 — Mark as addressed**: react ✅ on **all** comments of every addressed
+- **A5 — Mark as addressed**: react 👀 on **all** comments of every addressed
   thread (not just first comment)
 - **A6 — Report**: summary of questions answered, changes addressed, skips
 
@@ -162,7 +162,7 @@ plus the shared AI Attribution Footer section). Update the frontmatter:
 name: fix-issue
 description:
   Address unresolved comments on a GitHub issue — update description, reply to
-  feedback, mark addressed with ✅
+  feedback, mark addressed with 👀
 argument-hint: "{ issue number or URL }"
 ---
 ```

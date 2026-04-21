@@ -50,16 +50,16 @@ Follow this part when the target is a PR.
 3. **Discard** every thread where `isResolved` is `true`. Keep only unresolved
    threads.
 4. For each remaining thread, check whether its **first comment** (using its
-   `databaseId` — not the opaque GraphQL `id`) has a ✅ (`white_check_mark`)
-   reaction from the authenticated user:
+   `databaseId` — not the opaque GraphQL `id`) has a 👀 (`eyes`) reaction from
+   the authenticated user:
 
    ```
    viewer="$(gh api user --jq .login)"
    gh api --paginate "repos/{owner}/{repo}/pulls/comments/{databaseId}/reactions" \
-     --jq --arg viewer "$viewer" '[.[] | select(.content == "white_check_mark" and .user.login == $viewer)]'
+     --jq --arg viewer "$viewer" '[.[] | select(.content == "eyes" and .user.login == $viewer)]'
    ```
 
-   Threads already marked with ✅ have been addressed in a previous run. Keep
+   Threads already marked with 👀 have been addressed in a previous run. Keep
    them as **context** (they may inform code changes) but do **not**
    re-classify, re-implement, or reply to them again.
 
@@ -212,14 +212,14 @@ thread's first comment when constructing the link.
 
 ### A5 — Mark threads as addressed
 
-After posting all replies and pushing, react with ✅ (`white_check_mark`) to
-the **first comment** of every thread that was addressed in this run (both
-questions and change requests). This prevents future runs from re-addressing
-the same feedback.
+After posting all replies and pushing, react with 👀 (`eyes`) to the **first
+comment** of every thread that was addressed in this run (both questions and
+change requests). This prevents future runs from re-addressing the same
+feedback.
 
 ```
 gh api "repos/{owner}/{repo}/pulls/comments/{databaseId}/reactions" \
-  -X POST -f content="white_check_mark"
+  -X POST -f content="eyes"
 ```
 
 ### A6 — Report
@@ -250,18 +250,17 @@ Follow this part when the target is a GitHub issue.
    gh api "repos/{owner}/{repo}/issues/{number}/comments" --paginate \
      --jq '.[] | {id, author: .user.login, body}'
    ```
-   For each comment, fetch its reactions to check for the ✅
-   (`white_check_mark`) marker:
+   For each comment, fetch its reactions to check for the 👀 (`eyes`) marker:
    ```
    viewer="$(gh api user --jq .login)"
    gh api "repos/{owner}/{repo}/issues/comments/{comment-id}/reactions" \
      --jq --arg viewer "$viewer" \
-     '[.[] | select(.content == "white_check_mark" and .user.login == $viewer)]'
+     '[.[] | select(.content == "eyes" and .user.login == $viewer)]'
    ```
-4. **Skip already-addressed comments.** Any comment that has a ✅
-   (`white_check_mark`) reaction from the authenticated user has already been
-   handled in a previous run. Keep these comments as **context** but do **not**
-   re-address them or reply to them again.
+4. **Skip already-addressed comments.** Any comment that has a 👀 (`eyes`)
+   reaction from the authenticated user has already been handled in a previous
+   run. Keep these comments as **context** but do **not** re-address them or
+   reply to them again.
 
 ### B2 — Analyse feedback
 
@@ -306,12 +305,12 @@ gh issue comment {number} --repo {owner}/{repo} --body-file /tmp/issue-comment.m
 
 ### B5 — Mark comments as addressed
 
-After posting the reply, react with ✅ (`white_check_mark`) to every comment
-that was addressed in this run:
+After posting the reply, react with 👀 (`eyes`) to every comment that was
+addressed in this run:
 
 ```
 gh api "repos/{owner}/{repo}/issues/comments/{comment-id}/reactions" \
-  -f content="white_check_mark"
+  -f content="eyes"
 ```
 
 ### B6 — Report
