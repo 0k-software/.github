@@ -118,14 +118,21 @@ while IFS= read -r PROJECT; do
   PRIORITY_FIELD=$(echo "$PROJECT" | jq 'first(.fields.nodes[] | select(.name == "Priority")) // null')
 
   if [[ "$PRIORITY_FIELD" == "null" ]]; then
-    echo "  SKIP  $TITLE (no Priority field)"
-    continue
+    if [[ "$DRY_RUN" == "false" ]]; then
+      echo "  SKIP  $TITLE (no Priority field)"
+      continue
+    fi
+    # dry-run: Phase 1 would have created the field; proceed with empty option IDs
+    FIELD_ID=""
+    OPT_LOW=""
+    OPT_MED=""
+    OPT_HIGH=""
+  else
+    FIELD_ID=$(echo "$PRIORITY_FIELD" | jq -r '.id')
+    OPT_LOW=$(echo "$PRIORITY_FIELD" | jq -r 'first(.options[] | select(.name == "p-low") | .id) // ""')
+    OPT_MED=$(echo "$PRIORITY_FIELD" | jq -r 'first(.options[] | select(.name == "p-medium") | .id) // ""')
+    OPT_HIGH=$(echo "$PRIORITY_FIELD" | jq -r 'first(.options[] | select(.name == "p-high") | .id) // ""')
   fi
-
-  FIELD_ID=$(echo "$PRIORITY_FIELD" | jq -r '.id')
-  OPT_LOW=$(echo "$PRIORITY_FIELD" | jq -r 'first(.options[] | select(.name == "p-low") | .id) // ""')
-  OPT_MED=$(echo "$PRIORITY_FIELD" | jq -r 'first(.options[] | select(.name == "p-medium") | .id) // ""')
-  OPT_HIGH=$(echo "$PRIORITY_FIELD" | jq -r 'first(.options[] | select(.name == "p-high") | .id) // ""')
 
   HAS_NEXT="true"
   CURSOR=""
@@ -157,7 +164,7 @@ while IFS= read -r PROJECT; do
         fi
       done
 
-      [[ -z "$TARGET_OPT" ]] && continue
+      [[ -z "$TARGET_NAME" ]] && continue  # no priority label on this item
       [[ "$CURRENT" == "$TARGET_NAME" ]] && continue  # already correct
 
       echo "  SET   item $ITEM_ID → $TARGET_NAME ($TITLE)"
