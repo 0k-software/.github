@@ -179,3 +179,31 @@ while IFS= read -r PROJECT; do
     done < <(echo "$RESULT" | jq -c '.data.node.items.nodes // [] | .[]')
   done
 done < <(echo "$PROJECTS" | jq -c '.[]')
+
+# ── Phase 3: Remove priority labels from all repos ────────────────────────────
+echo ""
+echo "── Phase 3: Remove priority labels from all repos"
+
+while IFS= read -r REPO; do
+  for LABEL in priority-low priority-medium priority-high; do
+    if [[ "$DRY_RUN" == "true" ]]; then
+      if gh api "repos/$ORG/$REPO/labels/$LABEL" > /dev/null 2>&1; then
+        echo "  DEL   $ORG/$REPO : $LABEL"
+        LABELS_REMOVED=$((LABELS_REMOVED + 1))
+      fi
+    else
+      if gh api -X DELETE "repos/$ORG/$REPO/labels/$LABEL" > /dev/null 2>&1; then
+        echo "  DEL   $ORG/$REPO : $LABEL"
+        LABELS_REMOVED=$((LABELS_REMOVED + 1))
+      fi
+    fi
+  done
+done < <(gh api --paginate "orgs/$ORG/repos" --jq '.[].name')
+
+# ── Summary ───────────────────────────────────────────────────────────────────
+echo ""
+echo "── Summary"
+printf "  Projects with Priority field added : %d\n" "$PROJECTS_CREATED"
+printf "  Project items backfilled           : %d\n" "$ITEMS_BACKFILLED"
+printf "  Labels removed                     : %d\n" "$LABELS_REMOVED"
+[[ "$DRY_RUN" == "true" ]] && echo "  (dry run — no changes made)"
