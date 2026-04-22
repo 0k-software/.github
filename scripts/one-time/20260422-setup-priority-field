@@ -184,6 +184,22 @@ done < <(echo "$PROJECTS" | jq -c '.[]')
 echo ""
 echo "── Phase 3: Remove priority labels from all repos"
 
+# Org-level default labels (applied to every new repo)
+for LABEL in priority-low priority-medium priority-high; do
+  if [[ "$DRY_RUN" == "true" ]]; then
+    if gh api "orgs/$ORG/labels/$LABEL" > /dev/null 2>&1; then
+      echo "  DEL   org:$ORG : $LABEL (org default)"
+      LABELS_REMOVED=$((LABELS_REMOVED + 1))
+    fi
+  else
+    if gh api -X DELETE "orgs/$ORG/labels/$LABEL" > /dev/null 2>&1; then
+      echo "  DEL   org:$ORG : $LABEL (org default)"
+      LABELS_REMOVED=$((LABELS_REMOVED + 1))
+    fi
+  fi
+done
+
+# Per-repo labels
 while IFS= read -r REPO; do
   for LABEL in priority-low priority-medium priority-high; do
     if [[ "$DRY_RUN" == "true" ]]; then
