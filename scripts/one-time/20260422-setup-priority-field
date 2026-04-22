@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# One-time migration: replace priority-{low,medium,high} labels with a
+# Priority single-select field on every open GitHub Project in the org.
+set -euo pipefail
+
+ORG="0k-software"
+DRY_RUN=true
+
+for arg in "$@"; do
+  case "$arg" in
+    --apply)   DRY_RUN=false ;;
+    --dry-run) DRY_RUN=true  ;;
+    *)
+      echo "Unknown flag: $arg"
+      echo "Usage: $(basename "$0") [--dry-run|--apply]"
+      exit 1
+      ;;
+  esac
+done
+
+[[ "$DRY_RUN" == "true" ]] && echo "==> DRY RUN — pass --apply to execute mutations"
+
+PROJECTS_CREATED=0
+ITEMS_BACKFILLED=0
+LABELS_REMOVED=0
+
+graphql() { gh api graphql "$@"; }
+
+OPEN_PROJECTS_QUERY='
+  query($org: String!) {
+    organization(login: $org) {
+      projectsV2(first: 50, query: "is:open") {
+        nodes {
+          id
+          title
+          fields(first: 50) {
+            nodes {
+              ... on ProjectV2SingleSelectField { id name options { id name } }
+            }
+          }
+        }
+      }
+    }
+  }'
+
+# ── Phase 1: Add Priority field to all open projects ──────────────────────────
+echo ""
+echo "── Phase 1: Add Priority field to open projects"
+
+PROJECTS=$(graphql -f query="$OPEN_PROJECTS_QUERY" -f org="$ORG" \
+  --jq '.data.organization.projectsV2.nodes')
+
+while IFS= read -r PROJECT; do
+  ID=$(echo "$PROJECT" | jq -r '.id')
+  TITLE=$(echo "$PROJECT" | jq -r '.title')
+  HAS_FIELD=$(echo "$PROJECT" | jq '[.fields.nodes[] | select(.name == "Priority")] | length > 0')
+
+  if [[ "$HAS_FIELD" == "true" ]]; then
+    echo "  SKIP  $TITLE (Priority field already present)"
+    continue
+  fi
+
+  echo "  ADD   $TITLE"
+  if [[ "$DRY_RUN" == "false" ]]; then
+    graphql -f query='
+      mutation($pid: ID!) {
+        createProjectV2Field(input: {
+          projectId: $pid
+          dataType: SINGLE_SELECT
+          name: "Priority"
+          singleSelectOptions: [
+            {name: "p-low",    color: BLUE,   description: ""}
+            {name: "p-medium", color: YELLOW, description: ""}
+            {name: "p-high",   color: RED,    description: ""}
+          ]
+        }) {
+          projectV2Field { ... on ProjectV2SingleSelectField { id } }
+        }
+      }' \
+      -f pid="$ID" > /dev/null
+  fi
+  PROJECTS_CREATED=$((PROJECTS_CREATED + 1))
+done < <(echo "$PROJECTS" | jq -c '.[]')
