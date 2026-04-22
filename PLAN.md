@@ -19,7 +19,7 @@ for all API calls, idempotent throughout.
 ## Steps
 
 - [x] [Step 1: Script scaffold + Phase 1 (add Priority field to all projects)](#step-1-script-scaffold--phase-1-add-priority-field-to-all-projects)
-- [ ] [Step 2: Phase 2 — backfill project items from priority labels](#step-2-phase-2--backfill-project-items-from-priority-labels)
+- [x] [Step 2: Phase 2 — backfill project items from priority labels](#step-2-phase-2--backfill-project-items-from-priority-labels)
 - [ ] [Step 3: Phase 3 — remove priority labels from all repos](#step-3-phase-3--remove-priority-labels-from-all-repos)
 - [ ] [Step 4: Run dry-run and review output](#step-4-run-dry-run-and-review-output)
 - [ ] [Step 5: Apply and verify](#step-5-apply-and-verify)

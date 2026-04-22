@@ -81,3 +81,101 @@ while IFS= read -r PROJECT; do
   fi
   PROJECTS_CREATED=$((PROJECTS_CREATED + 1))
 done < <(echo "$PROJECTS" | jq -c '.[]')
+
+# ── Phase 2: Backfill Priority field values from priority labels ───────────────
+echo ""
+echo "── Phase 2: Backfill Priority field from labels"
+
+ITEMS_QUERY='
+  query($pid: ID!, $cursor: String) {
+    node(id: $pid) {
+      ... on ProjectV2 {
+        items(first: 100, after: $cursor) {
+          pageInfo { hasNextPage endCursor }
+          nodes {
+            id
+            fieldValueByName(name: "Priority") {
+              ... on ProjectV2ItemFieldSingleSelectValue { name }
+            }
+            content {
+              ... on Issue {
+                labels(first: 10) { nodes { name } }
+              }
+            }
+          }
+        }
+      }
+    }
+  }'
+
+# Re-query so Phase 2 sees fields created by Phase 1
+PROJECTS=$(graphql -f query="$OPEN_PROJECTS_QUERY" -f org="$ORG" \
+  --jq '.data.organization.projectsV2.nodes')
+
+while IFS= read -r PROJECT; do
+  PID=$(echo "$PROJECT" | jq -r '.id')
+  TITLE=$(echo "$PROJECT" | jq -r '.title')
+  PRIORITY_FIELD=$(echo "$PROJECT" | jq 'first(.fields.nodes[] | select(.name == "Priority")) // null')
+
+  if [[ "$PRIORITY_FIELD" == "null" ]]; then
+    echo "  SKIP  $TITLE (no Priority field)"
+    continue
+  fi
+
+  FIELD_ID=$(echo "$PRIORITY_FIELD" | jq -r '.id')
+  OPT_LOW=$(echo "$PRIORITY_FIELD" | jq -r 'first(.options[] | select(.name == "p-low") | .id) // ""')
+  OPT_MED=$(echo "$PRIORITY_FIELD" | jq -r 'first(.options[] | select(.name == "p-medium") | .id) // ""')
+  OPT_HIGH=$(echo "$PRIORITY_FIELD" | jq -r 'first(.options[] | select(.name == "p-high") | .id) // ""')
+
+  HAS_NEXT="true"
+  CURSOR=""
+
+  while [[ "$HAS_NEXT" == "true" ]]; do
+    ARGS=(-f query="$ITEMS_QUERY" -f pid="$PID")
+    [[ -n "$CURSOR" ]] && ARGS+=(-f cursor="$CURSOR")
+    RESULT=$(graphql "${ARGS[@]}")
+
+    HAS_NEXT=$(echo "$RESULT" | jq -r '.data.node.items.pageInfo.hasNextPage')
+    CURSOR=$(echo "$RESULT" | jq -r '.data.node.items.pageInfo.endCursor // empty')
+
+    while IFS= read -r ITEM; do
+      ITEM_ID=$(echo "$ITEM" | jq -r '.id')
+      CURRENT=$(echo "$ITEM" | jq -r '.fieldValueByName.name // empty')
+
+      # Resolve target option from labels; high takes precedence over medium/low
+      TARGET_OPT=""
+      TARGET_NAME=""
+      for LABEL in "priority-high" "priority-medium" "priority-low"; do
+        if echo "$ITEM" | jq -e --arg l "$LABEL" \
+            '.content.labels.nodes[].name | select(. == $l)' > /dev/null 2>&1; then
+          case "$LABEL" in
+            priority-high)   TARGET_OPT="$OPT_HIGH"; TARGET_NAME="p-high"   ;;
+            priority-medium) TARGET_OPT="$OPT_MED";  TARGET_NAME="p-medium" ;;
+            priority-low)    TARGET_OPT="$OPT_LOW";  TARGET_NAME="p-low"    ;;
+          esac
+          break
+        fi
+      done
+
+      [[ -z "$TARGET_OPT" ]] && continue
+      [[ "$CURRENT" == "$TARGET_NAME" ]] && continue  # already correct
+
+      echo "  SET   item $ITEM_ID → $TARGET_NAME ($TITLE)"
+      if [[ "$DRY_RUN" == "false" ]]; then
+        graphql -f query='
+          mutation($pid: ID!, $iid: ID!, $fid: ID!, $oid: String!) {
+            updateProjectV2ItemFieldValue(input: {
+              projectId: $pid
+              itemId: $iid
+              fieldId: $fid
+              value: { singleSelectOptionId: $oid }
+            }) {
+              projectV2Item { id }
+            }
+          }' \
+          -f pid="$PID" -f iid="$ITEM_ID" -f fid="$FIELD_ID" -f oid="$TARGET_OPT" > /dev/null
+      fi
+      ITEMS_BACKFILLED=$((ITEMS_BACKFILLED + 1))
+    done < <(echo "$RESULT" | jq -c '.data.node.items.nodes // [] | .[]')
+  done
+done < <(echo "$PROJECTS" | jq -c '.[]')
