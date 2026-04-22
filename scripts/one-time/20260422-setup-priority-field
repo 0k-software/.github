@@ -5,6 +5,8 @@ set -euo pipefail
 
 ORG="0k-software"
 DRY_RUN=true
+TOKEN="${GITHUB_TOKEN:?GITHUB_TOKEN must be set}"
+API="https://api.github.com"
 
 for arg in "$@"; do
   case "$arg" in
@@ -24,7 +26,96 @@ PROJECTS_CREATED=0
 ITEMS_BACKFILLED=0
 LABELS_REMOVED=0
 
-graphql() { gh api graphql "$@"; }
+# GraphQL helper: accepts -f key=value pairs and an optional --jq filter.
+# All variable values are passed as JSON strings (matching gh api graphql -f behaviour).
+graphql() {
+  local query=""
+  local jq_filter=""
+  local -a kv_keys=()
+  local -a kv_vals=()
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -f)
+        local k="${2%%=*}"
+        local v="${2#*=}"
+        if [[ "$k" == "query" ]]; then
+          query="$v"
+        else
+          kv_keys+=("$k")
+          kv_vals+=("$v")
+        fi
+        shift 2
+        ;;
+      --jq)
+        jq_filter="$2"
+        shift 2
+        ;;
+      *)
+        shift
+        ;;
+    esac
+  done
+
+  local vars_json="{}"
+  local i=0
+  while [[ $i -lt ${#kv_keys[@]} ]]; do
+    vars_json=$(echo "$vars_json" | \
+      jq --arg k "${kv_keys[$i]}" --arg v "${kv_vals[$i]}" '. + {($k): $v}')
+    ((i++)) || true
+  done
+
+  local payload
+  payload=$(jq -n --arg q "$query" --argjson v "$vars_json" \
+    '{"query": $q, "variables": $v}')
+
+  local response
+  response=$(curl -s \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    -X POST "$API/graphql" \
+    -d "$payload")
+
+  if [[ -n "$jq_filter" ]]; then
+    echo "$response" | jq "$jq_filter"
+  else
+    echo "$response"
+  fi
+}
+
+# REST GET — returns HTTP status code; response body discarded.
+rest_status() {
+  curl -s -o /dev/null -w "%{http_code}" \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Accept: application/vnd.github+json" \
+    "$API/$1"
+}
+
+# REST DELETE — returns HTTP status code.
+rest_delete() {
+  curl -s -o /dev/null -w "%{http_code}" \
+    -X DELETE \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Accept: application/vnd.github+json" \
+    "$API/$1"
+}
+
+# Paginate org repos; prints one repo name per line.
+list_repos() {
+  local page=1
+  while true; do
+    local result
+    result=$(curl -s \
+      -H "Authorization: Bearer $TOKEN" \
+      -H "Accept: application/vnd.github+json" \
+      "$API/orgs/$ORG/repos?per_page=100&page=$page")
+    echo "$result" | jq -r '.[].name'
+    local count
+    count=$(echo "$result" | jq 'length')
+    [[ "$count" -lt 100 ]] && break
+    ((page++)) || true
+  done
+}
 
 OPEN_PROJECTS_QUERY='
   query($org: String!) {
@@ -194,12 +285,12 @@ echo "── Phase 3: Remove priority labels from all repos"
 # Org-level default labels (applied to every new repo)
 for LABEL in priority-low priority-medium priority-high; do
   if [[ "$DRY_RUN" == "true" ]]; then
-    if gh api "orgs/$ORG/labels/$LABEL" > /dev/null 2>&1; then
+    if [[ "$(rest_status "orgs/$ORG/labels/$LABEL")" == "200" ]]; then
       echo "  DEL   org:$ORG : $LABEL (org default)"
       LABELS_REMOVED=$((LABELS_REMOVED + 1))
     fi
   else
-    if gh api -X DELETE "orgs/$ORG/labels/$LABEL" > /dev/null 2>&1; then
+    if [[ "$(rest_delete "orgs/$ORG/labels/$LABEL")" == "204" ]]; then
       echo "  DEL   org:$ORG : $LABEL (org default)"
       LABELS_REMOVED=$((LABELS_REMOVED + 1))
     fi
@@ -210,18 +301,18 @@ done
 while IFS= read -r REPO; do
   for LABEL in priority-low priority-medium priority-high; do
     if [[ "$DRY_RUN" == "true" ]]; then
-      if gh api "repos/$ORG/$REPO/labels/$LABEL" > /dev/null 2>&1; then
+      if [[ "$(rest_status "repos/$ORG/$REPO/labels/$LABEL")" == "200" ]]; then
         echo "  DEL   $ORG/$REPO : $LABEL"
         LABELS_REMOVED=$((LABELS_REMOVED + 1))
       fi
     else
-      if gh api -X DELETE "repos/$ORG/$REPO/labels/$LABEL" > /dev/null 2>&1; then
+      if [[ "$(rest_delete "repos/$ORG/$REPO/labels/$LABEL")" == "204" ]]; then
         echo "  DEL   $ORG/$REPO : $LABEL"
         LABELS_REMOVED=$((LABELS_REMOVED + 1))
       fi
     fi
   done
-done < <(gh api --paginate "orgs/$ORG/repos" --jq '.[].name')
+done < <(list_repos)
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo ""
