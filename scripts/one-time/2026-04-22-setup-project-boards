@@ -40,7 +40,7 @@ declare -A STATUS_DESCRIPTIONS=(
   [Coding]="Implementation in progress"
   [Done]="Shipped and verified"
 )
-LABEL_NAME="to-review"
+LABEL_NAME="to review"
 LABEL_COLOR="0075ca"
 LABEL_DESC="Waiting for code review"
 
