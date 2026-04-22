@@ -21,6 +21,8 @@ for all API calls, idempotent throughout.
 - [ ] [Step 1: Script scaffold + Phase 1 (add Priority field to all projects)](#step-1-script-scaffold--phase-1-add-priority-field-to-all-projects)
 - [ ] [Step 2: Phase 2 — backfill project items from priority labels](#step-2-phase-2--backfill-project-items-from-priority-labels)
 - [ ] [Step 3: Phase 3 — remove priority labels from all repos](#step-3-phase-3--remove-priority-labels-from-all-repos)
+- [ ] [Step 4: Run dry-run and review output](#step-4-run-dry-run-and-review-output)
+- [ ] [Step 5: Apply and verify](#step-5-apply-and-verify)
 
 ---
 
@@ -74,3 +76,37 @@ included since it's returned as a regular org repo.
 
 After Phase 3, print a summary: projects updated, items backfilled, labels
 removed.
+
+---
+
+## Step 4: Run dry-run and review output
+
+Run the script in dry-run mode and review the output before committing to any
+mutations:
+
+```
+scripts/one-time/20260422-setup-priority-field --dry-run
+```
+
+Check that the listed projects, items, and repos match expectations. Confirm
+the three priority labels are present in the expected repos and that the
+Priority field does not yet exist on any project.
+
+---
+
+## Step 5: Apply and verify
+
+Run the script with `--apply` to execute all three phases:
+
+```
+scripts/one-time/20260422-setup-priority-field --apply
+```
+
+Then verify on GitHub:
+
+- All open org projects have a "Priority" single-select field with options
+  `p-low`, `p-medium`, `p-high`.
+- Issues that had priority labels now have the corresponding Priority field
+  value set on their project items.
+- No `priority-low`, `priority-medium`, or `priority-high` labels remain in any
+  org repo.
