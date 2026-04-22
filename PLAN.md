@@ -33,12 +33,13 @@ Create `scripts/one-time/20260422-setup-priority-field` with:
   usage and exit 1
 - Helper `run` that prints the command in dry-run mode and executes it in apply
   mode (mirrors the pattern in `scripts/setup-project-boards`)
-- Phase 1: query all org ProjectsV2 via GraphQL
-  (`organization(login: "0k-software") { projectsV2(first: 50) { ... } }`). For
-  each project, check if a single-select field named "Priority" already exists.
-  If not, create it via `addProjectV2SingleSelectField` mutation with options
-  `p-low`, `p-medium`, `p-high` (in that order). Skip projects that already
-  have the field.
+- Phase 1: query open org ProjectsV2 via GraphQL
+  (`organization(login: "0k-software") { projectsV2(first: 50, query: "is:open") { ... } }`).
+  Closed projects are skipped entirely — `query: "is:open"` filters them out
+  server-side. For each open project, check if a single-select field named
+  "Priority" already exists. If not, create it via
+  `addProjectV2SingleSelectField` mutation with options `p-low`, `p-medium`,
+  `p-high` (in that order). Skip projects that already have the field.
 
 Also create `scripts/one-time/` directory (with a `.gitkeep` if it would
 otherwise be empty before the script is added).
