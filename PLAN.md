@@ -115,15 +115,14 @@ curl -s \
 **Create the PR** (step 7 — `gh pr create`):
 
 ```bash
-cat > /tmp/pr-body.json <<EOF
-{
-  "title": "{title}",
-  "body": "$(cat /tmp/pr-body.md | jq -Rs .)",
-  "head": "{branch}",
-  "base": "main",
-  "draft": {true|false}
-}
-EOF
+jq -n \
+  --arg title "{title}" \
+  --arg head "{branch}" \
+  --arg base "main" \
+  --argjson draft {true|false} \
+  --rawfile body /tmp/pr-body.md \
+  '{title: $title, body: $body, head: $head, base: $base, draft: $draft}' \
+  > /tmp/pr-body.json
 curl -s -X POST \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
@@ -132,8 +131,8 @@ curl -s -X POST \
 ```
 
 Note: the body file (`/tmp/pr-body.md`) is already written by the skill before
-the create step; embed it into the JSON payload using `jq -Rs .` to handle
-newlines and special characters safely.
+the create step; use `jq -n --rawfile` to build the full JSON payload so the
+body is properly escaped regardless of content.
 
 Update the skill's instructions to use these curl calls in place of the `gh`
 equivalents. Remove the `--body-file` reference since the body is now embedded
