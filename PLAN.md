@@ -14,10 +14,9 @@ the label lifecycle in `CLAUDE.md`.
 Each skill gets two label operations added: add `in progress` at its start,
 swap to `to review` at its end (both silently skip if the label doesn't exist
 in the target repo). The migration script creates the labels at the org level
-and in every existing repo, supports `--dry-run`, and falls back to `curl` when
-the `gh` CLI is unavailable (for remote Claude sessions). Label operations in
-skills use `curl` with `GITHUB_TOKEN` directly, as agreed for compatibility
-with issue #78.
+and in every existing repo, supports `--dry-run`, and uses `curl` with
+`GITHUB_TOKEN` throughout. Label operations in skills use `curl` with
+`GITHUB_TOKEN` directly, as agreed for compatibility with issue #78.
 
 ## Steps
 
@@ -41,8 +40,7 @@ The script must:
 
 - Accept a `--dry-run` flag: when present, print what would happen without
   making any API calls.
-- Auto-detect whether the `gh` CLI is available. If not, require `GITHUB_TOKEN`
-  and fall back to `curl`.
+- Require `GITHUB_TOKEN` to be set.
 
 **Structure:**
 
@@ -53,13 +51,7 @@ set -euo pipefail
 DRY_RUN=false
 for arg in "$@"; do [[ "$arg" == "--dry-run" ]] && DRY_RUN=true; done
 
-# Detect API method
-if command -v gh &>/dev/null; then
-  USE_GH=true
-else
-  USE_GH=false
-  : "${GITHUB_TOKEN:?Set GITHUB_TOKEN or install gh CLI}"
-fi
+: "${GITHUB_TOKEN:?GITHUB_TOKEN must be set}"
 ```
 
 **Create labels at org level** (print a manual-step warning on failure):
@@ -68,27 +60,21 @@ fi
 create_org_label() {
   local name="$1" color="$2" description="$3"
   if $DRY_RUN; then echo "[dry-run] org-level: '$name'"; return; fi
-  if $USE_GH; then
-    gh api /orgs/0k-software/labels -X POST \
-      -f name="$name" -f color="$color" -f description="$description" \
-      2>/dev/null \
-      || echo "⚠️  Could not create org-level label '$name' — create it manually at https://github.com/organizations/0k-software/settings/labels"
-  else
-    curl -sf -X POST \
-      -H "Authorization: Bearer $GITHUB_TOKEN" \
-      -H "Accept: application/vnd.github+json" \
-      "https://api.github.com/orgs/0k-software/labels" \
-      -d "{\"name\":\"$name\",\"color\":\"$color\",\"description\":\"$description\"}" \
-      > /dev/null \
-      || echo "⚠️  Could not create org-level label '$name' — create it manually at https://github.com/organizations/0k-software/settings/labels"
-  fi
+  curl -sf -X POST \
+    -H "Authorization: Bearer $GITHUB_TOKEN" \
+    -H "Accept: application/vnd.github+json" \
+    "https://api.github.com/orgs/0k-software/labels" \
+    -d "{\"name\":\"$name\",\"color\":\"$color\",\"description\":\"$description\"}" \
+    > /dev/null \
+    || echo "⚠️  Could not create org-level label '$name' — create it manually at https://github.com/organizations/0k-software/settings/labels"
 }
 
 create_org_label "in progress" "0075ca" "An AI assistant is actively working on this"
 create_org_label "to review"   "D93F0B" "Ready for human review"
 ```
 
-**Create labels in each repo** (`--force` / PATCH makes it idempotent):
+**Create labels in each repo** (POST then PATCH on conflict makes it
+idempotent):
 
 ```bash
 create_repo_label() {
@@ -96,34 +82,25 @@ create_repo_label() {
   local encoded_name
   encoded_name=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$name")
   if $DRY_RUN; then echo "[dry-run] $repo: '$name'"; return; fi
-  if $USE_GH; then
-    gh label create "$name" --color "$color" --description "$description" \
-      --repo "$repo" --force 2>/dev/null || true
-  else
-    curl -sf -X POST \
-      -H "Authorization: Bearer $GITHUB_TOKEN" \
-      -H "Accept: application/vnd.github+json" \
-      "https://api.github.com/repos/$repo/labels" \
-      -d "{\"name\":\"$name\",\"color\":\"$color\",\"description\":\"$description\"}" \
-      > /dev/null 2>&1 \
-    || curl -sf -X PATCH \
-      -H "Authorization: Bearer $GITHUB_TOKEN" \
-      -H "Accept: application/vnd.github+json" \
-      "https://api.github.com/repos/$repo/labels/$encoded_name" \
-      -d "{\"name\":\"$name\",\"color\":\"$color\",\"description\":\"$description\"}" \
-      > /dev/null 2>&1 || true
-  fi
-}
-
-if $USE_GH; then
-  repos=$(gh repo list 0k-software --limit 100 --json nameWithOwner --jq '.[].nameWithOwner')
-else
-  repos=$(curl -sf \
+  curl -sf -X POST \
     -H "Authorization: Bearer $GITHUB_TOKEN" \
     -H "Accept: application/vnd.github+json" \
-    "https://api.github.com/orgs/0k-software/repos?per_page=100" \
-    | python3 -c "import json,sys; [print(r['full_name']) for r in json.load(sys.stdin)]")
-fi
+    "https://api.github.com/repos/$repo/labels" \
+    -d "{\"name\":\"$name\",\"color\":\"$color\",\"description\":\"$description\"}" \
+    > /dev/null 2>&1 \
+  || curl -sf -X PATCH \
+    -H "Authorization: Bearer $GITHUB_TOKEN" \
+    -H "Accept: application/vnd.github+json" \
+    "https://api.github.com/repos/$repo/labels/$encoded_name" \
+    -d "{\"name\":\"$name\",\"color\":\"$color\",\"description\":\"$description\"}" \
+    > /dev/null 2>&1 || true
+}
+
+repos=$(curl -sf \
+  -H "Authorization: Bearer $GITHUB_TOKEN" \
+  -H "Accept: application/vnd.github+json" \
+  "https://api.github.com/orgs/0k-software/repos?per_page=100" \
+  | python3 -c "import json,sys; [print(r['full_name']) for r in json.load(sys.stdin)]")
 
 while IFS= read -r repo; do
   echo "→ $repo"
