@@ -10,6 +10,11 @@ private companion repo) mints a GitHub App token and runs the action, which
 evaluates 6 rules per open issue, applies auto-fixes where possible, posts
 sticky comments listing violations/fixes, and toggles `clean`/`dirty` labels.
 
+This first PR implements **Rule 1 end-to-end**: project membership count with
+Triage auto-remove. It establishes the shared infrastructure (scaffold,
+logging, GraphQL helpers, comment/label state machines) that subsequent rules
+build on.
+
 ## Approach
 
 JavaScript composite action (Node 20, TypeScript, `@octokit/graphql`,
@@ -22,16 +27,10 @@ private repo `0k-software/.github-private` to keep workflow logs private.
 
 - [ ] [Step 1: Scaffold `issue-hygiene/` action directory](#step-1-scaffold-issue-hygiene-action-directory)
 - [ ] [Step 2: Implement `safeLog` and privacy-safe detail type](#step-2-implement-safelog-and-privacy-safe-detail-type)
-- [ ] [Step 3: Implement GraphQL helpers with bounded retry](#step-3-implement-graphql-helpers-with-bounded-retry)
-- [ ] [Step 4: Implement template parser](#step-4-implement-template-parser)
-- [ ] [Step 5: Implement rules 1–6 as pure functions with unit tests](#step-5-implement-rules-16-as-pure-functions-with-unit-tests)
-- [ ] [Step 6: Implement sticky-comment and label state machines with unit tests](#step-6-implement-sticky-comment-and-label-state-machines-with-unit-tests)
-- [ ] [Step 7: Implement mutation orchestration and step-summary aggregation](#step-7-implement-mutation-orchestration-and-step-summary-aggregation)
-- [ ] [Step 8: Build `dist/` with ncc and wire CI freshness check](#step-8-build-dist-with-ncc-and-wire-ci-freshness-check)
-- [ ] [Step 9: Write docs — action README and update repo README](#step-9-write-docs--action-readme-and-update-repo-readme)
-- [ ] [Step 10: One-off script to create `clean`/`dirty` labels org-wide](#step-10-one-off-script-to-create-cleandirty-labels-org-wide)
-- [ ] [Step 11: Create `.github-private` repo and cron workflow](#step-11-create-github-private-repo-and-cron-workflow)
-- [ ] [Step 12: Org-admin setup, smoke test, and tag `v1`](#step-12-org-admin-setup-smoke-test-and-tag-v1)
+- [ ] [Step 3: Implement GraphQL org-project discovery with bounded retry](#step-3-implement-graphql-org-project-discovery-with-bounded-retry)
+- [ ] [Step 4: Implement Rule 1 and primary-project tie-breaker as pure functions with unit tests](#step-4-implement-rule-1-and-primary-project-tie-breaker-as-pure-functions-with-unit-tests)
+- [ ] [Step 5: Implement sticky-comment and label state machines with unit tests](#step-5-implement-sticky-comment-and-label-state-machines-with-unit-tests)
+- [ ] [Step 6: Wire Rule 1 into orchestration, build `dist/`, and verify CI freshness check](#step-6-wire-rule-1-into-orchestration-build-dist-and-verify-ci-freshness-check)
 
 ---
 
@@ -56,10 +55,9 @@ Create the skeleton under `issue-hygiene/` (sibling to
   `no-console: error` rule (enforces `safeLog` usage).
 - `dist/index.js` — initial compiled output (run `npm run build` and commit).
 
-The CI workflow (`check-skill-templates.yml` is already in place; add a new
-`.github/workflows/issue-hygiene-ci.yml`) that on pull requests touching
-`issue-hygiene/**`: installs deps, runs `npm run lint`, `npm test`,
-`npm run build`, and then `git diff --exit-code dist/` to enforce `dist/`
+Add `.github/workflows/issue-hygiene-ci.yml`: on pull requests touching
+`issue-hygiene/**`, installs deps, runs `npm run lint`, `npm test`,
+`npm run build`, then `git diff --exit-code dist/` to enforce `dist/`
 freshness.
 
 ---
@@ -104,7 +102,7 @@ verifying the type constraints compile and the output format.
 
 ---
 
-## Step 3: Implement GraphQL helpers with bounded retry
+## Step 3: Implement GraphQL org-project discovery with bounded retry
 
 In `src/graphql.ts`, implement:
 
@@ -125,44 +123,18 @@ repo name (parsed from Triage-project title regex
 `^[^\s]+ \[(?<repo>[^\]]+)\] Triage$`). Also returns the raw project list for
 the Roadmap tie-breaker.
 
-**`queryRepoIssues(octokit, owner, repo)`** — paginated GraphQL fetching all
-open issues (filter `__typename == 'Issue'`, `state == 'OPEN'`). Per issue:
-`number`, `title` (never logged), `body`, `issueType { name }`,
-`assignees { totalCount }`, `labels { nodes { name } }`,
-`projectItems { nodes { project { id title }, fieldValues { … Status, Priority } } }`,
-`comments(last: 100) { nodes { body, minimizedReason, viewerDidAuthor } }`.
+`queryRepoIssues` is **not** implemented here — it is added in the follow-up
+that introduces Rule 2 (template heading compliance), since that rule requires
+the full issue body and project status fields.
 
 Unit tests: retry logic (mock 429 → success on 3rd attempt; exhaustion throws),
 project-map building from fixture data, Triage-title regex parsing.
 
 ---
 
-## Step 4: Implement template parser
+## Step 4: Implement Rule 1 and primary-project tie-breaker as pure functions with unit tests
 
-In `src/template-parser.ts`:
-
-**`parseTemplates(octokit, owner, repo)`** — fetches the 6 YAML files from
-`0k-software/.github/.github/ISSUE_TEMPLATE/` via the GitHub contents API (once
-per run, cached). For each template, reads `name` (→ issue type name), and for
-each field where `type ∈ {textarea, input, dropdown, checkboxes}`, extracts:
-
-- `label` — the heading text to match in the issue body
-- `defaultValue` — `attributes.value ?? attributes.description ?? ''`
-
-Returns `Map<string, RequiredHeading[]>` keyed by type name.
-
-**Heading match helper:** `hasHeading(body: string, label: string): boolean` —
-returns true if the body contains a line matching `/^(##|###)\s+<label>\s*$/m`.
-Accepts both `##` and `###` (Rule 2 accepts both levels).
-
-Unit tests: parse fixture YAML files from `test/fixtures/`, verify heading
-extraction and default-value fallback logic.
-
----
-
-## Step 5: Implement rules 1–6 as pure functions with unit tests
-
-In `src/rules.ts`, each rule is a pure function:
+In `src/rules.ts`:
 
 ```ts
 type RuleResult = { violations: string[]; autoFixes: AutoFix[] };
@@ -186,38 +158,23 @@ type AutoFix =
 - Auto-fix: if cap exceeded AND one project is Triage → return
   `remove-from-project` fix.
 - Flag-only fallback: if still over cap after potential Triage removal, return
-  violation message.
+  violation message:
+  `"This issue is in multiple projects: _A_, _B_. Remove it from all but one (Pitches may be in up to two projects)."`
 
 **`resolvePrimaryProject(issue, orgProjects, repoName)`** — deterministic
-tie-breaker. Pitches: Roadmap regex wins → repo-prefixed non-Triage
-alphabetically → Triage → first alphabetically. Non-Pitches: repo-prefixed
-non-Triage alphabetically → Triage → first alphabetically.
+tie-breaker after Rule 1 has run. Pitches: Roadmap regex
+(`^[^\s]+ \[<repo>\] Roadmap$`) wins → repo-prefixed non-Triage alphabetically
+→ Triage → first alphabetically. Non-Pitches: repo-prefixed non-Triage
+alphabetically → Triage → first alphabetically.
 
-**`evaluateRule2(issue, primaryProject, templateHeadings)`** — heading
-compliance. Applies when status ∈ `{Refining, Ready, Planning, Coding, Done}`
-and issue has a type. Returns `insert-headings` auto-fix for each missing
-heading.
-
-**`evaluateRule3(issue)`** — type is set. Violation:
-`"No issue type set. Pick one of: Pitch, Feature, Task, Bug, Enhancement."`
-
-**`evaluateRule4(issue, triageProject)`** — project membership. Auto-fix:
-`add-to-project` with Triage. If no Triage project found, flag-only.
-
-**`evaluateRule5(issue, primaryProject)`** — priority set when status ∈
-`{Ready, Planning, Coding, Done}`. Checks the project item's `Priority`
-single-select field value ∈ `{p-low, p-medium, p-high}`.
-
-**`evaluateRule6(issue, primaryProject)`** — assignee when status ∈
-`{Planning, Coding, Done}`. Checks `assignees.totalCount >= 1`.
-
-Unit tests: every rule function, every auto-fix path, the
-`resolvePrimaryProject` tie-breaker (Pitch Roadmap wins, non-Pitch non-Triage
-wins, Triage fallback), boundary conditions (no projects, null type, etc.).
+Unit tests: Rule 1 cap (non-Pitch, Pitch), auto-fix path (Triage present),
+flag-only fallback (non-Triage × non-Triage), `resolvePrimaryProject`
+tie-breaker (Pitch Roadmap wins, non-Pitch non-Triage wins, Triage fallback,
+no-projects case).
 
 ---
 
-## Step 6: Implement sticky-comment and label state machines with unit tests
+## Step 5: Implement sticky-comment and label state machines with unit tests
 
 In `src/comment-lifecycle.ts` and `src/label-lifecycle.ts`:
 
@@ -231,8 +188,8 @@ function computeCommentActions(
 ): CommentAction[];
 ```
 
-Returns a list of actions: `minimize(id, 'OUTDATED' | 'RESOLVED')` and/or
-`create(body)`. Implements the state-machine table from the spec:
+Returns `minimize(id, 'OUTDATED' | 'RESOLVED')` and/or `create(body)`.
+State-machine table:
 
 - violations OR auto-fixes → minimize all visible as `OUTDATED`, post new
   comment
@@ -242,9 +199,9 @@ Returns a list of actions: `minimize(id, 'OUTDATED' | 'RESOLVED')` and/or
 
 Bot comments identified by `<!-- issue-hygiene-bot -->` marker in body.
 
-**Comment body builder (`buildCommentBody`):** Assembles the markdown comment
-with optional "Please fix:" and "Auto-fixed in this run:" sections, plus the
-footer line.
+**`buildCommentBody(violations, autoFixDescriptions)`** — assembles the
+markdown comment with optional "Please fix:" and "Auto-fixed in this run:"
+sections plus footer.
 
 **Label lifecycle (`computeLabelActions`):**
 
@@ -256,153 +213,51 @@ function computeLabelActions(
 ```
 
 Returns `add('clean' | 'dirty')` and/or `remove('clean' | 'dirty')` actions.
-`dirty` when any violations remain post-fix; `clean` otherwise (auto-fixes
-alone do not cause `dirty`).
+`dirty` when violations remain post-fix; `clean` otherwise (auto-fixes alone do
+not cause `dirty`).
 
 Unit tests: all four comment state-machine branches, comment body rendering
-(both sections, one section, neither), label state transitions.
+(both sections, one section, neither), label state transitions (clean→dirty,
+dirty→clean, no-op).
 
 ---
 
-## Step 7: Implement mutation orchestration and step-summary aggregation
+## Step 6: Wire Rule 1 into orchestration, build `dist/`, and verify CI freshness check
 
-In `src/orchestrate.ts`, the main per-issue loop:
+**`src/orchestrate.ts` — per-issue loop (Rule 1 only):**
 
 ```ts
 async function processIssue(
   octokit,
   issue,
   orgProjects,
-  templateMap,
   repoTriageProject,
 ): Promise<IssueStats>;
 ```
 
-Execution order per issue:
+Execution order:
 
-1. Evaluate Rule 1 → apply auto-fix mutations immediately (remove from Triage).
+1. Evaluate Rule 1 → apply `remove-from-project` mutation immediately if
+   auto-fix triggered (`removeProjectV2ItemFromProject`).
 2. Resolve primary project from the now-reduced project set.
-3. Evaluate Rules 2–6 using the resolved primary project.
-4. Collect all auto-fix mutations (heading inserts, Triage add).
-5. Apply mutations via GraphQL: `updateProjectV2ItemFieldValue`,
-   `addProjectV2ItemById`, `removeProjectV2ItemFromProject`, `updateIssue`
-   (body patch for headings).
-6. Compute `hasViolations`, `hasAutoFixes`.
-7. Apply comment actions (minimize then create).
-8. Apply label actions (remove wrong label, add correct label).
-9. Log each action via `safeLog`.
-10. Return `IssueStats` for aggregation.
+3. Collect remaining Rule 1 violations (flag-only cases).
+4. Compute `hasViolations`, `hasAutoFixes`.
+5. Apply comment actions (minimize then create via `minimizeComment` /
+   `addComment`).
+6. Apply label actions (`addLabelsToLabelable` / `removeLabelsFromLabelable`).
+7. Log each action via `safeLog`.
+8. Return `IssueStats`.
 
-**Error handling:** Each mutation is wrapped in try/catch. On error: `safeLog`
-with event, mark `softFailed = true`, continue to next issue. The `withRetry`
-wrapper is used for all API calls.
+Each mutation wrapped in try/catch; on error `safeLog` + `softFailed = true` +
+continue.
 
-**Step summary (`src/summary.ts`):** After all repos/issues processed, call
-`core.summary.addTable([...])` with aggregate counts: issues checked,
-violations found, auto-fixes applied, comments posted, labels toggled, soft
-failures. No issue content in the summary.
+**`src/index.ts`** — wire the full flow: accept `token` input, init octokit,
+call `queryOrgProjects`, enumerate org repos, call `processIssue` per issue,
+write step summary (aggregate counts only via `core.summary`), exit non-zero if
+any soft failures.
 
-In `src/index.ts`, wire the full flow: mint no extra token (token passed as
-input), call `queryOrgProjects`, iterate repos and issues, call `processIssue`,
-write summary. Exit with error if any soft failures occurred.
+**Build and CI:**
 
----
-
-## Step 8: Build `dist/` with ncc and wire CI freshness check
-
-- Run `npm run build` in `issue-hygiene/` to produce `dist/index.js`.
-- Commit `dist/index.js` alongside the source.
-- The CI workflow (from Step 1) already runs `git diff --exit-code dist/` after
-  `npm run build` to enforce freshness. Verify this catches a deliberate diff.
-
----
-
-## Step 9: Write docs — action README and update repo README
-
-**`issue-hygiene/README.md`:** Document:
-
-- What it does (one paragraph)
-- Inputs (`token`)
-- Org-admin prerequisites: GitHub App creation, permission set
-  (`Organization projects: R/W`, `Issues: R/W`, `Metadata: R`), secrets
-  `ISSUE_HYGIENE_APP_ID` + `ISSUE_HYGIENE_APP_PRIVATE_KEY` stored at org level
-- Triage-project naming convention: `❤️‍🩹 [<repo>] Triage`
-- Roadmap-project naming convention: `🗺️ [<repo>] Roadmap` (for Pitch
-  tie-breaker)
-- `clean`/`dirty` label prerequisite (point to label-creation script)
-- Fallback note: switch to twice-daily cron if 24h lag on Rule 4 becomes
-  annoying
-
-**Update `README.md`** (repo root): add `issue-hygiene` row to the Composite
-Actions table with description "Enforces issue-hygiene rules org-wide (type,
-project, headings, priority, assignee)."
-
----
-
-## Step 10: One-off script to create `clean`/`dirty` labels org-wide
-
-Create `bin/create-hygiene-labels` (executable shell script or Node script,
-matching style of existing `bin/` scripts if any):
-
-- Accepts a GitHub token via `GITHUB_TOKEN` env var.
-- Lists all repos in the `0k-software` org.
-- For each repo (including `.github`): idempotently creates `clean` label
-  (color `#0e8a16`, green) and `dirty` label (color `#e4e669`, yellow) if they
-  don't exist; skips if already present (idempotent).
-- Prints a summary line per repo.
-
-Document usage in `issue-hygiene/README.md` under "Label prerequisites."
-
----
-
-## Step 11: Create `.github-private` repo and cron workflow
-
-This step is documented as a manual action (org-admin) but the workflow file
-content is committed here so it's reviewable:
-
-Create `bin/github-private-workflow.yml` as the canonical source for the cron
-workflow to be committed in `0k-software/.github-private`:
-
-```yaml
-name: Issue Hygiene
-on:
-  schedule:
-    - cron: "0 6 * * *"
-  workflow_dispatch:
-jobs:
-  run:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/create-github-app-token@v1
-        id: token
-        with:
-          app-id: ${{ secrets.ISSUE_HYGIENE_APP_ID }}
-          private-key: ${{ secrets.ISSUE_HYGIENE_APP_PRIVATE_KEY }}
-          owner: 0k-software
-      - uses: 0k-software/.github/issue-hygiene@v1
-        with:
-          token: ${{ steps.token.outputs.token }}
-```
-
-Document in `issue-hygiene/README.md`: how to create `.github-private`, where
-to commit this file, and how to trigger `workflow_dispatch` for the smoke test.
-
----
-
-## Step 12: Org-admin setup, smoke test, and tag `v1`
-
-Manual steps documented in `issue-hygiene/README.md` (no code changes):
-
-1. Org-admin creates `Issue Hygiene Bot` GitHub App with permissions
-   `Organization projects: R/W`, `Issues: R/W`, `Metadata: R`. Installs on org.
-   Stores `ISSUE_HYGIENE_APP_ID` + `ISSUE_HYGIENE_APP_PRIVATE_KEY` as org
-   secrets.
-2. Org-admin creates `0k-software/.github-private` private repo, commits
-   `bin/github-private-workflow.yml` as `.github/workflows/issue-hygiene.yml`.
-3. Trigger `workflow_dispatch`; review step summary and 2–3 resulting sticky
-   comments.
-4. Tag `v1` on `0k-software/.github`; update cron caller's `uses:` reference
-   from `@<sha>` to `@v1`.
-
-These steps are prerequisites gated on the GitHub App existing, so they are
-documented rather than automated.
+- Run `npm run build` to produce `dist/index.js`; commit alongside source.
+- Confirm the CI workflow from Step 1 catches a deliberate `dist/` drift
+  (manually introduce a diff, verify the check fails, revert).
