@@ -1,6 +1,6 @@
 # Plan: Add CI check to enforce issue hygiene
 
-**Issue:** https://github.com/0k-software/.github/issues/97
+**Issue:** https://github.com/0k-software/.github/issues/114
 
 ## Summary
 
