@@ -21,8 +21,8 @@ and in every existing repo, supports `--dry-run`, and uses `curl` with
 ## Steps
 
 - [x] [Step 1: Create migration script](#step-1-create-migration-script)
-- [ ] [Step 2: Run migration script](#step-2-run-migration-script)
-- [ ] [Step 3: Update `refine` skill](#step-3-update-refine-skill)
+- [x] [Step 2: Run migration script](#step-2-run-migration-script)
+- [x] [Step 3: Update `refine` skill](#step-3-update-refine-skill)
 - [ ] [Step 4: Update `plan-init` skill](#step-4-update-plan-init-skill)
 - [ ] [Step 5: Update `plan-execute` skill](#step-5-update-plan-execute-skill)
 - [ ] [Step 6: Update `fix` skill](#step-6-update-fix-skill)

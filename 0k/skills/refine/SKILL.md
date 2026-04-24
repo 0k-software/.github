@@ -103,7 +103,16 @@ plan-init.
 - Fetch the issue (title, body, issue type) and load the matching type template
   from `0k/references/templates/`. The issue title and body are the primary
   description of what is being built — they set the starting scope and intent
-  for everything that follows.
+  for everything that follows. After fetching, apply the `in progress` label:
+
+  ```bash
+  curl -s -X POST \
+    -H "Authorization: Bearer $GITHUB_TOKEN" \
+    -H "Accept: application/vnd.github+json" \
+    "https://api.github.com/repos/{owner}/{repo}/issues/{issue-number}/labels" \
+    -d '{"labels":["in progress"]}' > /dev/null 2>&1 || true
+  ```
+
 - Check out the current project state (files, docs, recent commits)
 - Before asking detailed questions, assess scope: if the request describes
   multiple independent subsystems (e.g., "build a platform with chat, file
@@ -230,6 +239,21 @@ before proceeding:
 > Please review at <issue-url> and let me know if you want any changes before
 > we create the implementation plan. If you leave comments on the issue, run
 > `/fix` to address them."
+
+Remove `in progress` and apply `to review` to signal the handoff:
+
+```bash
+curl -s -X DELETE \
+  -H "Authorization: Bearer $GITHUB_TOKEN" \
+  -H "Accept: application/vnd.github+json" \
+  "https://api.github.com/repos/{owner}/{repo}/issues/{issue-number}/labels/in%20progress" \
+  > /dev/null 2>&1 || true
+curl -s -X POST \
+  -H "Authorization: Bearer $GITHUB_TOKEN" \
+  -H "Accept: application/vnd.github+json" \
+  "https://api.github.com/repos/{owner}/{repo}/issues/{issue-number}/labels" \
+  -d '{"labels":["to review"]}' > /dev/null 2>&1 || true
+```
 
 Wait for the user's response. If they request changes, make them, update the
 issue body again, and re-run the spec review loop. Only proceed once the user
