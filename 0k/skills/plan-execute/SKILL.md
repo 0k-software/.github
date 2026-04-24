@@ -15,7 +15,20 @@ Run every remaining step in PLAN.md, one after another, until none are left.
 
 **Procedure:**
 
-1. Read PLAN.md and collect **all** unchecked (`- [ ]`) steps.
+1. Derive the issue number and repo, then apply `in progress`:
+
+   ```bash
+   issue_number=$(git branch --show-current | grep -oP '^\d+')
+   owner_repo=$(git remote get-url origin | grep -oP '[\w-]+/[\w.-]+(?=\.git|$)')
+   curl -s -X POST \
+     -H "Authorization: Bearer $GITHUB_TOKEN" \
+     -H "Accept: application/vnd.github+json" \
+     "https://api.github.com/repos/$owner_repo/issues/$issue_number/labels" \
+     -d '{"labels":["in progress"]}' > /dev/null 2>&1 || true
+   ```
+
+   Then read PLAN.md and collect **all** unchecked (`- [ ]`) steps.
+
 2. If no unchecked steps exist → stop and report "Plan complete."
 3. Use `TodoWrite` to create **one task per unchecked step** (in order), so the
    full work queue is visible upfront before any execution begins.
@@ -47,3 +60,17 @@ remain).
 4. Push the final commit.
 5. Run `gh pr edit --add-reviewer "@copilot"` to request a fresh Copilot review
    (always request, even if one was previously done on this PR).
+6. Remove `in progress` and apply `to review`:
+
+   ```bash
+   curl -s -X DELETE \
+     -H "Authorization: Bearer $GITHUB_TOKEN" \
+     -H "Accept: application/vnd.github+json" \
+     "https://api.github.com/repos/$owner_repo/issues/$issue_number/labels/in%20progress" \
+     > /dev/null 2>&1 || true
+   curl -s -X POST \
+     -H "Authorization: Bearer $GITHUB_TOKEN" \
+     -H "Accept: application/vnd.github+json" \
+     "https://api.github.com/repos/$owner_repo/issues/$issue_number/labels" \
+     -d '{"labels":["to review"]}' > /dev/null 2>&1 || true
+   ```
