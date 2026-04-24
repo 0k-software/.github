@@ -190,9 +190,9 @@ This is the most `gh`-heavy skill. Replace each call in order:
 
 ```bash
 TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
-cat > /tmp/gh-query.json <<EOF
+cat > /tmp/gh-query.json <<'EOF'
 {
-  "query": "query(\$owner:String!, \$repo:String!, \$pr:Int!) { repository(owner:\$owner, name:\$repo) { pullRequest(number:\$pr) { reviewThreads(first:100) { nodes { isResolved comments(first:100) { nodes { id databaseId path line side body author { login } } } } } } } }",
+  "query": "query($owner:String!, $repo:String!, $pr:Int!) { repository(owner:$owner, name:$repo) { pullRequest(number:$pr) { reviewThreads(first:100) { nodes { isResolved comments(first:100) { nodes { id databaseId path line side body author { login } } } } } } } }",
   "variables": {"owner": "{owner}", "repo": "{repo}", "pr": {pr-number}}
 }
 EOF
