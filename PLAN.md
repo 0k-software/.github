@@ -31,7 +31,7 @@ In `0k/skills/refine/SKILL.md`, replace:
 5. **Present design** — section by section, get approval as you go
 ```
 
-with:
+**For feature / enhancement / task / pitch issues**, with:
 
 ```
 5. **Present architecture** — get approval; if N/A, complete and note why
@@ -39,7 +39,13 @@ with:
 7. **Present data flow** — get approval; if N/A, complete and note why
 8. **Present error handling** — get approval; if N/A, complete and note why
 9. **Present testing** — get approval; if N/A, complete and note why
-   _(For bugs: replace steps 5–9 with **Present hypotheses** and **Present investigation plan**; mark the rest N/A)_
+```
+
+**For bug issues**, with these two steps instead (steps 7–9 are N/A for bugs):
+
+```
+5. **Present hypotheses** — 2-3 root cause candidates; get approval; if N/A, note why
+6. **Present investigation plan** — where to look, what to instrument; get approval
 ```
 
 Then renumber the remaining checklist items from 6–9 to 10–13:
