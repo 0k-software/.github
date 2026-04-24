@@ -320,4 +320,4 @@ echo "── Summary"
 printf "  Projects with Priority field added : %d\n" "$PROJECTS_CREATED"
 printf "  Project items backfilled           : %d\n" "$ITEMS_BACKFILLED"
 printf "  Labels removed                     : %d\n" "$LABELS_REMOVED"
-[[ "$DRY_RUN" == "true" ]] && echo "  (dry run — no changes made)"
+[[ "$DRY_RUN" == "true" ]] && echo "  (dry run — no changes made)" || true
