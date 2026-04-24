@@ -22,8 +22,9 @@ Fetch the issue details at `$ARGUMENTS`. You'll need the title, body, and
 comments to write the plan. Apply the `in progress` label:
 
 ```bash
+TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
 curl -s -X POST \
-  -H "Authorization: Bearer $GITHUB_TOKEN" \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Accept: application/vnd.github+json" \
   "https://api.github.com/repos/{owner}/{repo}/issues/{issue-number}/labels" \
   -d '{"labels":["in progress"]}' > /dev/null 2>&1 || true
@@ -126,12 +127,12 @@ above), or the user chose B:
 
    ```bash
    curl -s -X DELETE \
-     -H "Authorization: Bearer $GITHUB_TOKEN" \
+     -H "Authorization: Bearer $TOKEN" \
      -H "Accept: application/vnd.github+json" \
      "https://api.github.com/repos/{owner}/{repo}/issues/{issue-number}/labels/in%20progress" \
      > /dev/null 2>&1 || true
    curl -s -X POST \
-     -H "Authorization: Bearer $GITHUB_TOKEN" \
+     -H "Authorization: Bearer $TOKEN" \
      -H "Accept: application/vnd.github+json" \
      "https://api.github.com/repos/{owner}/{repo}/issues/{issue-number}/labels" \
      -d '{"labels":["to review"]}' > /dev/null 2>&1 || true

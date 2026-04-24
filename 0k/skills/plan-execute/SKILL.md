@@ -28,8 +28,9 @@ Run every remaining step in PLAN.md, one after another, until none are left.
      echo "Could not derive issue number from branch '$branch_name'. Please provide it:"
      read -r issue_number
    fi
+   TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
    curl -s -X POST \
-     -H "Authorization: Bearer $GITHUB_TOKEN" \
+     -H "Authorization: Bearer $TOKEN" \
      -H "Accept: application/vnd.github+json" \
      "https://api.github.com/repos/$owner_repo/issues/$issue_number/labels" \
      -d '{"labels":["in progress"]}' > /dev/null 2>&1 || true
@@ -72,12 +73,12 @@ remain).
 
    ```bash
    curl -s -X DELETE \
-     -H "Authorization: Bearer $GITHUB_TOKEN" \
+     -H "Authorization: Bearer $TOKEN" \
      -H "Accept: application/vnd.github+json" \
      "https://api.github.com/repos/$owner_repo/issues/$issue_number/labels/in%20progress" \
      > /dev/null 2>&1 || true
    curl -s -X POST \
-     -H "Authorization: Bearer $GITHUB_TOKEN" \
+     -H "Authorization: Bearer $TOKEN" \
      -H "Accept: application/vnd.github+json" \
      "https://api.github.com/repos/$owner_repo/issues/$issue_number/labels" \
      -d '{"labels":["to review"]}' > /dev/null 2>&1 || true
