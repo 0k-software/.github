@@ -36,6 +36,16 @@ the owner/repo/number from it instead.
    run. Keep these comments as **context** but do **not** re-address them or
    reply to them again.
 
+Apply `in progress` to the issue:
+
+```bash
+curl -s -X POST \
+  -H "Authorization: Bearer $GITHUB_TOKEN" \
+  -H "Accept: application/vnd.github+json" \
+  "https://api.github.com/repos/{owner}/{repo}/issues/{issue-number}/labels" \
+  -d '{"labels":["in progress"]}' > /dev/null 2>&1 || true
+```
+
 ## B2 — Analyse feedback
 
 Review the issue description and every comment. Identify all actionable
@@ -85,6 +95,21 @@ addressed in this run:
 ```
 gh api "repos/{owner}/{repo}/issues/comments/{comment-id}/reactions" \
   -f content="eyes"
+```
+
+Remove `in progress` and apply `to review`:
+
+```bash
+curl -s -X DELETE \
+  -H "Authorization: Bearer $GITHUB_TOKEN" \
+  -H "Accept: application/vnd.github+json" \
+  "https://api.github.com/repos/{owner}/{repo}/issues/{issue-number}/labels/in%20progress" \
+  > /dev/null 2>&1 || true
+curl -s -X POST \
+  -H "Authorization: Bearer $GITHUB_TOKEN" \
+  -H "Accept: application/vnd.github+json" \
+  "https://api.github.com/repos/{owner}/{repo}/issues/{issue-number}/labels" \
+  -d '{"labels":["to review"]}' > /dev/null 2>&1 || true
 ```
 
 ## B6 — Report

@@ -301,6 +301,16 @@ what to implement).
    in the thread** takes precedence — if a later reply changes or overrides the
    original request, follow the latest instruction.
 
+Apply `in progress` to the PR:
+
+```bash
+curl -s -X POST \
+  -H "Authorization: Bearer $GITHUB_TOKEN" \
+  -H "Accept: application/vnd.github+json" \
+  "https://api.github.com/repos/{owner}/{repo}/issues/{pr-number}/labels" \
+  -d '{"labels":["in progress"]}' > /dev/null 2>&1 || true
+```
+
 ### A2 — Classify and group
 
 Apply the source-specific handling and YAGNI check from the mindset sections
@@ -464,6 +474,21 @@ done
 ```
 
 Repeat this loop for every addressed thread.
+
+Remove `in progress` and apply `to review`:
+
+```bash
+curl -s -X DELETE \
+  -H "Authorization: Bearer $GITHUB_TOKEN" \
+  -H "Accept: application/vnd.github+json" \
+  "https://api.github.com/repos/{owner}/{repo}/issues/{pr-number}/labels/in%20progress" \
+  > /dev/null 2>&1 || true
+curl -s -X POST \
+  -H "Authorization: Bearer $GITHUB_TOKEN" \
+  -H "Accept: application/vnd.github+json" \
+  "https://api.github.com/repos/{owner}/{repo}/issues/{pr-number}/labels" \
+  -d '{"labels":["to review"]}' > /dev/null 2>&1 || true
+```
 
 ### A6 — Report
 
