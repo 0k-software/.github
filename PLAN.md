@@ -12,14 +12,14 @@ becomes its own todo item.
 
 ## Approach
 
-Single edit to `0k/skills/refine/SKILL.md`: replace checklist step 5 with five
-per-section steps for features (architecture, components, data flow, error
-handling, testing) plus a note for the bug variant (hypotheses + investigation
-plan), and renumber the steps that follow.
+Two edits to `0k/skills/refine/SKILL.md`: replace checklist step 5 with
+per-section steps (split into feature and bug tracks), and update the process
+flow diagram to show the same split visually.
 
 ## Steps
 
 - [ ] [Step 1: Expand checklist step 5 into per-section steps](#step-1-expand-checklist-step-5-into-per-section-steps)
+- [ ] [Step 2: Update process flow diagram with bug vs feature tracks](#step-2-update-process-flow-diagram-with-bug-vs-feature-tracks)
 
 ---
 
@@ -54,3 +54,35 @@ Then renumber the remaining checklist items from 6–9 to 10–13:
 - Step 7 → 11: Spec self-review
 - Step 8 → 12: User reviews spec on GitHub
 - Step 9 → 13: Invoke plan-init
+
+---
+
+## Step 2: Update process flow diagram with bug vs feature tracks
+
+In `0k/skills/refine/SKILL.md`, replace the `Process Flow` mermaid diagram to
+split `F[Present design sections]` into parallel bug and feature tracks:
+
+```mermaid
+flowchart TD
+    A[Explore project context] --> B{Visual questions ahead?}
+    B -->|yes| C[Offer Visual Companion]
+    B -->|no| D[Ask clarifying questions]
+    C --> D
+    D --> E[Propose 2-3 approaches]
+    E --> F{Bug issue?}
+    F -->|no| F1[Present architecture]
+    F1 --> F2[Present components]
+    F2 --> F3[Present data flow]
+    F3 --> F4[Present error handling]
+    F4 --> F5[Present testing]
+    F -->|yes| B1[Present hypotheses]
+    B1 --> B2[Present investigation plan]
+    F5 --> G{User approves design?}
+    B2 --> G
+    G -->|no, revise| F
+    G -->|yes| H[Write design doc]
+    H --> I[Spec self-review]
+    I --> J{User reviews spec on GitHub?}
+    J -->|changes requested| H
+    J -->|approved| K(((Invoke plan-init)))
+```
