@@ -103,5 +103,26 @@ and keeps it up to date automatically.
 - `6-kickoff.yml` is for project-level planning; `2-feature.yml`'s checklist is
   for individual feature implementation.
 
+## Label Conventions
+
+Two labels track the AI work lifecycle across issues and PRs:
+
+| Label         | Color      | Meaning                                     |
+| ------------- | ---------- | ------------------------------------------- |
+| `in progress` | blue       | An AI assistant is actively working on this |
+| `to review`   | orange-red | The AI has finished; human review is needed |
+
+**Lifecycle:** `in progress` → `to review` → human clears `to review`
+
+Skills manage these labels automatically:
+
+- Add `in progress` when a skill starts working on an issue or PR.
+- Swap to `to review` when the skill hands off (end of `refine`, `plan-init`,
+  `plan-execute`, and `fix`).
+
+Do not manually set `in progress` during an active AI session. If either label
+is absent from a repo, skill operations on it are silently skipped — run
+`scripts/one-time/2026-04-22-create-labels` to provision the labels.
+
 [gh-community-health]:
   https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/creating-a-default-community-health-file
