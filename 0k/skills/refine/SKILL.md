@@ -36,25 +36,33 @@ sentences for truly simple projects), but you MUST present it and get approval.
 
 ## Checklist
 
-You MUST create a task for each of these items and complete them in order:
+You MUST create a task for each of these items, including subitems, and
+complete them in order:
 
 1. **Fetch issue and explore context** — issue details, type template, codebase
 2. **Offer visual companion** — if visual questions ahead; own message only
 3. **Ask clarifying questions** — one at a time
 4. **Propose 2-3 approaches** — with trade-offs and recommendation
-5. **Present architecture** — get approval; if N/A, complete and note why
-6. **Present components** — get approval; if N/A, complete and note why
-7. **Present data flow** — get approval; if N/A, complete and note why
-8. **Present error handling** — get approval; if N/A, complete and note why
-9. **Present testing** — get approval; if N/A, complete and note why _(For
-   bugs: replace steps 5–6 with **Present hypotheses** and **Present
-   investigation plan**; mark steps 7–9 N/A)_
-10. **Write design doc** — update issue title and body, filling all template
-    sections
-11. **Spec self-review** — fix placeholders, contradictions, ambiguity inline
-12. **User reviews spec on GitHub** — post comment with link, suggest `/fix`
-    for feedback
-13. **Invoke plan-init** — create implementation plan
+5. **Present design** — section by section, get approval as you go
+   - For feature / enhancement / task / pitch issues:
+     - 5.1 **Present architecture** — get approval; if N/A, complete and note
+       why
+     - 5.2 **Present components** — get approval; if N/A, complete and note why
+     - 5.3 **Present data flow** — get approval; if N/A, complete and note why
+     - 5.4 **Present error handling** — get approval; if N/A, complete and note
+       why
+     - 5.5 **Present testing** — get approval; if N/A, complete and note why
+   - For bug issues:
+     - 5.a **Present hypotheses** — 2-3 root cause candidates; get approval; if
+       N/A, note why
+     - 5.b **Present investigation plan** — where to look, what to instrument;
+       get approval
+6. **Write design doc** — update issue title and body, filling all template
+   sections
+7. **Spec self-review** — fix placeholders, contradictions, ambiguity inline
+8. **User reviews spec on GitHub** — post comment with link, suggest `/fix` for
+   feedback
+9. **Invoke plan-init** — create implementation plan
 
 ## Process Flow
 
