@@ -8,14 +8,22 @@ for arg in "$@"; do [[ "$arg" == "--dry-run" ]] && DRY_RUN=true; done
 
 create_org_label() {
   local name="$1" color="$2" description="$3"
+  local encoded_name
+  encoded_name=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$name")
   if $DRY_RUN; then echo "[dry-run] org-level: '$name'"; return; fi
   curl -sf -X POST \
     -H "Authorization: Bearer $GITHUB_TOKEN" \
     -H "Accept: application/vnd.github+json" \
     "https://api.github.com/orgs/0k-software/labels" \
     -d "{\"name\":\"$name\",\"color\":\"$color\",\"description\":\"$description\"}" \
-    > /dev/null \
-    || echo "⚠️  Could not create org-level label '$name' — create it manually at https://github.com/organizations/0k-software/settings/labels"
+    > /dev/null 2>&1 \
+  || curl -sf -X PATCH \
+    -H "Authorization: Bearer $GITHUB_TOKEN" \
+    -H "Accept: application/vnd.github+json" \
+    "https://api.github.com/orgs/0k-software/labels/$encoded_name" \
+    -d "{\"name\":\"$name\",\"color\":\"$color\",\"description\":\"$description\"}" \
+    > /dev/null 2>&1 \
+  || echo "⚠️  Could not create org-level label '$name' — create it manually at https://github.com/organizations/0k-software/settings/labels"
 }
 
 create_org_label "in progress" "0075ca" "An AI assistant is actively working on this"
