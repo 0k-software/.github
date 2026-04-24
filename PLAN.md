@@ -25,7 +25,7 @@ and in every existing repo, supports `--dry-run`, and uses `curl` with
 - [x] [Step 3: Update `refine` skill](#step-3-update-refine-skill)
 - [x] [Step 4: Update `plan-init` skill](#step-4-update-plan-init-skill)
 - [x] [Step 5: Update `plan-execute` skill](#step-5-update-plan-execute-skill)
-- [ ] [Step 6: Update `fix` skill](#step-6-update-fix-skill)
+- [x] [Step 6: Update `fix` skill](#step-6-update-fix-skill)
 - [ ] [Step 7: Document label lifecycle in CLAUDE.md](#step-7-document-label-lifecycle-in-claudemd)
 
 ---
