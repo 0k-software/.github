@@ -113,21 +113,20 @@ done <<< "$repos"
 
 ## Step 2: Run migration script
 
-Run the script to provision labels in the org and all existing repos:
-
-```bash
-bash scripts/one-time/2026-04-22-create-labels
-```
-
-Before running for real, do a dry run first to preview what will happen:
+First do a dry run to preview what will happen:
 
 ```bash
 bash scripts/one-time/2026-04-22-create-labels --dry-run
 ```
 
-If `gh` CLI is not available, set `GITHUB_TOKEN` first. Verify that the
-`in progress` and `to review` labels appear in at least one org repo before
-continuing.
+Then run for real to provision labels in the org and all existing repos:
+
+```bash
+bash scripts/one-time/2026-04-22-create-labels
+```
+
+`GITHUB_TOKEN` must be set before running. Verify that the `in progress` and
+`to review` labels appear in at least one org repo before continuing.
 
 ---
 
