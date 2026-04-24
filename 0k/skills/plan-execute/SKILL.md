@@ -18,8 +18,16 @@ Run every remaining step in PLAN.md, one after another, until none are left.
 1. Derive the issue number and repo, then apply `in progress`:
 
    ```bash
-   issue_number=$(git branch --show-current | grep -oP '^\d+')
-   owner_repo=$(git remote get-url origin | grep -oP '[\w-]+/[\w.-]+(?=\.git|$)')
+   branch_name=$(git branch --show-current)
+   issue_number=${branch_name%%[^0-9]*}
+   remote_url=$(git remote get-url origin)
+   remote_url=${remote_url%.git}
+   owner_repo=$(echo "$remote_url" | sed 's|.*github\.com[/:]||')
+   if [ -z "$issue_number" ]; then
+     # Branch name doesn't start with digits — ask the user for the issue number
+     echo "Could not derive issue number from branch '$branch_name'. Please provide it:"
+     read -r issue_number
+   fi
    curl -s -X POST \
      -H "Authorization: Bearer $GITHUB_TOKEN" \
      -H "Accept: application/vnd.github+json" \
