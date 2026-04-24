@@ -226,7 +226,8 @@ curl -s -X POST \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   https://api.github.com/repos/{owner}/{repo}/pulls/{pr-number}/comments \
-  -d "{\"body\": \"{answer}\", \"in_reply_to\": {comment-id}}" | jq '.id'
+  -d "$(jq -n --arg body '{answer}' --argjson in_reply_to {comment-id} '{body: $body, in_reply_to: $in_reply_to}')" \
+  | jq '.id'
 ```
 
 **A5 — React to a PR comment:**
@@ -269,12 +270,16 @@ curl -s \
 **B3 — Update issue body and/or title:**
 
 ```bash
+jq -n \
+  --arg title "{new title}" \
+  --rawfile body /tmp/issue-body.md \
+  '{title: $title, body: $body}' \
+  > /tmp/issue-patch.json
 curl -s -X PATCH \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   https://api.github.com/repos/{owner}/{repo}/issues/{number} \
-  -d "{\"title\": \"{new title}\", \"body\": $(cat /tmp/issue-body.md | jq -Rs .)}" \
-  | jq '{number: .number, title: .title}'
+  -d @/tmp/issue-patch.json | jq '{number: .number, title: .title}'
 ```
 
 **B4 — Post issue comment:**
@@ -284,7 +289,7 @@ curl -s -X POST \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   https://api.github.com/repos/{owner}/{repo}/issues/{number}/comments \
-  -d "{\"body\": $(cat /tmp/issue-comment.md | jq -Rs .)}" | jq '.id'
+  -d "$(jq -n --rawfile body /tmp/issue-comment.md '{body: $body}')" | jq '.id'
 ```
 
 **B5 — React to an issue comment:**
@@ -300,5 +305,5 @@ curl -s -X POST \
 For each replacement, update the surrounding prose to remove `gh`-specific
 language (e.g., references to `--jq`, `-f`, `-F`, `--paginate`). The body and
 comment files (`/tmp/issue-body.md`, `/tmp/issue-comment.md`) are still written
-as temp files by the skill before posting — use `jq -Rs .` to safely embed them
-in the JSON payload.
+as temp files by the skill before posting — use `jq -n --rawfile` to build JSON
+payloads so all content is safely escaped regardless of quotes or newlines.
