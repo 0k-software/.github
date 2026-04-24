@@ -123,12 +123,16 @@ repo name (parsed from Triage-project title regex
 `^[^\s]+ \[(?<repo>[^\]]+)\] Triage$`). Also returns the raw project list for
 the Roadmap tie-breaker.
 
-`queryRepoIssues` is **not** implemented here — it is added in the follow-up
-that introduces Rule 2 (template heading compliance), since that rule requires
-the full issue body and project status fields.
+**`queryRepoIssues(octokit, owner, repo)`** — minimal fields for Rule 1 only:
+`number`, `issueType { name }`,
+`projectItems { nodes { id, project { id, title } } }`,
+`labels { nodes { name } }`,
+`comments(last: 100) { nodes { body, minimizedReason } }`. No `body`, no
+`fieldValues` (those are added by Rule 2 in the follow-up PR).
 
 Unit tests: retry logic (mock 429 → success on 3rd attempt; exhaustion throws),
-project-map building from fixture data, Triage-title regex parsing.
+project-map building from fixture data, Triage-title regex parsing,
+`queryRepoIssues` field mapping from fixture response.
 
 ---
 
