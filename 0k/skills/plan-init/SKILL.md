@@ -19,7 +19,15 @@ which issue to plan.
 ## Step 1 — Fetch the issue
 
 Fetch the issue details at `$ARGUMENTS`. You'll need the title, body, and
-comments to write the plan.
+comments to write the plan. Apply the `in progress` label:
+
+```bash
+curl -s -X POST \
+  -H "Authorization: Bearer $GITHUB_TOKEN" \
+  -H "Accept: application/vnd.github+json" \
+  "https://api.github.com/repos/{owner}/{repo}/issues/{issue-number}/labels" \
+  -d '{"labels":["in progress"]}' > /dev/null 2>&1 || true
+```
 
 ## Step 2 — Set up the branch
 
@@ -114,4 +122,19 @@ above), or the user chose B:
 1. Run `/0k:commit ! plan: {issue title}` to commit PLAN.md.
 2. Invoke `/0k:create-pr draft {issue-number}` to push the branch and open a
    draft PR linking to the issue.
-3. Run `gh pr edit --add-reviewer "@copilot"` to request a Copilot review.
+3. Remove `in progress` and apply `to review`:
+
+   ```bash
+   curl -s -X DELETE \
+     -H "Authorization: Bearer $GITHUB_TOKEN" \
+     -H "Accept: application/vnd.github+json" \
+     "https://api.github.com/repos/{owner}/{repo}/issues/{issue-number}/labels/in%20progress" \
+     > /dev/null 2>&1 || true
+   curl -s -X POST \
+     -H "Authorization: Bearer $GITHUB_TOKEN" \
+     -H "Accept: application/vnd.github+json" \
+     "https://api.github.com/repos/{owner}/{repo}/issues/{issue-number}/labels" \
+     -d '{"labels":["to review"]}' > /dev/null 2>&1 || true
+   ```
+
+4. Run `gh pr edit --add-reviewer "@copilot"` to request a Copilot review.
