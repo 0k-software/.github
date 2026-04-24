@@ -18,7 +18,7 @@ flow diagram to show the same split visually.
 
 ## Steps
 
-- [ ] [Step 1: Expand checklist step 5 into per-section steps](#step-1-expand-checklist-step-5-into-per-section-steps)
+- [x] [Step 1: Expand checklist step 5 into per-section steps](#step-1-expand-checklist-step-5-into-per-section-steps)
 - [ ] [Step 2: Update process flow diagram with bug vs feature tracks](#step-2-update-process-flow-diagram-with-bug-vs-feature-tracks)
 
 ---
