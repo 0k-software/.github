@@ -65,8 +65,16 @@ flowchart TD
     B -->|no| D[Ask clarifying questions]
     C --> D
     D --> E[Propose 2-3 approaches]
-    E --> F[Present design sections]
-    F --> G{User approves design?}
+    E --> F{Bug issue?}
+    F -->|no| F1[Present architecture]
+    F1 --> F2[Present components]
+    F2 --> F3[Present data flow]
+    F3 --> F4[Present error handling]
+    F4 --> F5[Present testing]
+    F -->|yes| B1[Present hypotheses]
+    B1 --> B2[Present investigation plan]
+    F5 --> G{User approves design?}
+    B2 --> G
     G -->|no, revise| F
     G -->|yes| H[Write design doc]
     H --> I[Spec self-review]
