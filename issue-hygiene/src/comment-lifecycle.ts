@@ -8,7 +8,7 @@ export type BotComment = {
 
 export type CommentAction =
   | { kind: "minimize"; id: string; reason: "OUTDATED" | "RESOLVED" }
-  | { kind: "create"; body: string };
+  | { kind: "create" };
 
 export function computeCommentActions(
   hasViolations: boolean,
@@ -25,7 +25,7 @@ export function computeCommentActions(
       id: c.id,
       reason: "OUTDATED" as const,
     }));
-    actions.push({ kind: "create", body: "" }); // body filled by caller via buildCommentBody
+    actions.push({ kind: "create" });
     return actions;
   }
 
