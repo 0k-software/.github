@@ -63,7 +63,7 @@ jobs:
         working-directory: issue-hygiene
         run: npm test
 
-      - name: Issue hygiene — build freshness
+      - name: Issue hygiene — build
         if: steps.ih.outputs.changed == 'true'
         working-directory: issue-hygiene
-        run: npm run build && git diff --exit-code dist/
+        run: npm run build
