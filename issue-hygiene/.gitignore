@@ -1,0 +1,3 @@
+node_modules/
+# dist/ is committed (required for composite action) — override root .gitignore
+!dist/

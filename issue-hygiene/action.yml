@@ -1,0 +1,19 @@
+name: Issue Hygiene
+description: Enforces issue-hygiene rules across every repo in the org.
+
+inputs:
+  token:
+    description: GitHub token (GitHub App token with org-wide issue access)
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+
+    - run: node ${{ github.action_path }}/dist/index.js
+      shell: bash
+      env:
+        INPUT_TOKEN: ${{ inputs.token }}
