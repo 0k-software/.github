@@ -25,7 +25,7 @@ private repo `0k-software/.github-private` to keep workflow logs private.
 
 ## Steps
 
-- [ ] [Step 1: Scaffold `issue-hygiene/` action directory](#step-1-scaffold-issue-hygiene-action-directory)
+- [x] [Step 1: Scaffold `issue-hygiene/` action directory](#step-1-scaffold-issue-hygiene-action-directory)
 - [ ] [Step 2: Implement `safeLog` and privacy-safe detail type](#step-2-implement-safelog-and-privacy-safe-detail-type)
 - [ ] [Step 3: Implement GraphQL org-project discovery with bounded retry](#step-3-implement-graphql-org-project-discovery-with-bounded-retry)
 - [ ] [Step 4: Implement Rule 1 and primary-project tie-breaker as pure functions with unit tests](#step-4-implement-rule-1-and-primary-project-tie-breaker-as-pure-functions-with-unit-tests)
@@ -52,8 +52,10 @@ Create the skeleton under `issue-hygiene/` (sibling to
   `moduleResolution: NodeNext`, `strict: true`, `outDir: dist`.
 - `src/index.ts` — empty stub that just calls
   `core.info('issue-hygiene: starting')`.
-- `.eslintrc.yml` — extends `@typescript-eslint/recommended`, adds
-  `no-console: error` rule (enforces `safeLog` usage).
+- `eslint.config.cjs` — ESLint 9 flat config; extends
+  `@typescript-eslint/recommended`, adds `no-console: error` rule (enforces
+  `safeLog` usage). Uses `.cjs` to avoid needing `"type": "module"` in
+  `package.json`.
 - `dist/index.js` — initial compiled output (run `npm run build` and commit).
 - `README.md` — high-level action summary, inputs, prerequisites (GitHub App,
   labels), Triage/Roadmap project naming conventions. Keep it brief — code
