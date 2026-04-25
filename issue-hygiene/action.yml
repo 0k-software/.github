@@ -13,6 +13,14 @@ runs:
       with:
         node-version: "20"
 
+    - run: npm ci
+      shell: bash
+      working-directory: ${{ github.action_path }}
+
+    - run: npm run build
+      shell: bash
+      working-directory: ${{ github.action_path }}
+
     - run: node ${{ github.action_path }}/dist/index.js
       shell: bash
       env:
