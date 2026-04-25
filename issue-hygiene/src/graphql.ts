@@ -31,7 +31,6 @@ export async function withRetry<T>(
   fn: () => Promise<T>,
   maxAttempts = 3,
 ): Promise<T> {
-  const delays = [1000, 2000, 4000];
   let lastError: unknown;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
@@ -46,7 +45,7 @@ export async function withRetry<T>(
             ?.headers?.["retry-after"] != null) ||
         (status != null && status >= 500);
       if (!isRetryable || attempt === maxAttempts - 1) throw err;
-      await new Promise((r) => setTimeout(r, delays[attempt]));
+      await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, attempt)));
     }
   }
   throw lastError;
