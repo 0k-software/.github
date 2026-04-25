@@ -42,6 +42,7 @@ jobs:
         uses: ./check-pr-size
         with:
           limit: 500
+          ignored-paths: "package-lock.json,**/package-lock.json"
 
       - name: Detect issue-hygiene changes
         id: ih
