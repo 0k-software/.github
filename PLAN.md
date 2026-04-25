@@ -55,8 +55,9 @@ Create the skeleton under `issue-hygiene/` (sibling to
 - `.eslintrc.yml` — extends `@typescript-eslint/recommended`, adds
   `no-console: error` rule (enforces `safeLog` usage).
 - `dist/index.js` — initial compiled output (run `npm run build` and commit).
-- `README.md` — action summary, inputs, prerequisites (GitHub App, labels),
-  Triage/Roadmap project naming conventions.
+- `README.md` — high-level action summary, inputs, prerequisites (GitHub App,
+  labels), Triage/Roadmap project naming conventions. Keep it brief — code
+  colocated docs cover implementation details.
 
 Rename `.github/workflows/check-skill-templates.yml` → `check.yml`; rename the
 job to `Check`. Add an issue-hygiene step within the same job: install deps,
@@ -106,9 +107,6 @@ export function safeLog(
 Add the ESLint `no-console: error` rule to `.eslintrc.yml`. Add a unit test
 verifying the type constraints compile and the output format.
 
-Update `README.md`: document the privacy-safe logging approach (`safeLog`,
-`SafeDetail` type constraints).
-
 ---
 
 ## Step 3: Implement GraphQL org-project discovery with bounded retry
@@ -142,8 +140,6 @@ the Roadmap tie-breaker.
 Unit tests: retry logic (mock 429 → success on 3rd attempt; exhaustion throws),
 project-map building from fixture data, Triage-title regex parsing,
 `queryRepoIssues` field mapping from fixture response.
-
-Update `README.md`: document the GraphQL data model and retry policy.
 
 ---
 
@@ -187,8 +183,8 @@ flag-only fallback (non-Triage × non-Triage), `resolvePrimaryProject`
 tie-breaker (Pitch Roadmap wins, non-Pitch non-Triage wins, Triage fallback,
 no-projects case).
 
-Update `README.md`: document Rule 1 semantics (project-count caps, Triage
-auto-remove, primary-project tie-breaker).
+Update `README.md` briefly: Rule 1 description (project caps, Triage
+auto-remove).
 
 ---
 
@@ -238,8 +234,7 @@ Unit tests: all four comment state-machine branches, comment body rendering
 (both sections, one section, neither), label state transitions (clean→dirty,
 dirty→clean, no-op).
 
-Update `README.md`: document sticky-comment lifecycle and `clean`/`dirty` label
-behaviour.
+Update `README.md` briefly: `clean`/`dirty` label semantics.
 
 ---
 
@@ -283,8 +278,7 @@ any soft failures.
 - Confirm the CI workflow from Step 1 catches a deliberate `dist/` drift
   (manually introduce a diff, verify the check fails, revert).
 
-Update `README.md`: document the full orchestration flow and the six-step
-per-issue execution order.
+Review `README.md` for completeness before the PR merges.
 
 ---
 
