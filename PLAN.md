@@ -57,10 +57,13 @@ Create the skeleton under `issue-hygiene/` (sibling to
 - `README.md` — action summary, inputs, prerequisites (GitHub App, labels),
   Triage/Roadmap project naming conventions.
 
-Add `.github/workflows/issue-hygiene-ci.yml`: on pull requests touching
-`issue-hygiene/**`, installs deps, runs `npm run lint`, `npm test`,
-`npm run build`, then `git diff --exit-code dist/` to enforce `dist/`
-freshness.
+Rename `.github/workflows/check-skill-templates.yml` → `check.yml`; rename the
+job to `Check`. Add an issue-hygiene step within the same job: install deps,
+`npm run lint`, `npm test`, `npm run build`, `git diff --exit-code dist/`. Use
+a `paths` filter on that step's condition so it only runs when
+`issue-hygiene/**` changes. Consolidating both checks in one job shares the
+runner startup cost and avoids paying for two separate per-minute billing
+slots.
 
 ---
 
