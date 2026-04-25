@@ -128,6 +128,7 @@ describe("queryRepoIssues", () => {
         issues: {
           nodes: [
             {
+              id: "I_issue5",
               number: 5,
               issueType: { name: "Feature" },
               projectItems: {
@@ -136,7 +137,7 @@ describe("queryRepoIssues", () => {
               labels: { nodes: [{ name: "clean" }] },
               comments: {
                 nodes: [
-                  { body: "<!-- issue-hygiene-bot -->", minimizedReason: null },
+                  { id: "IC_comment1", body: "<!-- issue-hygiene-bot -->", minimizedReason: null },
                 ],
               },
             },
@@ -149,10 +150,12 @@ describe("queryRepoIssues", () => {
     const issues = await queryRepoIssues(client, "0k-software", "my-repo");
     expect(issues).toHaveLength(1);
     const issue = issues[0];
+    expect(issue.id).toBe("I_issue5");
     expect(issue.number).toBe(5);
     expect(issue.issueType?.name).toBe("Feature");
     expect(issue.projectItems.nodes[0].id).toBe("item1");
     expect(issue.labels.nodes[0].name).toBe("clean");
+    expect(issue.comments.nodes[0].id).toBe("IC_comment1");
     expect(issue.comments.nodes[0].body).toBe("<!-- issue-hygiene-bot -->");
   });
 });
