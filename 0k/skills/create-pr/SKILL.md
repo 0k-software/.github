@@ -64,14 +64,15 @@ You are helping the user create a GitHub pull request from the current branch.
    - **Body:** If there is a linked issue, include `Closes {issue-url}` as the
      body. Write it to `/tmp/pr-body.md`. If there is no linked issue, write a
      brief summary based on the branch's commits
-     (`git log main..HEAD --oneline`).
+     (`git log $base..HEAD --oneline`).
 8. **Create the PR** via the GitHub REST API:
 
    ```bash
+   base=$(git rev-parse --abbrev-ref origin/HEAD | sed 's|origin/||')
    jq -n \
      --arg title "{title}" \
      --arg head "$branch" \
-     --arg base "main" \
+     --arg base "$base" \
      --argjson draft {true|false} \
      --rawfile body /tmp/pr-body.md \
      '{title: $title, body: $body, head: $head, base: $base, draft: $draft}' \
