@@ -15,11 +15,9 @@ Run every remaining step in PLAN.md, one after another, until none are left.
 
 **Procedure:**
 
-1. Derive the issue number and repo, then apply `in progress`:
-
-   Infer the issue number from `$ARGUMENTS` if provided (bare number or issue
-   URL), or from the current branch name if it starts with digits (e.g.
-   `42-some-feature`), or ask the user if neither yields a number. Then run:
+1. Infer the issue number from `$ARGUMENTS` if provided (bare number or URL),
+   or from the current branch name if it starts with digits (e.g.
+   `42-some-feature`), or ask the user. Then apply `in progress`:
 
    ```bash
    remote_url=$(git remote get-url origin)
