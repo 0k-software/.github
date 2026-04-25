@@ -31,6 +31,7 @@ private repo `0k-software/.github-private` to keep workflow logs private.
 - [ ] [Step 4: Implement Rule 1 and primary-project tie-breaker as pure functions with unit tests](#step-4-implement-rule-1-and-primary-project-tie-breaker-as-pure-functions-with-unit-tests)
 - [ ] [Step 5: Implement sticky-comment and label state machines with unit tests](#step-5-implement-sticky-comment-and-label-state-machines-with-unit-tests)
 - [ ] [Step 6: Wire Rule 1 into orchestration, build `dist/`, and verify CI freshness check](#step-6-wire-rule-1-into-orchestration-build-dist-and-verify-ci-freshness-check)
+- [ ] [Step 7: Bootstrap `.github-private` and run smoke test](#step-7-bootstrap-github-private-and-run-smoke-test)
 
 ---
 
@@ -284,3 +285,38 @@ any soft failures.
 
 Update `README.md`: document the full orchestration flow and the six-step
 per-issue execution order.
+
+---
+
+## Step 7: Bootstrap `.github-private` and run smoke test
+
+Create the `0k-software/.github-private` private repository (or reuse if it
+already exists). Add the daily cron workflow as
+`.github/workflows/issue-hygiene.yml`:
+
+```yaml
+name: Issue Hygiene
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/create-github-app-token@v1
+        id: token
+        with:
+          app-id: ${{ secrets.ISSUE_HYGIENE_APP_ID }}
+          private-key: ${{ secrets.ISSUE_HYGIENE_APP_PRIVATE_KEY }}
+          owner: 0k-software
+      - uses: 0k-software/.github/issue-hygiene@<merge-commit-sha>
+        with:
+          token: ${{ steps.token.outputs.token }}
+```
+
+Pin `uses:` to the merge commit SHA (not a branch). Trigger `workflow_dispatch`
+and verify: the step summary shows aggregate counts and at least one sticky
+comment appears on a known-dirty issue. Prerequisite: `ISSUE_HYGIENE_APP_ID`
+and `ISSUE_HYGIENE_APP_PRIVATE_KEY` org-level secrets must already exist
+(org-admin step, out of scope for this PR).
