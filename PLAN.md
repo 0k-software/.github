@@ -156,7 +156,7 @@ type AutoFix =
     };
 ```
 
-**`evaluateRule1(issue, triageProject)`** — project membership count.
+**`checkProjectMembership(issue, triageProject)`** — project membership count.
 
 - Non-Pitch: cap ≤ 1. Pitch: cap ≤ 2.
 - Auto-fix: if cap exceeded AND one project is Triage → return
