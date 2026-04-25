@@ -149,14 +149,19 @@ above), or the user chose B:
 
    ```bash
    TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
-   # Derive {owner} and {repo} from the git remote
+   remote_url=$(git remote get-url origin)
+   remote_url=${remote_url%.git}
+   owner_repo=$(echo "$remote_url" | sed 's|.*github\.com[/:]||')
+   owner=${owner_repo%/*}
+   repo=${owner_repo#*/}
+   branch=$(git branch --show-current)
    PR_NUMBER=$(curl -s \
      -H "Authorization: Bearer $TOKEN" \
-     "https://api.github.com/repos/{owner}/{repo}/pulls?head={owner}:{branch}&state=open" \
+     "https://api.github.com/repos/$owner/$repo/pulls?head=$owner:$branch&state=open" \
      | jq -r '.[0].number')
    curl -s -X POST \
      -H "Authorization: Bearer $TOKEN" \
      -H "Content-Type: application/json" \
-     "https://api.github.com/repos/{owner}/{repo}/pulls/$PR_NUMBER/requested_reviewers" \
+     "https://api.github.com/repos/$owner/$repo/pulls/$PR_NUMBER/requested_reviewers" \
      -d '{"reviewers": ["copilot"]}' | jq '.requested_reviewers[].login'
    ```
