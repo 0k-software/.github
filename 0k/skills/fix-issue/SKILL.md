@@ -15,22 +15,36 @@ the owner/repo/number from it instead.
 ## B1 — Fetch the issue
 
 1. Fetch the issue details (title, body, labels):
+
+   ```bash
+   TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
+   curl -s \
+     -H "Authorization: Bearer $TOKEN" \
+     https://api.github.com/repos/{owner}/{repo}/issues/{number} \
+     | jq '{title: .title, body: .body, labels: [.labels[].name], number: .number, url: .html_url, state: .state}'
    ```
-   gh issue view {number} --repo {owner}/{repo} \
-     --json title,body,labels,number,url,state
-   ```
+
 2. Fetch **all** comments on the issue:
+
+   ```bash
+   curl -s \
+     -H "Authorization: Bearer $TOKEN" \
+     "https://api.github.com/repos/{owner}/{repo}/issues/{number}/comments?per_page=100" \
+     | jq '[.[] | {id: .id, author: .user.login, body: .body}]'
    ```
-   gh api "repos/{owner}/{repo}/issues/{number}/comments" --paginate \
-     --jq '.[] | {id, author: .user.login, body}'
-   ```
+
    For each comment, fetch its reactions to check for the 👀 (`eyes`) marker:
-   ```
-   viewer="$(gh api user --jq .login)"
-   gh api "repos/{owner}/{repo}/issues/comments/{comment-id}/reactions" \
-     --jq --arg viewer "$viewer" \
+
+   ```bash
+   viewer="$(curl -s -H "Authorization: Bearer $TOKEN" \
+     https://api.github.com/user | jq -r '.login')"
+   curl -s \
+     -H "Authorization: Bearer $TOKEN" \
+     "https://api.github.com/repos/{owner}/{repo}/issues/comments/{comment-id}/reactions?per_page=100" \
+     | jq --arg viewer "$viewer" \
      '[.[] | select(.content == "eyes" and .user.login == $viewer)]'
    ```
+
 3. **Skip already-addressed comments.** Any comment that has a 👀 (`eyes`)
    reaction from the authenticated user has already been handled in a previous
    run. Keep these comments as **context** but do **not** re-address them or
@@ -74,11 +88,24 @@ judgement to address all feedback.
 If any description or title changes were identified:
 
 1. Draft the updated title and/or body incorporating all feedback.
-2. Write the updated body to a temporary file, then apply the update:
+2. Write the updated body to `/tmp/issue-body.md`, then apply the update via
+   the GitHub REST API:
+
+   ```bash
+   jq -n \
+     --arg title "{new title}" \
+     --rawfile body /tmp/issue-body.md \
+     '{title: $title, body: $body}' \
+     > /tmp/issue-patch.json
+   curl -s -X PATCH \
+     -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" \
+     https://api.github.com/repos/{owner}/{repo}/issues/{number} \
+     -d @/tmp/issue-patch.json | jq '{number: .number, title: .title}'
    ```
-   gh issue edit {number} --repo {owner}/{repo} --body-file /tmp/issue-body.md
-   ```
-   Include `--title "{new title}"` only if the title changed.
+
+   Omit `--arg title` and the `title` key from the payload if only the body
+   changed.
 
 ## B4 — Reply to comments
 
@@ -87,8 +114,12 @@ explanation of changes made), draft a concise reply. Post a **single** comment
 that addresses all feedback points, referencing each commenter by `@username`.
 Append the AI attribution footer (see below).
 
-```
-gh issue comment {number} --repo {owner}/{repo} --body-file /tmp/issue-comment.md
+```bash
+curl -s -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  https://api.github.com/repos/{owner}/{repo}/issues/{number}/comments \
+  -d "$(jq -n --rawfile body /tmp/issue-comment.md '{body: $body}')" | jq '.id'
 ```
 
 ## B5 — Mark comments as addressed
@@ -96,9 +127,12 @@ gh issue comment {number} --repo {owner}/{repo} --body-file /tmp/issue-comment.m
 After posting the reply, react with 👀 (`eyes`) to every comment that was
 addressed in this run:
 
-```
-gh api "repos/{owner}/{repo}/issues/comments/{comment-id}/reactions" \
-  -f content="eyes"
+```bash
+curl -s -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  https://api.github.com/repos/{owner}/{repo}/issues/comments/{comment-id}/reactions \
+  -d '{"content": "eyes"}' | jq '.id'
 ```
 
 Remove `in progress` and apply `to review`:
