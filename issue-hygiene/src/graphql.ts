@@ -1,0 +1,125 @@
+import type { graphql as GraphqlFn } from "@octokit/graphql";
+
+export type OrgProject = {
+  id: string;
+  title: string;
+};
+
+export type RepoIssue = {
+  number: number;
+  issueType: { name: string } | null;
+  projectItems: {
+    nodes: Array<{
+      id: string;
+      project: { id: string; title: string };
+    }>;
+  };
+  labels: { nodes: Array<{ name: string }> };
+  comments: {
+    nodes: Array<{ body: string; minimizedReason: string | null }>;
+  };
+};
+
+type GraphqlClient = { graphql: typeof GraphqlFn };
+
+// Retries on 429, secondary-rate-limit (403 + Retry-After), and 5xx.
+export async function withRetry<T>(
+  fn: () => Promise<T>,
+  maxAttempts = 3,
+): Promise<T> {
+  const delays = [1000, 2000, 4000];
+  let lastError: unknown;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err: unknown) {
+      lastError = err;
+      const status = (err as { status?: number }).status;
+      const isRetryable =
+        status === 429 ||
+        (status === 403 &&
+          (err as { response?: { headers?: Record<string, string> } }).response
+            ?.headers?.["retry-after"] != null) ||
+        (status != null && status >= 500);
+      if (!isRetryable || attempt === maxAttempts - 1) throw err;
+      await new Promise((r) => setTimeout(r, delays[attempt]));
+    }
+  }
+  throw lastError;
+}
+
+const TRIAGE_TITLE_RE = /^[^\s]+ \[(?<repo>[^\]]+)\] Triage$/;
+
+export async function queryOrgProjects(
+  client: GraphqlClient,
+  org: string,
+): Promise<{ projectsByRepo: Map<string, OrgProject[]>; allProjects: OrgProject[] }> {
+  const data = await withRetry(() =>
+    client.graphql<{
+      organization: {
+        projectsV2: { nodes: Array<{ id: string; title: string }> };
+      };
+    }>(
+      `query($org: String!) {
+        organization(login: $org) {
+          projectsV2(first: 100) {
+            nodes { id title }
+          }
+        }
+      }`,
+      { org },
+    ),
+  );
+
+  const allProjects: OrgProject[] = data.organization.projectsV2.nodes;
+  const projectsByRepo = new Map<string, OrgProject[]>();
+
+  for (const project of allProjects) {
+    const match = TRIAGE_TITLE_RE.exec(project.title);
+    if (match?.groups?.["repo"]) {
+      const repo = match.groups["repo"];
+      const list = projectsByRepo.get(repo) ?? [];
+      list.push(project);
+      projectsByRepo.set(repo, list);
+    }
+  }
+
+  return { projectsByRepo, allProjects };
+}
+
+export async function queryRepoIssues(
+  client: GraphqlClient,
+  owner: string,
+  repo: string,
+): Promise<RepoIssue[]> {
+  const data = await withRetry(() =>
+    client.graphql<{
+      repository: {
+        issues: {
+          nodes: RepoIssue[];
+          pageInfo: { hasNextPage: boolean; endCursor: string | null };
+        };
+      };
+    }>(
+      `query($owner: String!, $repo: String!, $cursor: String) {
+        repository(owner: $owner, name: $repo) {
+          issues(first: 100, states: OPEN, after: $cursor) {
+            nodes {
+              number
+              issueType { name }
+              projectItems(first: 20) {
+                nodes { id project { id title } }
+              }
+              labels(first: 20) { nodes { name } }
+              comments(last: 100) { nodes { body minimizedReason } }
+            }
+            pageInfo { hasNextPage endCursor }
+          }
+        }
+      }`,
+      { owner, repo, cursor: null },
+    ),
+  );
+
+  return data.repository.issues.nodes;
+}
