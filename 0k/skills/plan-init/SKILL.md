@@ -56,12 +56,12 @@ traceability).
 **On `main`/`master` (local session):** create and check out the branch:
 
 ```
-gh issue develop {issue-number} --name {branch-name}
-git fetch origin {branch-name} && git checkout {branch-name}
+git checkout -b {branch-name}
+git push -u origin {branch-name}
 ```
 
-`gh issue develop` creates the remote branch and links it to the issue on
-GitHub. `git fetch` + `git checkout` then checks out the branch locally.
+The PR's `Closes #N` reference in its body provides issue traceability on
+GitHub — no separate branch-to-issue link is needed.
 
 **On any other branch** (e.g. `claude/*` remote/web session): the session
 already has its own branch but doesn't follow the naming convention. Push it to
@@ -145,4 +145,18 @@ above), or the user chose B:
      -d '{"labels":["to review"]}' > /dev/null 2>&1 || true
    ```
 
-4. Run `gh pr edit --add-reviewer "@copilot"` to request a Copilot review.
+4. Request a Copilot review via the GitHub REST API:
+
+   ```bash
+   TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
+   # Derive {owner} and {repo} from the git remote
+   PR_NUMBER=$(curl -s \
+     -H "Authorization: Bearer $TOKEN" \
+     "https://api.github.com/repos/{owner}/{repo}/pulls?head={owner}:{branch}&state=open" \
+     | jq -r '.[0].number')
+   curl -s -X POST \
+     -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" \
+     "https://api.github.com/repos/{owner}/{repo}/pulls/$PR_NUMBER/requested_reviewers" \
+     -d '{"reviewers": ["copilot"]}' | jq '.requested_reviewers[].login'
+   ```
