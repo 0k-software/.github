@@ -74,12 +74,12 @@ In `src/safe-log.ts`:
 ```ts
 type IssueRef = { repo: string; number: number };
 type LogEvent =
-  | "rule:type-missing"
-  | "rule:no-project"
-  | "rule:multi-project"
-  | "rule:heading-missing"
-  | "rule:priority-missing"
-  | "rule:no-assignee"
+  | "check:type-missing"
+  | "check:no-project"
+  | "check:multi-project"
+  | "check:heading-missing"
+  | "check:priority-missing"
+  | "check:no-assignee"
   | "auto-fix:heading-inserted"
   | "auto-fix:triage-added"
   | "auto-fix:triage-removed"
