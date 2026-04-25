@@ -1,5 +1,3 @@
-import type { graphql as GraphqlFn } from "@octokit/graphql";
-
 export type OrgProject = {
   id: string;
   title: string;
@@ -20,7 +18,12 @@ export type RepoIssue = {
   };
 };
 
-type GraphqlClient = { graphql: typeof GraphqlFn };
+export type GraphqlClient = {
+  graphql: <T = unknown>(
+    query: string,
+    variables?: Record<string, unknown>,
+  ) => Promise<T>;
+};
 
 // Retries on 429, secondary-rate-limit (403 + Retry-After), and 5xx.
 export async function withRetry<T>(

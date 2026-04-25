@@ -30,7 +30,7 @@ private repo `0k-software/.github-private` to keep workflow logs private.
 - [x] [Step 3: Implement GraphQL org-project discovery with bounded retry](#step-3-implement-graphql-org-project-discovery-with-bounded-retry)
 - [x] [Step 4: Implement Rule 1 and primary-project tie-breaker as pure functions with unit tests](#step-4-implement-rule-1-and-primary-project-tie-breaker-as-pure-functions-with-unit-tests)
 - [x] [Step 5: Implement sticky-comment and label state machines with unit tests](#step-5-implement-sticky-comment-and-label-state-machines-with-unit-tests)
-- [ ] [Step 6: Wire Rule 1 into orchestration, build `dist/`, and verify CI freshness check](#step-6-wire-rule-1-into-orchestration-build-dist-and-verify-ci-freshness-check)
+- [x] [Step 6: Wire Rule 1 into orchestration, build `dist/`, and verify CI freshness check](#step-6-wire-rule-1-into-orchestration-build-dist-and-verify-ci-freshness-check)
 - [ ] [Step 7: Bootstrap `.github-private` and run smoke test](#step-7-bootstrap-github-private-and-run-smoke-test)
 
 ---

@@ -25643,6 +25643,128 @@ module.exports = {
 
 /***/ }),
 
+/***/ 3459:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.BOT_MARKER = void 0;
+exports.computeCommentActions = computeCommentActions;
+exports.buildCommentBody = buildCommentBody;
+exports.BOT_MARKER = "<!-- issue-hygiene-bot -->";
+function computeCommentActions(hasViolations, hasAutoFixes, existingBotComments) {
+    const visibleComments = existingBotComments.filter((c) => c.minimizedReason === null);
+    if (hasViolations || hasAutoFixes) {
+        const actions = visibleComments.map((c) => ({
+            kind: "minimize",
+            id: c.id,
+            reason: "OUTDATED",
+        }));
+        actions.push({ kind: "create", body: "" }); // body filled by caller via buildCommentBody
+        return actions;
+    }
+    if (visibleComments.length === 0) {
+        return [];
+    }
+    return visibleComments.map((c) => ({
+        kind: "minimize",
+        id: c.id,
+        reason: "RESOLVED",
+    }));
+}
+function buildCommentBody(violations, autoFixDescriptions) {
+    const sections = [];
+    if (violations.length > 0) {
+        sections.push(`**Please fix:**\n${violations.map((v) => `- ${v}`).join("\n")}`);
+    }
+    if (autoFixDescriptions.length > 0) {
+        sections.push(`**Auto-fixed in this run:**\n${autoFixDescriptions.map((d) => `- ${d}`).join("\n")}`);
+    }
+    const body = sections.join("\n\n");
+    return `${exports.BOT_MARKER}\n\n${body}\n\n---\n_Issue hygiene bot_`;
+}
+
+
+/***/ }),
+
+/***/ 6542:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.withRetry = withRetry;
+exports.queryOrgProjects = queryOrgProjects;
+exports.queryRepoIssues = queryRepoIssues;
+// Retries on 429, secondary-rate-limit (403 + Retry-After), and 5xx.
+async function withRetry(fn, maxAttempts = 3) {
+    const delays = [1000, 2000, 4000];
+    let lastError;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        try {
+            return await fn();
+        }
+        catch (err) {
+            lastError = err;
+            const status = err.status;
+            const isRetryable = status === 429 ||
+                (status === 403 &&
+                    err.response
+                        ?.headers?.["retry-after"] != null) ||
+                (status != null && status >= 500);
+            if (!isRetryable || attempt === maxAttempts - 1)
+                throw err;
+            await new Promise((r) => setTimeout(r, delays[attempt]));
+        }
+    }
+    throw lastError;
+}
+const TRIAGE_TITLE_RE = /^[^\s]+ \[(?<repo>[^\]]+)\] Triage$/;
+async function queryOrgProjects(client, org) {
+    const data = await withRetry(() => client.graphql(`query($org: String!) {
+        organization(login: $org) {
+          projectsV2(first: 100) {
+            nodes { id title }
+          }
+        }
+      }`, { org }));
+    const allProjects = data.organization.projectsV2.nodes;
+    const projectsByRepo = new Map();
+    for (const project of allProjects) {
+        const match = TRIAGE_TITLE_RE.exec(project.title);
+        if (match?.groups?.["repo"]) {
+            const repo = match.groups["repo"];
+            const list = projectsByRepo.get(repo) ?? [];
+            list.push(project);
+            projectsByRepo.set(repo, list);
+        }
+    }
+    return { projectsByRepo, allProjects };
+}
+async function queryRepoIssues(client, owner, repo) {
+    const data = await withRetry(() => client.graphql(`query($owner: String!, $repo: String!, $cursor: String) {
+        repository(owner: $owner, name: $repo) {
+          issues(first: 100, states: OPEN, after: $cursor) {
+            nodes {
+              number
+              issueType { name }
+              projectItems(first: 20) {
+                nodes { id project { id title } }
+              }
+              labels(first: 20) { nodes { name } }
+              comments(last: 100) { nodes { body minimizedReason } }
+            }
+            pageInfo { hasNextPage endCursor }
+          }
+        }
+      }`, { owner, repo, cursor: null }));
+    return data.repository.issues.nodes;
+}
+
+
+/***/ }),
+
 /***/ 9407:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -25683,7 +25805,400 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(7484));
-core.info("issue-hygiene: starting");
+const graphql_1 = __nccwpck_require__(1119);
+const graphql_js_1 = __nccwpck_require__(6542);
+const orchestrate_js_1 = __nccwpck_require__(23);
+async function run() {
+    core.info("issue-hygiene: starting");
+    const token = core.getInput("token", { required: true });
+    const client = {
+        graphql: graphql_1.graphql.defaults({
+            headers: { authorization: `token ${token}` },
+        }),
+    };
+    const org = "0k-software";
+    const { projectsByRepo, allProjects } = await (0, graphql_js_1.queryOrgProjects)(client, org);
+    const repos = Array.from(projectsByRepo.keys());
+    if (repos.length === 0) {
+        core.warning("No Triage projects found — nothing to process.");
+        return;
+    }
+    let totalViolations = 0;
+    let totalAutoFixes = 0;
+    let totalSoftFailed = 0;
+    let totalIssues = 0;
+    for (const repo of repos) {
+        const triageProjects = projectsByRepo.get(repo) ?? [];
+        const triageProject = triageProjects[0] ?? null;
+        let issues;
+        try {
+            issues = await (0, graphql_js_1.queryRepoIssues)(client, org, repo);
+        }
+        catch (err) {
+            core.warning(`Failed to fetch issues for ${repo}: ${String(err)}`);
+            totalSoftFailed++;
+            continue;
+        }
+        for (const issue of issues) {
+            const stats = await (0, orchestrate_js_1.processIssue)(client, repo, issue, allProjects, triageProject);
+            totalViolations += stats.violations;
+            totalAutoFixes += stats.autoFixes;
+            if (stats.softFailed)
+                totalSoftFailed++;
+            totalIssues++;
+        }
+    }
+    await core.summary
+        .addHeading("Issue Hygiene Summary")
+        .addTable([
+        [
+            { data: "Metric", header: true },
+            { data: "Count", header: true },
+        ],
+        ["Issues processed", String(totalIssues)],
+        ["Violations found", String(totalViolations)],
+        ["Auto-fixes applied", String(totalAutoFixes)],
+        ["Soft failures", String(totalSoftFailed)],
+    ])
+        .write();
+    if (totalSoftFailed > 0) {
+        core.setFailed(`${totalSoftFailed} soft failure(s) — check warnings above.`);
+    }
+}
+run().catch((err) => {
+    core.setFailed(String(err));
+});
+
+
+/***/ }),
+
+/***/ 5064:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.computeLabelActions = computeLabelActions;
+function computeLabelActions(hasViolations, currentLabels) {
+    const hasClean = currentLabels.includes("clean");
+    const hasDirty = currentLabels.includes("dirty");
+    const actions = [];
+    if (hasViolations) {
+        if (!hasDirty)
+            actions.push({ kind: "add", label: "dirty" });
+        if (hasClean)
+            actions.push({ kind: "remove", label: "clean" });
+    }
+    else {
+        if (!hasClean)
+            actions.push({ kind: "add", label: "clean" });
+        if (hasDirty)
+            actions.push({ kind: "remove", label: "dirty" });
+    }
+    return actions;
+}
+
+
+/***/ }),
+
+/***/ 23:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.processIssue = processIssue;
+const core = __importStar(__nccwpck_require__(7484));
+const rules_js_1 = __nccwpck_require__(9244);
+const comment_lifecycle_js_1 = __nccwpck_require__(3459);
+const label_lifecycle_js_1 = __nccwpck_require__(5064);
+const safe_log_js_1 = __nccwpck_require__(349);
+async function processIssue(client, owner, issue, allProjects, repoTriageProject) {
+    const ref = { repo: owner, number: issue.number };
+    let softFailed = false;
+    let autoFixCount = 0;
+    // Step 1: evaluate Rule 1
+    const ruleResult = (0, rules_js_1.checkProjectMembership)(issue, repoTriageProject);
+    // Step 2: apply auto-fixes
+    const appliedFixes = [];
+    for (const fix of ruleResult.autoFixes) {
+        if (fix.kind === "remove-from-project") {
+            try {
+                await client.graphql(`mutation($projectId: ID!, $itemId: ID!) {
+            removeProjectV2ItemFromProject(input: { projectId: $projectId, itemId: $itemId }) {
+              deletedItemId
+            }
+          }`, { projectId: fix.projectId, itemId: fix.itemId });
+                (0, safe_log_js_1.safeLog)(ref, "auto-fix:triage-removed", { projectId: null });
+                appliedFixes.push(`Removed from project: _${fix.projectTitle}_`);
+                autoFixCount++;
+            }
+            catch (err) {
+                (0, safe_log_js_1.safeLog)(ref, "warn:no-triage-project");
+                core.warning(`Failed to remove ${ref.repo}#${ref.number} from project: ${String(err)}`);
+                softFailed = true;
+            }
+        }
+    }
+    // Step 3: resolve primary project from current (post-fix) project set
+    (0, rules_js_1.resolvePrimaryProject)(issue, allProjects, owner);
+    // Step 4: collect remaining violations
+    const violations = ruleResult.violations;
+    const hasViolations = violations.length > 0;
+    const hasAutoFixes = appliedFixes.length > 0;
+    // Step 5: compute and apply comment actions
+    const existingBotComments = issue.comments.nodes
+        .filter((c) => c.body.includes(comment_lifecycle_js_1.BOT_MARKER))
+        .map((c, i) => ({
+        id: `comment-${issue.number}-${i}`,
+        body: c.body,
+        minimizedReason: c.minimizedReason,
+    }));
+    const commentActions = (0, comment_lifecycle_js_1.computeCommentActions)(hasViolations, hasAutoFixes, existingBotComments);
+    for (const action of commentActions) {
+        if (action.kind === "minimize") {
+            try {
+                await client.graphql(`mutation($id: ID!, $reason: ReportedContentClassifiers!) {
+            minimizeComment(input: { subjectId: $id, classifier: $reason }) {
+              minimizedComment { isMinimized }
+            }
+          }`, { id: action.id, reason: action.reason });
+                (0, safe_log_js_1.safeLog)(ref, "action:comment-minimized");
+            }
+            catch (err) {
+                core.warning(`Failed to minimize comment: ${String(err)}`);
+                softFailed = true;
+            }
+        }
+        else if (action.kind === "create") {
+            try {
+                const body = (0, comment_lifecycle_js_1.buildCommentBody)(violations, appliedFixes);
+                await client.graphql(`mutation($issueId: ID!, $body: String!) {
+            addComment(input: { subjectId: $issueId, body: $body }) {
+              commentEdge { node { id } }
+            }
+          }`, { issueId: `issue-${issue.number}`, body });
+                (0, safe_log_js_1.safeLog)(ref, "action:comment-posted");
+            }
+            catch (err) {
+                core.warning(`Failed to post comment: ${String(err)}`);
+                softFailed = true;
+            }
+        }
+    }
+    // Step 6: compute and apply label actions
+    const currentLabels = issue.labels.nodes.map((l) => l.name);
+    const labelActions = (0, label_lifecycle_js_1.computeLabelActions)(hasViolations, currentLabels);
+    for (const action of labelActions) {
+        try {
+            if (action.kind === "add") {
+                await client.graphql(`mutation($issueId: ID!, $labelIds: [ID!]!) {
+            addLabelsToLabelable(input: { labelableId: $issueId, labelIds: $labelIds }) {
+              labelable { __typename }
+            }
+          }`, { issueId: `issue-${issue.number}`, labelIds: [action.label] });
+            }
+            else {
+                await client.graphql(`mutation($issueId: ID!, $labelIds: [ID!]!) {
+            removeLabelsFromLabelable(input: { labelableId: $issueId, labelIds: $labelIds }) {
+              labelable { __typename }
+            }
+          }`, { issueId: `issue-${issue.number}`, labelIds: [action.label] });
+            }
+            (0, safe_log_js_1.safeLog)(ref, "action:label-applied", { add: action.kind === "add" });
+        }
+        catch (err) {
+            core.warning(`Failed to update label: ${String(err)}`);
+            softFailed = true;
+        }
+    }
+    if (hasViolations) {
+        (0, safe_log_js_1.safeLog)(ref, "check:multi-project", { count: violations.length });
+    }
+    return {
+        repo: owner,
+        number: issue.number,
+        violations: violations.length,
+        autoFixes: autoFixCount,
+        softFailed,
+    };
+}
+
+
+/***/ }),
+
+/***/ 9244:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.checkProjectMembership = checkProjectMembership;
+exports.resolvePrimaryProject = resolvePrimaryProject;
+const PITCH_TYPE = "Pitch";
+const TRIAGE_RE = /\] Triage$/;
+function isTriage(title) {
+    return TRIAGE_RE.test(title);
+}
+function checkProjectMembership(issue, triageProject) {
+    const isPitch = issue.issueType?.name === PITCH_TYPE;
+    const cap = isPitch ? 2 : 1;
+    const items = issue.projectItems.nodes;
+    if (items.length <= cap) {
+        return { violations: [], autoFixes: [] };
+    }
+    // Over cap — try auto-fix via Triage removal
+    if (triageProject != null) {
+        const triageItem = items.find((i) => i.project.id === triageProject.id);
+        if (triageItem != null) {
+            const fix = {
+                kind: "remove-from-project",
+                projectId: triageProject.id,
+                itemId: triageItem.id,
+                projectTitle: triageProject.title,
+            };
+            // After removing Triage the count drops by 1; re-check
+            if (items.length - 1 <= cap) {
+                return { violations: [], autoFixes: [fix] };
+            }
+            // Still over cap even after removing Triage — fix + flag
+            const remaining = items
+                .filter((i) => i.project.id !== triageProject.id)
+                .map((i) => i.project.title);
+            return {
+                violations: [buildMultiProjectViolation(remaining, isPitch)],
+                autoFixes: [fix],
+            };
+        }
+    }
+    // No auto-fix available — flag only
+    const titles = items.map((i) => i.project.title);
+    return {
+        violations: [buildMultiProjectViolation(titles, isPitch)],
+        autoFixes: [],
+    };
+}
+function buildMultiProjectViolation(titles, isPitch) {
+    const list = titles.map((t) => `_${t}_`).join(", ");
+    return (`This issue is in multiple projects: ${list}. ` +
+        `Remove it from all but one` +
+        (isPitch ? ` (Pitches may be in up to two projects).` : `.`));
+}
+const ROADMAP_RE = (repo) => new RegExp(`^[^\\s]+ \\[${escapeRegex(repo)}\\] Roadmap$`);
+function escapeRegex(s) {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+function repoPrefix(title, repo) {
+    return title.includes(`[${repo}]`) && !isTriage(title);
+}
+function resolvePrimaryProject(issue, allProjects, repoName) {
+    const projectIds = new Set(issue.projectItems.nodes.map((i) => i.project.id));
+    const issueProjects = allProjects.filter((p) => projectIds.has(p.id));
+    if (issueProjects.length === 0)
+        return null;
+    if (issueProjects.length === 1)
+        return issueProjects[0];
+    const isPitch = issue.issueType?.name === PITCH_TYPE;
+    if (isPitch) {
+        const roadmapRe = ROADMAP_RE(repoName);
+        const roadmap = issueProjects.find((p) => roadmapRe.test(p.title));
+        if (roadmap)
+            return roadmap;
+    }
+    // Repo-prefixed non-Triage, alphabetically first
+    const repoPrefixed = issueProjects
+        .filter((p) => repoPrefix(p.title, repoName))
+        .sort((a, b) => a.title.localeCompare(b.title));
+    if (repoPrefixed.length > 0)
+        return repoPrefixed[0];
+    // Triage
+    const triage = issueProjects.find((p) => isTriage(p.title));
+    if (triage)
+        return triage;
+    // First alphabetically
+    return issueProjects.sort((a, b) => a.title.localeCompare(b.title))[0];
+}
+
+
+/***/ }),
+
+/***/ 349:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.safeLog = safeLog;
+const core = __importStar(__nccwpck_require__(7484));
+function safeLog(ref, event, detail) {
+    core.info(`${ref.repo}#${ref.number} ${event}${detail ? " " + JSON.stringify(detail) : ""}`);
+}
 
 
 /***/ }),
@@ -27559,6 +28074,927 @@ function parseParams (str) {
 module.exports = parseParams
 
 
+/***/ }),
+
+/***/ 1120:
+/***/ ((module) => {
+
+"use strict";
+var __webpack_unused_export__;
+
+
+const NullObject = function NullObject () { }
+NullObject.prototype = Object.create(null)
+
+/**
+ * RegExp to match *( ";" parameter ) in RFC 7231 sec 3.1.1.1
+ *
+ * parameter     = token "=" ( token / quoted-string )
+ * token         = 1*tchar
+ * tchar         = "!" / "#" / "$" / "%" / "&" / "'" / "*"
+ *               / "+" / "-" / "." / "^" / "_" / "`" / "|" / "~"
+ *               / DIGIT / ALPHA
+ *               ; any VCHAR, except delimiters
+ * quoted-string = DQUOTE *( qdtext / quoted-pair ) DQUOTE
+ * qdtext        = HTAB / SP / %x21 / %x23-5B / %x5D-7E / obs-text
+ * obs-text      = %x80-FF
+ * quoted-pair   = "\" ( HTAB / SP / VCHAR / obs-text )
+ */
+const paramRE = /; *([!#$%&'*+.^\w`|~-]+)=("(?:[\v\u0020\u0021\u0023-\u005b\u005d-\u007e\u0080-\u00ff]|\\[\v\u0020-\u00ff])*"|[!#$%&'*+.^\w`|~-]+) */gu
+
+/**
+ * RegExp to match quoted-pair in RFC 7230 sec 3.2.6
+ *
+ * quoted-pair = "\" ( HTAB / SP / VCHAR / obs-text )
+ * obs-text    = %x80-FF
+ */
+const quotedPairRE = /\\([\v\u0020-\u00ff])/gu
+
+/**
+ * RegExp to match type in RFC 7231 sec 3.1.1.1
+ *
+ * media-type = type "/" subtype
+ * type       = token
+ * subtype    = token
+ */
+const mediaTypeRE = /^[!#$%&'*+.^\w|~-]+\/[!#$%&'*+.^\w|~-]+$/u
+
+// default ContentType to prevent repeated object creation
+const defaultContentType = { type: '', parameters: new NullObject() }
+Object.freeze(defaultContentType.parameters)
+Object.freeze(defaultContentType)
+
+/**
+ * Parse media type to object.
+ *
+ * @param {string|object} header
+ * @return {Object}
+ * @public
+ */
+
+function parse (header) {
+  if (typeof header !== 'string') {
+    throw new TypeError('argument header is required and must be a string')
+  }
+
+  let index = header.indexOf(';')
+  const type = index !== -1
+    ? header.slice(0, index).trim()
+    : header.trim()
+
+  if (mediaTypeRE.test(type) === false) {
+    throw new TypeError('invalid media type')
+  }
+
+  const result = {
+    type: type.toLowerCase(),
+    parameters: new NullObject()
+  }
+
+  // parse parameters
+  if (index === -1) {
+    return result
+  }
+
+  let key
+  let match
+  let value
+
+  paramRE.lastIndex = index
+
+  while ((match = paramRE.exec(header))) {
+    if (match.index !== index) {
+      throw new TypeError('invalid parameter format')
+    }
+
+    index += match[0].length
+    key = match[1].toLowerCase()
+    value = match[2]
+
+    if (value[0] === '"') {
+      // remove quotes and escapes
+      value = value
+        .slice(1, value.length - 1)
+
+      quotedPairRE.test(value) && (value = value.replace(quotedPairRE, '$1'))
+    }
+
+    result.parameters[key] = value
+  }
+
+  if (index !== header.length) {
+    throw new TypeError('invalid parameter format')
+  }
+
+  return result
+}
+
+function safeParse (header) {
+  if (typeof header !== 'string') {
+    return defaultContentType
+  }
+
+  let index = header.indexOf(';')
+  const type = index !== -1
+    ? header.slice(0, index).trim()
+    : header.trim()
+
+  if (mediaTypeRE.test(type) === false) {
+    return defaultContentType
+  }
+
+  const result = {
+    type: type.toLowerCase(),
+    parameters: new NullObject()
+  }
+
+  // parse parameters
+  if (index === -1) {
+    return result
+  }
+
+  let key
+  let match
+  let value
+
+  paramRE.lastIndex = index
+
+  while ((match = paramRE.exec(header))) {
+    if (match.index !== index) {
+      return defaultContentType
+    }
+
+    index += match[0].length
+    key = match[1].toLowerCase()
+    value = match[2]
+
+    if (value[0] === '"') {
+      // remove quotes and escapes
+      value = value
+        .slice(1, value.length - 1)
+
+      quotedPairRE.test(value) && (value = value.replace(quotedPairRE, '$1'))
+    }
+
+    result.parameters[key] = value
+  }
+
+  if (index !== header.length) {
+    return defaultContentType
+  }
+
+  return result
+}
+
+__webpack_unused_export__ = { parse, safeParse }
+__webpack_unused_export__ = parse
+module.exports.xL = safeParse
+__webpack_unused_export__ = defaultContentType
+
+
+/***/ }),
+
+/***/ 1119:
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __nccwpck_require__) => {
+
+"use strict";
+// ESM COMPAT FLAG
+__nccwpck_require__.r(__webpack_exports__);
+
+// EXPORTS
+__nccwpck_require__.d(__webpack_exports__, {
+  GraphqlResponseError: () => (/* binding */ GraphqlResponseError),
+  graphql: () => (/* binding */ graphql2),
+  withCustomRequest: () => (/* binding */ withCustomRequest)
+});
+
+;// CONCATENATED MODULE: ./node_modules/universal-user-agent/index.js
+function getUserAgent() {
+  if (typeof navigator === "object" && "userAgent" in navigator) {
+    return navigator.userAgent;
+  }
+
+  if (typeof process === "object" && process.version !== undefined) {
+    return `Node.js/${process.version.substr(1)} (${process.platform}; ${
+      process.arch
+    })`;
+  }
+
+  return "<environment undetectable>";
+}
+
+;// CONCATENATED MODULE: ./node_modules/@octokit/endpoint/dist-bundle/index.js
+// pkg/dist-src/defaults.js
+
+
+// pkg/dist-src/version.js
+var VERSION = "0.0.0-development";
+
+// pkg/dist-src/defaults.js
+var userAgent = `octokit-endpoint.js/${VERSION} ${getUserAgent()}`;
+var DEFAULTS = {
+  method: "GET",
+  baseUrl: "https://api.github.com",
+  headers: {
+    accept: "application/vnd.github.v3+json",
+    "user-agent": userAgent
+  },
+  mediaType: {
+    format: ""
+  }
+};
+
+// pkg/dist-src/util/lowercase-keys.js
+function lowercaseKeys(object) {
+  if (!object) {
+    return {};
+  }
+  return Object.keys(object).reduce((newObj, key) => {
+    newObj[key.toLowerCase()] = object[key];
+    return newObj;
+  }, {});
+}
+
+// pkg/dist-src/util/is-plain-object.js
+function isPlainObject(value) {
+  if (typeof value !== "object" || value === null) return false;
+  if (Object.prototype.toString.call(value) !== "[object Object]") return false;
+  const proto = Object.getPrototypeOf(value);
+  if (proto === null) return true;
+  const Ctor = Object.prototype.hasOwnProperty.call(proto, "constructor") && proto.constructor;
+  return typeof Ctor === "function" && Ctor instanceof Ctor && Function.prototype.call(Ctor) === Function.prototype.call(value);
+}
+
+// pkg/dist-src/util/merge-deep.js
+function mergeDeep(defaults, options) {
+  const result = Object.assign({}, defaults);
+  Object.keys(options).forEach((key) => {
+    if (isPlainObject(options[key])) {
+      if (!(key in defaults)) Object.assign(result, { [key]: options[key] });
+      else result[key] = mergeDeep(defaults[key], options[key]);
+    } else {
+      Object.assign(result, { [key]: options[key] });
+    }
+  });
+  return result;
+}
+
+// pkg/dist-src/util/remove-undefined-properties.js
+function removeUndefinedProperties(obj) {
+  for (const key in obj) {
+    if (obj[key] === void 0) {
+      delete obj[key];
+    }
+  }
+  return obj;
+}
+
+// pkg/dist-src/merge.js
+function merge(defaults, route, options) {
+  if (typeof route === "string") {
+    let [method, url] = route.split(" ");
+    options = Object.assign(url ? { method, url } : { url: method }, options);
+  } else {
+    options = Object.assign({}, route);
+  }
+  options.headers = lowercaseKeys(options.headers);
+  removeUndefinedProperties(options);
+  removeUndefinedProperties(options.headers);
+  const mergedOptions = mergeDeep(defaults || {}, options);
+  if (options.url === "/graphql") {
+    if (defaults && defaults.mediaType.previews?.length) {
+      mergedOptions.mediaType.previews = defaults.mediaType.previews.filter(
+        (preview) => !mergedOptions.mediaType.previews.includes(preview)
+      ).concat(mergedOptions.mediaType.previews);
+    }
+    mergedOptions.mediaType.previews = (mergedOptions.mediaType.previews || []).map((preview) => preview.replace(/-preview/, ""));
+  }
+  return mergedOptions;
+}
+
+// pkg/dist-src/util/add-query-parameters.js
+function addQueryParameters(url, parameters) {
+  const separator = /\?/.test(url) ? "&" : "?";
+  const names = Object.keys(parameters);
+  if (names.length === 0) {
+    return url;
+  }
+  return url + separator + names.map((name) => {
+    if (name === "q") {
+      return "q=" + parameters.q.split("+").map(encodeURIComponent).join("+");
+    }
+    return `${name}=${encodeURIComponent(parameters[name])}`;
+  }).join("&");
+}
+
+// pkg/dist-src/util/extract-url-variable-names.js
+var urlVariableRegex = /\{[^{}}]+\}/g;
+function removeNonChars(variableName) {
+  return variableName.replace(/(?:^\W+)|(?:(?<!\W)\W+$)/g, "").split(/,/);
+}
+function extractUrlVariableNames(url) {
+  const matches = url.match(urlVariableRegex);
+  if (!matches) {
+    return [];
+  }
+  return matches.map(removeNonChars).reduce((a, b) => a.concat(b), []);
+}
+
+// pkg/dist-src/util/omit.js
+function omit(object, keysToOmit) {
+  const result = { __proto__: null };
+  for (const key of Object.keys(object)) {
+    if (keysToOmit.indexOf(key) === -1) {
+      result[key] = object[key];
+    }
+  }
+  return result;
+}
+
+// pkg/dist-src/util/url-template.js
+function encodeReserved(str) {
+  return str.split(/(%[0-9A-Fa-f]{2})/g).map(function(part) {
+    if (!/%[0-9A-Fa-f]/.test(part)) {
+      part = encodeURI(part).replace(/%5B/g, "[").replace(/%5D/g, "]");
+    }
+    return part;
+  }).join("");
+}
+function encodeUnreserved(str) {
+  return encodeURIComponent(str).replace(/[!'()*]/g, function(c) {
+    return "%" + c.charCodeAt(0).toString(16).toUpperCase();
+  });
+}
+function encodeValue(operator, value, key) {
+  value = operator === "+" || operator === "#" ? encodeReserved(value) : encodeUnreserved(value);
+  if (key) {
+    return encodeUnreserved(key) + "=" + value;
+  } else {
+    return value;
+  }
+}
+function isDefined(value) {
+  return value !== void 0 && value !== null;
+}
+function isKeyOperator(operator) {
+  return operator === ";" || operator === "&" || operator === "?";
+}
+function getValues(context, operator, key, modifier) {
+  var value = context[key], result = [];
+  if (isDefined(value) && value !== "") {
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+      value = value.toString();
+      if (modifier && modifier !== "*") {
+        value = value.substring(0, parseInt(modifier, 10));
+      }
+      result.push(
+        encodeValue(operator, value, isKeyOperator(operator) ? key : "")
+      );
+    } else {
+      if (modifier === "*") {
+        if (Array.isArray(value)) {
+          value.filter(isDefined).forEach(function(value2) {
+            result.push(
+              encodeValue(operator, value2, isKeyOperator(operator) ? key : "")
+            );
+          });
+        } else {
+          Object.keys(value).forEach(function(k) {
+            if (isDefined(value[k])) {
+              result.push(encodeValue(operator, value[k], k));
+            }
+          });
+        }
+      } else {
+        const tmp = [];
+        if (Array.isArray(value)) {
+          value.filter(isDefined).forEach(function(value2) {
+            tmp.push(encodeValue(operator, value2));
+          });
+        } else {
+          Object.keys(value).forEach(function(k) {
+            if (isDefined(value[k])) {
+              tmp.push(encodeUnreserved(k));
+              tmp.push(encodeValue(operator, value[k].toString()));
+            }
+          });
+        }
+        if (isKeyOperator(operator)) {
+          result.push(encodeUnreserved(key) + "=" + tmp.join(","));
+        } else if (tmp.length !== 0) {
+          result.push(tmp.join(","));
+        }
+      }
+    }
+  } else {
+    if (operator === ";") {
+      if (isDefined(value)) {
+        result.push(encodeUnreserved(key));
+      }
+    } else if (value === "" && (operator === "&" || operator === "?")) {
+      result.push(encodeUnreserved(key) + "=");
+    } else if (value === "") {
+      result.push("");
+    }
+  }
+  return result;
+}
+function parseUrl(template) {
+  return {
+    expand: expand.bind(null, template)
+  };
+}
+function expand(template, context) {
+  var operators = ["+", "#", ".", "/", ";", "?", "&"];
+  template = template.replace(
+    /\{([^\{\}]+)\}|([^\{\}]+)/g,
+    function(_, expression, literal) {
+      if (expression) {
+        let operator = "";
+        const values = [];
+        if (operators.indexOf(expression.charAt(0)) !== -1) {
+          operator = expression.charAt(0);
+          expression = expression.substr(1);
+        }
+        expression.split(/,/g).forEach(function(variable) {
+          var tmp = /([^:\*]*)(?::(\d+)|(\*))?/.exec(variable);
+          values.push(getValues(context, operator, tmp[1], tmp[2] || tmp[3]));
+        });
+        if (operator && operator !== "+") {
+          var separator = ",";
+          if (operator === "?") {
+            separator = "&";
+          } else if (operator !== "#") {
+            separator = operator;
+          }
+          return (values.length !== 0 ? operator : "") + values.join(separator);
+        } else {
+          return values.join(",");
+        }
+      } else {
+        return encodeReserved(literal);
+      }
+    }
+  );
+  if (template === "/") {
+    return template;
+  } else {
+    return template.replace(/\/$/, "");
+  }
+}
+
+// pkg/dist-src/parse.js
+function parse(options) {
+  let method = options.method.toUpperCase();
+  let url = (options.url || "/").replace(/:([a-z]\w+)/g, "{$1}");
+  let headers = Object.assign({}, options.headers);
+  let body;
+  let parameters = omit(options, [
+    "method",
+    "baseUrl",
+    "url",
+    "headers",
+    "request",
+    "mediaType"
+  ]);
+  const urlVariableNames = extractUrlVariableNames(url);
+  url = parseUrl(url).expand(parameters);
+  if (!/^http/.test(url)) {
+    url = options.baseUrl + url;
+  }
+  const omittedParameters = Object.keys(options).filter((option) => urlVariableNames.includes(option)).concat("baseUrl");
+  const remainingParameters = omit(parameters, omittedParameters);
+  const isBinaryRequest = /application\/octet-stream/i.test(headers.accept);
+  if (!isBinaryRequest) {
+    if (options.mediaType.format) {
+      headers.accept = headers.accept.split(/,/).map(
+        (format) => format.replace(
+          /application\/vnd(\.\w+)(\.v3)?(\.\w+)?(\+json)?$/,
+          `application/vnd$1$2.${options.mediaType.format}`
+        )
+      ).join(",");
+    }
+    if (url.endsWith("/graphql")) {
+      if (options.mediaType.previews?.length) {
+        const previewsFromAcceptHeader = headers.accept.match(/(?<![\w-])[\w-]+(?=-preview)/g) || [];
+        headers.accept = previewsFromAcceptHeader.concat(options.mediaType.previews).map((preview) => {
+          const format = options.mediaType.format ? `.${options.mediaType.format}` : "+json";
+          return `application/vnd.github.${preview}-preview${format}`;
+        }).join(",");
+      }
+    }
+  }
+  if (["GET", "HEAD"].includes(method)) {
+    url = addQueryParameters(url, remainingParameters);
+  } else {
+    if ("data" in remainingParameters) {
+      body = remainingParameters.data;
+    } else {
+      if (Object.keys(remainingParameters).length) {
+        body = remainingParameters;
+      }
+    }
+  }
+  if (!headers["content-type"] && typeof body !== "undefined") {
+    headers["content-type"] = "application/json; charset=utf-8";
+  }
+  if (["PATCH", "PUT"].includes(method) && typeof body === "undefined") {
+    body = "";
+  }
+  return Object.assign(
+    { method, url, headers },
+    typeof body !== "undefined" ? { body } : null,
+    options.request ? { request: options.request } : null
+  );
+}
+
+// pkg/dist-src/endpoint-with-defaults.js
+function endpointWithDefaults(defaults, route, options) {
+  return parse(merge(defaults, route, options));
+}
+
+// pkg/dist-src/with-defaults.js
+function withDefaults(oldDefaults, newDefaults) {
+  const DEFAULTS2 = merge(oldDefaults, newDefaults);
+  const endpoint2 = endpointWithDefaults.bind(null, DEFAULTS2);
+  return Object.assign(endpoint2, {
+    DEFAULTS: DEFAULTS2,
+    defaults: withDefaults.bind(null, DEFAULTS2),
+    merge: merge.bind(null, DEFAULTS2),
+    parse
+  });
+}
+
+// pkg/dist-src/index.js
+var endpoint = withDefaults(null, DEFAULTS);
+
+
+// EXTERNAL MODULE: ./node_modules/fast-content-type-parse/index.js
+var fast_content_type_parse = __nccwpck_require__(1120);
+;// CONCATENATED MODULE: ./node_modules/@octokit/request-error/dist-src/index.js
+class RequestError extends Error {
+  name;
+  /**
+   * http status code
+   */
+  status;
+  /**
+   * Request options that lead to the error.
+   */
+  request;
+  /**
+   * Response object if a response was received
+   */
+  response;
+  constructor(message, statusCode, options) {
+    super(message);
+    this.name = "HttpError";
+    this.status = Number.parseInt(statusCode);
+    if (Number.isNaN(this.status)) {
+      this.status = 0;
+    }
+    if ("response" in options) {
+      this.response = options.response;
+    }
+    const requestCopy = Object.assign({}, options.request);
+    if (options.request.headers.authorization) {
+      requestCopy.headers = Object.assign({}, options.request.headers, {
+        authorization: options.request.headers.authorization.replace(
+          /(?<! ) .*$/,
+          " [REDACTED]"
+        )
+      });
+    }
+    requestCopy.url = requestCopy.url.replace(/\bclient_secret=\w+/g, "client_secret=[REDACTED]").replace(/\baccess_token=\w+/g, "access_token=[REDACTED]");
+    this.request = requestCopy;
+  }
+}
+
+
+;// CONCATENATED MODULE: ./node_modules/@octokit/request/dist-bundle/index.js
+// pkg/dist-src/index.js
+
+
+// pkg/dist-src/defaults.js
+
+
+// pkg/dist-src/version.js
+var dist_bundle_VERSION = "9.2.4";
+
+// pkg/dist-src/defaults.js
+var defaults_default = {
+  headers: {
+    "user-agent": `octokit-request.js/${dist_bundle_VERSION} ${getUserAgent()}`
+  }
+};
+
+// pkg/dist-src/fetch-wrapper.js
+
+
+// pkg/dist-src/is-plain-object.js
+function dist_bundle_isPlainObject(value) {
+  if (typeof value !== "object" || value === null) return false;
+  if (Object.prototype.toString.call(value) !== "[object Object]") return false;
+  const proto = Object.getPrototypeOf(value);
+  if (proto === null) return true;
+  const Ctor = Object.prototype.hasOwnProperty.call(proto, "constructor") && proto.constructor;
+  return typeof Ctor === "function" && Ctor instanceof Ctor && Function.prototype.call(Ctor) === Function.prototype.call(value);
+}
+
+// pkg/dist-src/fetch-wrapper.js
+
+async function fetchWrapper(requestOptions) {
+  const fetch = requestOptions.request?.fetch || globalThis.fetch;
+  if (!fetch) {
+    throw new Error(
+      "fetch is not set. Please pass a fetch implementation as new Octokit({ request: { fetch }}). Learn more at https://github.com/octokit/octokit.js/#fetch-missing"
+    );
+  }
+  const log = requestOptions.request?.log || console;
+  const parseSuccessResponseBody = requestOptions.request?.parseSuccessResponseBody !== false;
+  const body = dist_bundle_isPlainObject(requestOptions.body) || Array.isArray(requestOptions.body) ? JSON.stringify(requestOptions.body) : requestOptions.body;
+  const requestHeaders = Object.fromEntries(
+    Object.entries(requestOptions.headers).map(([name, value]) => [
+      name,
+      String(value)
+    ])
+  );
+  let fetchResponse;
+  try {
+    fetchResponse = await fetch(requestOptions.url, {
+      method: requestOptions.method,
+      body,
+      redirect: requestOptions.request?.redirect,
+      headers: requestHeaders,
+      signal: requestOptions.request?.signal,
+      // duplex must be set if request.body is ReadableStream or Async Iterables.
+      // See https://fetch.spec.whatwg.org/#dom-requestinit-duplex.
+      ...requestOptions.body && { duplex: "half" }
+    });
+  } catch (error) {
+    let message = "Unknown Error";
+    if (error instanceof Error) {
+      if (error.name === "AbortError") {
+        error.status = 500;
+        throw error;
+      }
+      message = error.message;
+      if (error.name === "TypeError" && "cause" in error) {
+        if (error.cause instanceof Error) {
+          message = error.cause.message;
+        } else if (typeof error.cause === "string") {
+          message = error.cause;
+        }
+      }
+    }
+    const requestError = new RequestError(message, 500, {
+      request: requestOptions
+    });
+    requestError.cause = error;
+    throw requestError;
+  }
+  const status = fetchResponse.status;
+  const url = fetchResponse.url;
+  const responseHeaders = {};
+  for (const [key, value] of fetchResponse.headers) {
+    responseHeaders[key] = value;
+  }
+  const octokitResponse = {
+    url,
+    status,
+    headers: responseHeaders,
+    data: ""
+  };
+  if ("deprecation" in responseHeaders) {
+    const matches = responseHeaders.link && responseHeaders.link.match(/<([^<>]+)>; rel="deprecation"/);
+    const deprecationLink = matches && matches.pop();
+    log.warn(
+      `[@octokit/request] "${requestOptions.method} ${requestOptions.url}" is deprecated. It is scheduled to be removed on ${responseHeaders.sunset}${deprecationLink ? `. See ${deprecationLink}` : ""}`
+    );
+  }
+  if (status === 204 || status === 205) {
+    return octokitResponse;
+  }
+  if (requestOptions.method === "HEAD") {
+    if (status < 400) {
+      return octokitResponse;
+    }
+    throw new RequestError(fetchResponse.statusText, status, {
+      response: octokitResponse,
+      request: requestOptions
+    });
+  }
+  if (status === 304) {
+    octokitResponse.data = await getResponseData(fetchResponse);
+    throw new RequestError("Not modified", status, {
+      response: octokitResponse,
+      request: requestOptions
+    });
+  }
+  if (status >= 400) {
+    octokitResponse.data = await getResponseData(fetchResponse);
+    throw new RequestError(toErrorMessage(octokitResponse.data), status, {
+      response: octokitResponse,
+      request: requestOptions
+    });
+  }
+  octokitResponse.data = parseSuccessResponseBody ? await getResponseData(fetchResponse) : fetchResponse.body;
+  return octokitResponse;
+}
+async function getResponseData(response) {
+  const contentType = response.headers.get("content-type");
+  if (!contentType) {
+    return response.text().catch(() => "");
+  }
+  const mimetype = (0,fast_content_type_parse/* safeParse */.xL)(contentType);
+  if (isJSONResponse(mimetype)) {
+    let text = "";
+    try {
+      text = await response.text();
+      return JSON.parse(text);
+    } catch (err) {
+      return text;
+    }
+  } else if (mimetype.type.startsWith("text/") || mimetype.parameters.charset?.toLowerCase() === "utf-8") {
+    return response.text().catch(() => "");
+  } else {
+    return response.arrayBuffer().catch(() => new ArrayBuffer(0));
+  }
+}
+function isJSONResponse(mimetype) {
+  return mimetype.type === "application/json" || mimetype.type === "application/scim+json";
+}
+function toErrorMessage(data) {
+  if (typeof data === "string") {
+    return data;
+  }
+  if (data instanceof ArrayBuffer) {
+    return "Unknown error";
+  }
+  if ("message" in data) {
+    const suffix = "documentation_url" in data ? ` - ${data.documentation_url}` : "";
+    return Array.isArray(data.errors) ? `${data.message}: ${data.errors.map((v) => JSON.stringify(v)).join(", ")}${suffix}` : `${data.message}${suffix}`;
+  }
+  return `Unknown error: ${JSON.stringify(data)}`;
+}
+
+// pkg/dist-src/with-defaults.js
+function dist_bundle_withDefaults(oldEndpoint, newDefaults) {
+  const endpoint2 = oldEndpoint.defaults(newDefaults);
+  const newApi = function(route, parameters) {
+    const endpointOptions = endpoint2.merge(route, parameters);
+    if (!endpointOptions.request || !endpointOptions.request.hook) {
+      return fetchWrapper(endpoint2.parse(endpointOptions));
+    }
+    const request2 = (route2, parameters2) => {
+      return fetchWrapper(
+        endpoint2.parse(endpoint2.merge(route2, parameters2))
+      );
+    };
+    Object.assign(request2, {
+      endpoint: endpoint2,
+      defaults: dist_bundle_withDefaults.bind(null, endpoint2)
+    });
+    return endpointOptions.request.hook(request2, endpointOptions);
+  };
+  return Object.assign(newApi, {
+    endpoint: endpoint2,
+    defaults: dist_bundle_withDefaults.bind(null, endpoint2)
+  });
+}
+
+// pkg/dist-src/index.js
+var request = dist_bundle_withDefaults(endpoint, defaults_default);
+
+
+;// CONCATENATED MODULE: ./node_modules/@octokit/graphql/dist-bundle/index.js
+// pkg/dist-src/index.js
+
+
+
+// pkg/dist-src/version.js
+var graphql_dist_bundle_VERSION = "0.0.0-development";
+
+// pkg/dist-src/with-defaults.js
+
+
+// pkg/dist-src/graphql.js
+
+
+// pkg/dist-src/error.js
+function _buildMessageForResponseErrors(data) {
+  return `Request failed due to following response errors:
+` + data.errors.map((e) => ` - ${e.message}`).join("\n");
+}
+var GraphqlResponseError = class extends Error {
+  constructor(request2, headers, response) {
+    super(_buildMessageForResponseErrors(response));
+    this.request = request2;
+    this.headers = headers;
+    this.response = response;
+    this.errors = response.errors;
+    this.data = response.data;
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, this.constructor);
+    }
+  }
+  name = "GraphqlResponseError";
+  errors;
+  data;
+};
+
+// pkg/dist-src/graphql.js
+var NON_VARIABLE_OPTIONS = [
+  "method",
+  "baseUrl",
+  "url",
+  "headers",
+  "request",
+  "query",
+  "mediaType",
+  "operationName"
+];
+var FORBIDDEN_VARIABLE_OPTIONS = ["query", "method", "url"];
+var GHES_V3_SUFFIX_REGEX = /\/api\/v3\/?$/;
+function graphql(request2, query, options) {
+  if (options) {
+    if (typeof query === "string" && "query" in options) {
+      return Promise.reject(
+        new Error(`[@octokit/graphql] "query" cannot be used as variable name`)
+      );
+    }
+    for (const key in options) {
+      if (!FORBIDDEN_VARIABLE_OPTIONS.includes(key)) continue;
+      return Promise.reject(
+        new Error(
+          `[@octokit/graphql] "${key}" cannot be used as variable name`
+        )
+      );
+    }
+  }
+  const parsedOptions = typeof query === "string" ? Object.assign({ query }, options) : query;
+  const requestOptions = Object.keys(
+    parsedOptions
+  ).reduce((result, key) => {
+    if (NON_VARIABLE_OPTIONS.includes(key)) {
+      result[key] = parsedOptions[key];
+      return result;
+    }
+    if (!result.variables) {
+      result.variables = {};
+    }
+    result.variables[key] = parsedOptions[key];
+    return result;
+  }, {});
+  const baseUrl = parsedOptions.baseUrl || request2.endpoint.DEFAULTS.baseUrl;
+  if (GHES_V3_SUFFIX_REGEX.test(baseUrl)) {
+    requestOptions.url = baseUrl.replace(GHES_V3_SUFFIX_REGEX, "/api/graphql");
+  }
+  return request2(requestOptions).then((response) => {
+    if (response.data.errors) {
+      const headers = {};
+      for (const key of Object.keys(response.headers)) {
+        headers[key] = response.headers[key];
+      }
+      throw new GraphqlResponseError(
+        requestOptions,
+        headers,
+        response.data
+      );
+    }
+    return response.data.data;
+  });
+}
+
+// pkg/dist-src/with-defaults.js
+function graphql_dist_bundle_withDefaults(request2, newDefaults) {
+  const newRequest = request2.defaults(newDefaults);
+  const newApi = (query, options) => {
+    return graphql(newRequest, query, options);
+  };
+  return Object.assign(newApi, {
+    defaults: graphql_dist_bundle_withDefaults.bind(null, newRequest),
+    endpoint: newRequest.endpoint
+  });
+}
+
+// pkg/dist-src/index.js
+var graphql2 = graphql_dist_bundle_withDefaults(request, {
+  headers: {
+    "user-agent": `octokit-graphql.js/${graphql_dist_bundle_VERSION} ${getUserAgent()}`
+  },
+  method: "POST",
+  url: "/graphql"
+});
+function withCustomRequest(customRequest) {
+  return graphql_dist_bundle_withDefaults(customRequest, {
+    method: "POST",
+    url: "/graphql"
+  });
+}
+
+
+
 /***/ })
 
 /******/ 	});
@@ -27594,6 +29030,34 @@ module.exports = parseParams
 /******/ 	}
 /******/ 	
 /************************************************************************/
+/******/ 	/* webpack/runtime/define property getters */
+/******/ 	(() => {
+/******/ 		// define getter functions for harmony exports
+/******/ 		__nccwpck_require__.d = (exports, definition) => {
+/******/ 			for(var key in definition) {
+/******/ 				if(__nccwpck_require__.o(definition, key) && !__nccwpck_require__.o(exports, key)) {
+/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+/******/ 				}
+/******/ 			}
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
+/******/ 	(() => {
+/******/ 		__nccwpck_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/make namespace object */
+/******/ 	(() => {
+/******/ 		// define __esModule on exports
+/******/ 		__nccwpck_require__.r = (exports) => {
+/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 			}
+/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 		};
+/******/ 	})();
+/******/ 	
 /******/ 	/* webpack/runtime/compat */
 /******/ 	
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";
