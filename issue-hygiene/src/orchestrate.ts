@@ -24,6 +24,7 @@ export async function processIssue(
   issue: RepoIssue,
   allProjects: OrgProject[],
   repoTriageProject: OrgProject | null,
+  labelIds: Map<string, string>,
 ): Promise<IssueStats> {
   const ref: IssueRef = { repo: owner, number: issue.number };
   let softFailed = false;
@@ -120,6 +121,11 @@ export async function processIssue(
   const labelActions = computeLabelActions(hasViolations, currentLabels);
 
   for (const action of labelActions) {
+    const labelId = labelIds.get(action.label);
+    if (labelId == null) {
+      core.warning(`Label "${action.label}" not found in repo — skipping.`);
+      continue;
+    }
     try {
       if (action.kind === "add") {
         await client.graphql(
@@ -128,7 +134,7 @@ export async function processIssue(
               labelable { __typename }
             }
           }`,
-          { issueId: issue.id, labelIds: [action.label] },
+          { issueId: issue.id, labelIds: [labelId] },
         );
       } else {
         await client.graphql(
@@ -137,7 +143,7 @@ export async function processIssue(
               labelable { __typename }
             }
           }`,
-          { issueId: issue.id, labelIds: [action.label] },
+          { issueId: issue.id, labelIds: [labelId] },
         );
       }
       safeLog(ref, "action:label-applied", { add: action.kind === "add" });
