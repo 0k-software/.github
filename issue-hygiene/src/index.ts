@@ -1,6 +1,6 @@
 import * as core from "@actions/core";
 import { graphql as graphqlFn } from "@octokit/graphql";
-import { queryOrgProjects, queryRepoIssues } from "./graphql.js";
+import { queryOrgProjects, queryRepoIssues, queryRepoLabels } from "./graphql.js";
 import type { GraphqlClient } from "./graphql.js";
 import { processIssue } from "./orchestrate.js";
 
@@ -33,10 +33,14 @@ async function run(): Promise<void> {
     const triageProject = triageProjects[0] ?? null;
 
     let issues: Awaited<ReturnType<typeof queryRepoIssues>>;
+    let labelIds: Map<string, string>;
     try {
-      issues = await queryRepoIssues(client, org, repo);
+      [issues, labelIds] = await Promise.all([
+        queryRepoIssues(client, org, repo),
+        queryRepoLabels(client, org, repo),
+      ]);
     } catch (err) {
-      core.warning(`Failed to fetch issues for ${repo}: ${String(err)}`);
+      core.warning(`Failed to fetch data for ${repo}: ${String(err)}`);
       totalSoftFailed++;
       continue;
     }
@@ -48,6 +52,7 @@ async function run(): Promise<void> {
         issue,
         allProjects,
         triageProject,
+        labelIds,
       );
       totalViolations += stats.violations;
       totalAutoFixes += stats.autoFixes;

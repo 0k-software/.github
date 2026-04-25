@@ -91,6 +91,32 @@ export async function queryOrgProjects(
   return { projectsByRepo, allProjects };
 }
 
+export type RepoLabel = { id: string; name: string };
+
+export async function queryRepoLabels(
+  client: GraphqlClient,
+  owner: string,
+  repo: string,
+): Promise<Map<string, string>> {
+  const data = await withRetry(() =>
+    client.graphql<{
+      repository: { labels: { nodes: Array<{ id: string; name: string }> } };
+    }>(
+      `query($owner: String!, $repo: String!) {
+        repository(owner: $owner, name: $repo) {
+          labels(first: 100) { nodes { id name } }
+        }
+      }`,
+      { owner, repo },
+    ),
+  );
+  const map = new Map<string, string>();
+  for (const label of data.repository.labels.nodes) {
+    map.set(label.name, label.id);
+  }
+  return map;
+}
+
 export async function queryRepoIssues(
   client: GraphqlClient,
   owner: string,
