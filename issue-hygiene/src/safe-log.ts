@@ -15,7 +15,7 @@ export type LogEvent =
   | "action:comment-posted"
   | "action:comment-minimized"
   | "action:label-applied"
-  | "warn:no-triage-project";
+  | "warn:auto-fix-remove-project-failed";
 
 // Structurally forbids strings — no issue content can leak into logs
 export type SafeDetail = Record<string, number | boolean | null>;
