@@ -292,7 +292,7 @@ already exists). Add the daily cron workflow as
 name: Issue Hygiene
 on:
   schedule:
-    - cron: "0 6 * * *"
+    - cron: "0 3 * * *"
   workflow_dispatch:
 jobs:
   run:
