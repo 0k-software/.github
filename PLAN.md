@@ -26,7 +26,7 @@ private repo `0k-software/.github-private` to keep workflow logs private.
 ## Steps
 
 - [x] [Step 1: Scaffold `issue-hygiene/` action directory](#step-1-scaffold-issue-hygiene-action-directory)
-- [ ] [Step 2: Implement `safeLog` and privacy-safe detail type](#step-2-implement-safelog-and-privacy-safe-detail-type)
+- [x] [Step 2: Implement `safeLog` and privacy-safe detail type](#step-2-implement-safelog-and-privacy-safe-detail-type)
 - [ ] [Step 3: Implement GraphQL org-project discovery with bounded retry](#step-3-implement-graphql-org-project-discovery-with-bounded-retry)
 - [ ] [Step 4: Implement Rule 1 and primary-project tie-breaker as pure functions with unit tests](#step-4-implement-rule-1-and-primary-project-tie-breaker-as-pure-functions-with-unit-tests)
 - [ ] [Step 5: Implement sticky-comment and label state machines with unit tests](#step-5-implement-sticky-comment-and-label-state-machines-with-unit-tests)
