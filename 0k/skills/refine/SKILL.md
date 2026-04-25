@@ -106,11 +106,14 @@ plan-init.
   for everything that follows. After fetching, apply the `in progress` label:
 
   ```bash
+  remote_url=$(git remote get-url origin)
+  remote_url=${remote_url%.git}
+  owner_repo=$(echo "$remote_url" | sed 's|.*github\.com[/:]||')
   TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
   curl -s -X POST \
     -H "Authorization: Bearer $TOKEN" \
     -H "Accept: application/vnd.github+json" \
-    "https://api.github.com/repos/{owner}/{repo}/issues/{issue-number}/labels" \
+    "https://api.github.com/repos/$owner_repo/issues/{issue-number}/labels" \
     -d '{"labels":["in progress"]}' > /dev/null 2>&1 || true
   ```
 
@@ -244,15 +247,19 @@ before proceeding:
 Remove `in progress` and apply `to review` to signal the handoff:
 
 ```bash
+remote_url=$(git remote get-url origin)
+remote_url=${remote_url%.git}
+owner_repo=$(echo "$remote_url" | sed 's|.*github\.com[/:]||')
+TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
 curl -s -X DELETE \
   -H "Authorization: Bearer $TOKEN" \
   -H "Accept: application/vnd.github+json" \
-  "https://api.github.com/repos/{owner}/{repo}/issues/{issue-number}/labels/in%20progress" \
+  "https://api.github.com/repos/$owner_repo/issues/{issue-number}/labels/in%20progress" \
   > /dev/null 2>&1 || true
 curl -s -X POST \
   -H "Authorization: Bearer $TOKEN" \
   -H "Accept: application/vnd.github+json" \
-  "https://api.github.com/repos/{owner}/{repo}/issues/{issue-number}/labels" \
+  "https://api.github.com/repos/$owner_repo/issues/{issue-number}/labels" \
   -d '{"labels":["to review"]}' > /dev/null 2>&1 || true
 ```
 

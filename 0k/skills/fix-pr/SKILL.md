@@ -304,11 +304,14 @@ what to implement).
 Apply `in progress` to the PR:
 
 ```bash
+remote_url=$(git remote get-url origin)
+remote_url=${remote_url%.git}
+owner_repo=$(echo "$remote_url" | sed 's|.*github\.com[/:]||')
 TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
 curl -s -X POST \
   -H "Authorization: Bearer $TOKEN" \
   -H "Accept: application/vnd.github+json" \
-  "https://api.github.com/repos/{owner}/{repo}/issues/{pr-number}/labels" \
+  "https://api.github.com/repos/$owner_repo/issues/{pr-number}/labels" \
   -d '{"labels":["in progress"]}' > /dev/null 2>&1 || true
 ```
 
@@ -479,15 +482,19 @@ Repeat this loop for every addressed thread.
 Remove `in progress` and apply `to review`:
 
 ```bash
+remote_url=$(git remote get-url origin)
+remote_url=${remote_url%.git}
+owner_repo=$(echo "$remote_url" | sed 's|.*github\.com[/:]||')
+TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
 curl -s -X DELETE \
   -H "Authorization: Bearer $TOKEN" \
   -H "Accept: application/vnd.github+json" \
-  "https://api.github.com/repos/{owner}/{repo}/issues/{pr-number}/labels/in%20progress" \
+  "https://api.github.com/repos/$owner_repo/issues/{pr-number}/labels/in%20progress" \
   > /dev/null 2>&1 || true
 curl -s -X POST \
   -H "Authorization: Bearer $TOKEN" \
   -H "Accept: application/vnd.github+json" \
-  "https://api.github.com/repos/{owner}/{repo}/issues/{pr-number}/labels" \
+  "https://api.github.com/repos/$owner_repo/issues/{pr-number}/labels" \
   -d '{"labels":["to review"]}' > /dev/null 2>&1 || true
 ```
 
