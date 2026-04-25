@@ -122,35 +122,45 @@ export async function queryRepoIssues(
   owner: string,
   repo: string,
 ): Promise<RepoIssue[]> {
-  const data = await withRetry(() =>
-    client.graphql<{
-      repository: {
-        issues: {
-          nodes: RepoIssue[];
-          pageInfo: { hasNextPage: boolean; endCursor: string | null };
-        };
-      };
-    }>(
-      `query($owner: String!, $repo: String!, $cursor: String) {
-        repository(owner: $owner, name: $repo) {
-          issues(first: 100, states: OPEN, after: $cursor) {
-            nodes {
-              id
-              number
-              issueType { name }
-              projectItems(first: 20) {
-                nodes { id project { id title } }
-              }
-              labels(first: 20) { nodes { name } }
-              comments(last: 100) { nodes { id body minimizedReason } }
-            }
-            pageInfo { hasNextPage endCursor }
-          }
-        }
-      }`,
-      { owner, repo, cursor: null },
-    ),
-  );
+  const issues: RepoIssue[] = [];
+  let cursor: string | null = null;
+  let hasNextPage = true;
 
-  return data.repository.issues.nodes;
+  while (hasNextPage) {
+    const data = await withRetry(() =>
+      client.graphql<{
+        repository: {
+          issues: {
+            nodes: RepoIssue[];
+            pageInfo: { hasNextPage: boolean; endCursor: string | null };
+          };
+        };
+      }>(
+        `query($owner: String!, $repo: String!, $cursor: String) {
+          repository(owner: $owner, name: $repo) {
+            issues(first: 100, states: OPEN, after: $cursor) {
+              nodes {
+                id
+                number
+                issueType { name }
+                projectItems(first: 20) {
+                  nodes { id project { id title } }
+                }
+                labels(first: 20) { nodes { name } }
+                comments(last: 100) { nodes { id body minimizedReason } }
+              }
+              pageInfo { hasNextPage endCursor }
+            }
+          }
+        }`,
+        { owner, repo, cursor },
+      ),
+    );
+
+    issues.push(...data.repository.issues.nodes);
+    hasNextPage = data.repository.issues.pageInfo.hasNextPage;
+    cursor = data.repository.issues.pageInfo.endCursor;
+  }
+
+  return issues;
 }
