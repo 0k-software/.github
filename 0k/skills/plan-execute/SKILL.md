@@ -17,22 +17,19 @@ Run every remaining step in PLAN.md, one after another, until none are left.
 
 1. Derive the issue number and repo, then apply `in progress`:
 
+   Infer the issue number from `$ARGUMENTS` if provided (bare number or issue
+   URL), or from the current branch name if it starts with digits (e.g.
+   `42-some-feature`), or ask the user if neither yields a number. Then run:
+
    ```bash
-   branch_name=$(git branch --show-current)
-   issue_number=${branch_name%%[^0-9]*}
    remote_url=$(git remote get-url origin)
    remote_url=${remote_url%.git}
    owner_repo=$(echo "$remote_url" | sed 's|.*github\.com[/:]||')
-   if [ -z "$issue_number" ]; then
-     # Branch name doesn't start with digits — ask the user for the issue number
-     echo "Could not derive issue number from branch '$branch_name'. Please provide it:"
-     read -r issue_number
-   fi
    TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
    curl -s -X POST \
      -H "Authorization: Bearer $TOKEN" \
      -H "Accept: application/vnd.github+json" \
-     "https://api.github.com/repos/$owner_repo/issues/$issue_number/labels" \
+     "https://api.github.com/repos/$owner_repo/issues/{issue-number}/labels" \
      -d '{"labels":["in progress"]}' > /dev/null 2>&1 || true
    ```
 
@@ -75,11 +72,11 @@ remain).
    curl -s -X DELETE \
      -H "Authorization: Bearer $TOKEN" \
      -H "Accept: application/vnd.github+json" \
-     "https://api.github.com/repos/$owner_repo/issues/$issue_number/labels/in%20progress" \
+     "https://api.github.com/repos/$owner_repo/issues/{issue-number}/labels/in%20progress" \
      > /dev/null 2>&1 || true
    curl -s -X POST \
      -H "Authorization: Bearer $TOKEN" \
      -H "Accept: application/vnd.github+json" \
-     "https://api.github.com/repos/$owner_repo/issues/$issue_number/labels" \
+     "https://api.github.com/repos/$owner_repo/issues/{issue-number}/labels" \
      -d '{"labels":["to review"]}' > /dev/null 2>&1 || true
    ```
