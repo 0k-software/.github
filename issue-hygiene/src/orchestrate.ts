@@ -68,8 +68,8 @@ export async function processIssue(
   // Step 5: compute and apply comment actions
   const existingBotComments = issue.comments.nodes
     .filter((c) => c.body.includes(BOT_MARKER))
-    .map((c, i) => ({
-      id: `comment-${issue.number}-${i}`,
+    .map((c) => ({
+      id: c.id,
       body: c.body,
       minimizedReason: c.minimizedReason,
     }));
@@ -105,7 +105,7 @@ export async function processIssue(
               commentEdge { node { id } }
             }
           }`,
-          { issueId: `issue-${issue.number}`, body },
+          { issueId: issue.id, body },
         );
         safeLog(ref, "action:comment-posted");
       } catch (err) {
@@ -128,7 +128,7 @@ export async function processIssue(
               labelable { __typename }
             }
           }`,
-          { issueId: `issue-${issue.number}`, labelIds: [action.label] },
+          { issueId: issue.id, labelIds: [action.label] },
         );
       } else {
         await client.graphql(
@@ -137,7 +137,7 @@ export async function processIssue(
               labelable { __typename }
             }
           }`,
-          { issueId: `issue-${issue.number}`, labelIds: [action.label] },
+          { issueId: issue.id, labelIds: [action.label] },
         );
       }
       safeLog(ref, "action:label-applied", { add: action.kind === "add" });

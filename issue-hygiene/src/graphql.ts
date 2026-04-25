@@ -4,6 +4,7 @@ export type OrgProject = {
 };
 
 export type RepoIssue = {
+  id: string;
   number: number;
   issueType: { name: string } | null;
   projectItems: {
@@ -14,7 +15,7 @@ export type RepoIssue = {
   };
   labels: { nodes: Array<{ name: string }> };
   comments: {
-    nodes: Array<{ body: string; minimizedReason: string | null }>;
+    nodes: Array<{ id: string; body: string; minimizedReason: string | null }>;
   };
 };
 
@@ -108,13 +109,14 @@ export async function queryRepoIssues(
         repository(owner: $owner, name: $repo) {
           issues(first: 100, states: OPEN, after: $cursor) {
             nodes {
+              id
               number
               issueType { name }
               projectItems(first: 20) {
                 nodes { id project { id title } }
               }
               labels(first: 20) { nodes { name } }
-              comments(last: 100) { nodes { body minimizedReason } }
+              comments(last: 100) { nodes { id body minimizedReason } }
             }
             pageInfo { hasNextPage endCursor }
           }
