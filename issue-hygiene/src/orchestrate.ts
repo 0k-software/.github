@@ -16,6 +16,7 @@ export type IssueStats = {
   violations: number;
   autoFixes: number;
   softFailed: boolean;
+  primaryProject: OrgProject | null;
 };
 
 export async function processIssue(
@@ -50,7 +51,7 @@ export async function processIssue(
         appliedFixes.push(`Removed from project: _${fix.projectTitle}_`);
         autoFixCount++;
       } catch (err) {
-        safeLog(ref, "warn:no-triage-project");
+        safeLog(ref, "warn:auto-fix-remove-project-failed");
         core.warning(`Failed to remove ${ref.repo}#${ref.number} from project: ${String(err)}`);
         softFailed = true;
       }
@@ -58,7 +59,7 @@ export async function processIssue(
   }
 
   // Step 3: resolve primary project from current (post-fix) project set
-  resolvePrimaryProject(issue, allProjects, owner);
+  const primaryProject = resolvePrimaryProject(issue, allProjects, owner);
 
   // Step 4: collect remaining violations
   const violations = ruleResult.violations;
@@ -163,5 +164,6 @@ export async function processIssue(
     violations: violations.length,
     autoFixes: autoFixCount,
     softFailed,
+    primaryProject,
   };
 }
