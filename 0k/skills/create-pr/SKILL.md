@@ -28,13 +28,17 @@ You are helping the user create a GitHub pull request from the current branch.
 
    ```bash
    TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
+   remote_url=$(git remote get-url origin)
+   remote_url=${remote_url%.git}
+   owner_repo=$(echo "$remote_url" | sed 's|.*github\.com[/:]||')
+   owner=${owner_repo%/*}
+   repo=${owner_repo#*/}
+   branch=$(git branch --show-current)
    curl -s \
      -H "Authorization: Bearer $TOKEN" \
-     https://api.github.com/repos/{owner}/{repo}/issues/{number} \
+     https://api.github.com/repos/$owner/$repo/issues/{number} \
      | jq '{title: .title, url: .html_url}'
    ```
-
-   Derive `{owner}/{repo}` from the git remote (`git remote get-url origin`).
 
 5. **Check for an existing PR.** Before creating, verify no open PR exists for
    the current branch:
@@ -42,7 +46,7 @@ You are helping the user create a GitHub pull request from the current branch.
    ```bash
    curl -s \
      -H "Authorization: Bearer $TOKEN" \
-     "https://api.github.com/repos/{owner}/{repo}/pulls?head={owner}:{branch}&state=open" \
+     "https://api.github.com/repos/$owner/$repo/pulls?head=$owner:$branch&state=open" \
      | jq '.[0] | {number: .number, url: .html_url}'
    ```
 
@@ -66,7 +70,7 @@ You are helping the user create a GitHub pull request from the current branch.
    ```bash
    jq -n \
      --arg title "{title}" \
-     --arg head "{branch}" \
+     --arg head "$branch" \
      --arg base "main" \
      --argjson draft {true|false} \
      --rawfile body /tmp/pr-body.md \
@@ -75,7 +79,7 @@ You are helping the user create a GitHub pull request from the current branch.
    curl -s -X POST \
      -H "Authorization: Bearer $TOKEN" \
      -H "Content-Type: application/json" \
-     https://api.github.com/repos/{owner}/{repo}/pulls \
+     https://api.github.com/repos/$owner/$repo/pulls \
      -d @/tmp/pr-body.json | jq '{number: .number, url: .html_url}'
    ```
 
