@@ -36,7 +36,8 @@ standardized templates. Do NOT create free-form issues.
      **do not ask the user** — retain the template's default `value`
      placeholder text as a scaffold for a later `refine-issue` pass.
    - Do not invent content that wasn't provided or clearly implied by the user.
-6. **Create the issue** using the `gh` CLI (see "Creating the Issue" below).
+6. **Create the issue** using the GitHub GraphQL API (see "Creating the Issue"
+   below).
    - Use the `type` property from the chosen template file as the issue type.
    - Construct a clear, concise title (do NOT include emoji prefixes — GitHub
      adds the template icon automatically).
@@ -63,11 +64,11 @@ For every field (except `markdown`):
 
 ## Creating the Issue
 
-**IMPORTANT: `gh issue create` does NOT have a `--type` flag. Never use
-`--type`. Never use `--label` as a substitute for setting the issue type.**
+Use the GitHub GraphQL API with `curl`. Resolve the auth token first:
 
-Use the GraphQL `createIssue` mutation to create the issue with its type set in
-a single request.
+```bash
+TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
+```
 
 ### Step 1 — Look up repository and issue type IDs
 
@@ -75,34 +76,39 @@ Query the repository's node ID and available issue types. Use the `type` field
 value from the chosen template's YAML frontmatter (e.g., `"Bug"`, `"Task"`,
 `"Feature"`) to find the matching issue type ID:
 
-```
-gh api graphql -f query='
-  query {
-    repository(owner: "0k-software", name: "{repo}") {
-      id
-      issueTypes(first: 10) {
-        nodes { id name }
-      }
-    }
-  }
-'
+```bash
+cat > /tmp/gh-query.json <<'EOF'
+{
+  "query": "query($owner:String!, $repo:String!) { repository(owner:$owner, name:$repo) { id issueTypes(first:10) { nodes { id name } } } }",
+  "variables": {"owner": "0k-software", "repo": "{repo}"}
+}
+EOF
+curl -s -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  https://api.github.com/graphql \
+  -d @/tmp/gh-query.json | jq '.data.repository'
 ```
 
 ### Step 2 — Create the issue
 
-```
-gh api graphql -f query='
-  mutation {
-    createIssue(input: {
-      repositoryId: "{repo_node_id}",
-      title: "{title}",
-      body: "{body}",
-      issueTypeId: "{issue_type_id}"
-    }) {
-      issue { number url }
-    }
+```bash
+cat > /tmp/gh-query.json <<'EOF'
+{
+  "query": "mutation($repoId:ID!, $title:String!, $body:String!, $typeId:ID!) { createIssue(input: {repositoryId:$repoId, title:$title, body:$body, issueTypeId:$typeId}) { issue { number url } } }",
+  "variables": {
+    "repoId": "{repo_node_id}",
+    "title": "{title}",
+    "body": "{body}",
+    "typeId": "{issue_type_id}"
   }
-'
+}
+EOF
+curl -s -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  https://api.github.com/graphql \
+  -d @/tmp/gh-query.json | jq '.data.createIssue.issue'
 ```
 
 ## AI Attribution Footer
