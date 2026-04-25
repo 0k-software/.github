@@ -31,7 +31,7 @@ No new files are created. No shared helpers. Each skill is self-contained.
 ## Steps
 
 - [x] [Step 1: Update create-issue](#step-1-update-create-issue)
-- [ ] [Step 2: Update create-pr](#step-2-update-create-pr)
+- [x] [Step 2: Update create-pr](#step-2-update-create-pr)
 - [ ] [Step 3: Update plan-init](#step-3-update-plan-init)
 - [ ] [Step 4: Update fix-pr](#step-4-update-fix-pr)
 - [ ] [Step 5: Update fix-issue](#step-5-update-fix-issue)

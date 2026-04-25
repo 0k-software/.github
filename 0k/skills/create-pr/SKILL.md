@@ -23,30 +23,63 @@ You are helping the user create a GitHub pull request from the current branch.
    - Otherwise, ask the user which issue this PR resolves (or whether it
      resolves one at all).
 4. **Fetch issue details.** If an issue was identified, fetch its title and URL
-   with `gh issue view`. If the issue doesn't exist or the fetch fails, ask the
-   user to confirm.
-5. **Ensure the branch is pushed.** Run:
+   via the GitHub REST API. If the issue doesn't exist or the fetch fails, ask
+   the user to confirm.
+
+   ```bash
+   TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
+   curl -s \
+     -H "Authorization: Bearer $TOKEN" \
+     https://api.github.com/repos/{owner}/{repo}/issues/{number} \
+     | jq '{title: .title, url: .html_url}'
+   ```
+
+   Derive `{owner}/{repo}` from the git remote (`git remote get-url origin`).
+
+5. **Check for an existing PR.** Before creating, verify no open PR exists for
+   the current branch:
+
+   ```bash
+   curl -s \
+     -H "Authorization: Bearer $TOKEN" \
+     "https://api.github.com/repos/{owner}/{repo}/pulls?head={owner}:{branch}&state=open" \
+     | jq '.[0] | {number: .number, url: .html_url}'
+   ```
+
+   If a PR is found, show its URL and stop.
+
+6. **Ensure the branch is pushed.** Run:
    ```
    git push -u origin HEAD
    ```
    If the push fails due to hook errors or conflicts, report the error and
    stop.
-6. **Build the PR title and body.**
+7. **Build the PR title and body.**
    - **Title:** `[#{issue-number}] {issue title}` — if there is a linked issue.
      Otherwise, derive a concise title from the branch name or `$ARGUMENTS`.
    - **Body:** If there is a linked issue, include `Closes {issue-url}` as the
-     body. If there is no linked issue, write a brief summary based on the
-     branch's commits (`git log main..HEAD --oneline`).
-7. **Create the PR** using `gh pr create`. Write the body to a temporary file
-   first, then:
+     body. Write it to `/tmp/pr-body.md`. If there is no linked issue, write a
+     brief summary based on the branch's commits
+     (`git log main..HEAD --oneline`).
+8. **Create the PR** via the GitHub REST API:
+
+   ```bash
+   jq -n \
+     --arg title "{title}" \
+     --arg head "{branch}" \
+     --arg base "main" \
+     --argjson draft {true|false} \
+     --rawfile body /tmp/pr-body.md \
+     '{title: $title, body: $body, head: $head, base: $base, draft: $draft}' \
+     > /tmp/pr-body.json
+   curl -s -X POST \
+     -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" \
+     https://api.github.com/repos/{owner}/{repo}/pulls \
+     -d @/tmp/pr-body.json | jq '{number: .number, url: .html_url}'
    ```
-   gh pr create \
-     [--draft] \
-     --title "{title}" \
-     --body-file /tmp/pr-body.md \
-     --head "$(git branch --show-current)"
-   ```
-8. **Show the user the PR URL** returned by `gh pr create`.
+
+9. **Show the user the PR URL** returned by the API.
 
 ## Important Rules
 
@@ -55,5 +88,5 @@ You are helping the user create a GitHub pull request from the current branch.
   there isn't one.
 - **Keep the title concise** — under 80 characters.
 - **Do not force-push** or modify commits. This skill only creates the PR.
-- If a PR already exists for the current branch, tell the user and show the
-  existing PR URL instead of creating a duplicate.
+- If a PR already exists for the current branch (detected in step 5), tell the
+  user and show the existing PR URL instead of creating a duplicate.
