@@ -251,25 +251,24 @@ what to implement).
 
 1. Derive `{owner}/{repo}` and `{pr-number}` from `$ARGUMENTS` or the current
    branch.
-2. Fetch **all** review threads using the `gh` CLI with the GraphQL API to get
+2. Fetch **all** review threads using the GitHub GraphQL API to get
    `isResolved`:
+
+   ```bash
+   TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
+   cat > /tmp/gh-query.json <<'EOF'
+   {
+     "query": "query($owner:String!, $repo:String!, $pr:Int!) { repository(owner:$owner, name:$repo) { pullRequest(number:$pr) { reviewThreads(first:100) { nodes { isResolved comments(first:100) { nodes { id databaseId path line side body author { login } } } } } } } }",
+     "variables": {"owner": "{owner}", "repo": "{repo}", "pr": {pr-number}}
+   }
+   EOF
+   curl -s -X POST \
+     -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" \
+     https://api.github.com/graphql \
+     -d @/tmp/gh-query.json | jq '.data.repository.pullRequest.reviewThreads.nodes'
    ```
-   gh api graphql -f query='
-     query($owner:String!, $repo:String!, $pr:Int!) {
-       repository(owner:$owner, name:$repo) {
-         pullRequest(number:$pr) {
-           reviewThreads(first:100) {
-             nodes {
-               isResolved
-               comments(first:100) {
-                 nodes { id databaseId path line side body author { login } }
-               }
-             }
-           }
-         }
-       }
-     }' -f owner="{owner}" -f repo="{repo}" -F pr="{pr-number}"
-   ```
+
 3. **Discard** every thread where `isResolved` is `true`. Keep only unresolved
    threads.
 4. For each remaining thread, iterate over **every** comment `databaseId` in
@@ -277,12 +276,15 @@ what to implement).
    the authenticated user. Check all comments — not just the first — because
    any comment in the thread may have been marked in a previous run:
 
-   ```
-   viewer="$(gh api user --jq .login)"
+   ```bash
+   viewer="$(curl -s -H "Authorization: Bearer $TOKEN" \
+     https://api.github.com/user | jq -r '.login')"
    already_marked=false
    for databaseId in {all databaseIds from this thread's comments}; do
-     has_eyes="$(gh api --paginate "repos/{owner}/{repo}/pulls/comments/${databaseId}/reactions" \
-       --jq --arg viewer "$viewer" 'any(.[]; .content == "eyes" and .user.login == $viewer)')"
+     has_eyes="$(curl -s \
+       -H "Authorization: Bearer $TOKEN" \
+       "https://api.github.com/repos/{owner}/{repo}/pulls/comments/${databaseId}/reactions?per_page=100" \
+       | jq --arg viewer "$viewer" 'any(.[]; .content == "eyes" and .user.login == $viewer)')"
      if [ "$has_eyes" = "true" ]; then
        already_marked=true
        break
@@ -339,10 +341,17 @@ For every question thread:
 2. Draft a clear, concise answer — no performative openers, no gratitude.
    Append the AI attribution footer (see below).
 3. Post the reply in the thread:
+
+   ```bash
+   curl -s -X POST \
+     -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" \
+     https://api.github.com/repos/{owner}/{repo}/pulls/{pr-number}/comments \
+     -d "$(jq -n --arg body '{answer}' --argjson in_reply_to {comment-id} \
+       '{body: $body, in_reply_to: $in_reply_to}')" \
+     | jq '.id'
    ```
-   gh api "repos/{owner}/{repo}/pulls/{pr-number}/comments" \
-     -f body="{answer}" -F in_reply_to={comment-id}
-   ```
+
 4. Display each question and the answer you posted so the user can review.
 
 After posting all question replies, if there are no change requests, stop and
@@ -385,9 +394,14 @@ git push -u origin {branch-name}
 For each group (now that the commit SHA is known), reply to **every** comment
 in the thread on GitHub:
 
-```
-gh api "repos/{owner}/{repo}/pulls/{pr-number}/comments" \
-  -f body="{reply}" -F in_reply_to={comment-id}
+```bash
+curl -s -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  https://api.github.com/repos/{owner}/{repo}/pulls/{pr-number}/comments \
+  -d "$(jq -n --arg body '{reply}' --argjson in_reply_to {comment-id} \
+    '{body: $body, in_reply_to: $in_reply_to}')" \
+  | jq '.id'
 ```
 
 Include a link to the committed change in the reply, anchored at the exact
@@ -470,10 +484,13 @@ feedback.
 For each addressed thread, iterate over every comment `databaseId` and mark
 each one individually — do not skip any:
 
-```
+```bash
 for databaseId in {all databaseIds from this thread's comments}; do
-  gh api "repos/{owner}/{repo}/pulls/comments/${databaseId}/reactions" \
-    -X POST -f content="eyes"
+  curl -s -X POST \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    "https://api.github.com/repos/{owner}/{repo}/pulls/comments/${databaseId}/reactions" \
+    -d '{"content": "eyes"}' | jq '.id'
 done
 ```
 
