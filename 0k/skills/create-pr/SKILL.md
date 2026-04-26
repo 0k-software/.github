@@ -37,7 +37,7 @@ You are helping the user create a GitHub pull request from the current branch.
    curl \
      -H "Authorization: Bearer $TOKEN" \
      https://api.github.com/repos/$owner/$repo/issues/{number} \
-     | jq '{title: .title, url: .html_url}'
+     | jq 'if .title then {title: .title, url: .html_url} else error("GitHub API error: \(.message // "unknown")") end'
    ```
 
    If the fetch fails, stop and report — the PR cannot be created without the
@@ -50,7 +50,7 @@ You are helping the user create a GitHub pull request from the current branch.
    curl \
      -H "Authorization: Bearer $TOKEN" \
      "https://api.github.com/repos/$owner/$repo/pulls?head=$owner:$branch&state=open" \
-     | jq '.[0] | {number: .number, url: .html_url}'
+     | jq 'if type == "array" then (if length > 0 then .[0] | {number: .number, url: .html_url} else null end) else error("GitHub API error: \(.message // "non-array response")") end'
    ```
 
    If the curl fails, stop and report.
@@ -86,11 +86,12 @@ You are helping the user create a GitHub pull request from the current branch.
      -H "Authorization: Bearer $TOKEN" \
      -H "Content-Type: application/json" \
      https://api.github.com/repos/$owner/$repo/pulls \
-     -d @/tmp/pr-body.json | jq '{number: .number, url: .html_url}'
+     -d @/tmp/pr-body.json \
+     | jq -e 'if .number then {number: .number, url: .html_url} else ({number: .number, url: .html_url, message: .message, errors: .errors} | halt_error(1)) end'
    ```
 
-   If the curl returns an error (non-`number` response), stop and report — do
-   not assume the PR was created.
+   If the command exits non-zero (`.number` was null), stop and report the
+   `message`/`errors` in the output — do not assume the PR was created.
 
 9. **Show the user the PR URL** returned by the API.
 
