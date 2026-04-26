@@ -59,7 +59,7 @@ runs:
           [ -z "$line" ] && continue
           stripped="${line#:!}"
           EXCLUDES+=(":!${stripped}")
-        done < <(printf '%s' "${IGNORED_PATHS}" | tr ',' '\n')
+        done < <(printf '%s\n' "${IGNORED_PATHS}" | tr ',' '\n')
 
         echo "::group::Inputs"
         echo "Repo:         ${REPO}"
@@ -72,13 +72,18 @@ runs:
         echo "::endgroup::"
 
         echo "::group::Count diff lines"
-        ADDED=$(git diff --diff-filter=ACMR "${BASE}...HEAD" -- . "${EXCLUDES[@]}" \
-          | grep -cE '^\+([^+]|$)' || true)
         TOTAL_ADDED=$(git diff --diff-filter=ACMR "${BASE}...HEAD" \
           | grep -cE '^\+([^+]|$)' || true)
         TOTAL_DELETED=$(git diff --diff-filter=ACMR "${BASE}...HEAD" \
           | grep -cE '^-([^-]|$)' || true)
-        IGNORED=$((TOTAL_ADDED - ADDED))
+        IGNORED=0
+        for exc in "${EXCLUDES[@]}"; do
+          pattern="${exc#:!}"
+          file_added=$(git diff --diff-filter=ACMR "${BASE}...HEAD" -- "${pattern}" \
+            | grep -cE '^\+([^+]|$)' || true)
+          IGNORED=$((IGNORED + file_added))
+        done
+        ADDED=$((TOTAL_ADDED - IGNORED))
         echo "Counted added:   ${ADDED}"
         echo "Total added:     ${TOTAL_ADDED}"
         echo "Total deleted:   ${TOTAL_DELETED}"
