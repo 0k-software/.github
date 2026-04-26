@@ -21,13 +21,14 @@ Address all **unresolved** feedback on a pull request or GitHub issue.
   TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
   remote_url=$(git remote get-url origin)
   remote_url=${remote_url%.git}
-  owner_repo=$(echo "$remote_url" | sed 's|.*github\.com[/:]||')
-  curl -s -H "Authorization: Bearer $TOKEN" \
+  owner_repo=$(echo "$remote_url" | sed 's|\.git$||; s|.*[:/]\([^/]*/[^/]*\)$|\1|')
+  curl -H "Authorization: Bearer $TOKEN" \
     "https://api.github.com/repos/$owner_repo/pulls/$ARGUMENTS" | jq '.number'
   ```
 
   If `.number` is non-null → read `0k/skills/fix-pr/SKILL.md` and follow it. If
-  null or error → read `0k/skills/fix-issue/SKILL.md` and follow it.
+  null or error body → report it and ask the user to specify whether the
+  argument is a PR or an issue number.
 
 - If the argument is **empty**:
   1. Find the open PR for the current branch:
@@ -36,13 +37,16 @@ Address all **unresolved** feedback on a pull request or GitHub issue.
      TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
      remote_url=$(git remote get-url origin)
      remote_url=${remote_url%.git}
-     owner_repo=$(echo "$remote_url" | sed 's|.*github\.com[/:]||')
+     owner_repo=$(echo "$remote_url" | sed 's|\.git$||; s|.*[:/]\([^/]*/[^/]*\)$|\1|')
      owner=${owner_repo%/*}
      branch=$(git branch --show-current)
-     curl -s -H "Authorization: Bearer $TOKEN" \
+     curl -H "Authorization: Bearer $TOKEN" \
        "https://api.github.com/repos/$owner_repo/pulls?head=$owner:$branch&state=open" \
        | jq -r '.[0].number // empty'
      ```
+
+     If the curl fails, fall back to inferring from the current conversation
+     context or ask the user.
 
      If a PR number is returned, read `0k/skills/fix-pr/SKILL.md` and follow
      it.
