@@ -24,7 +24,7 @@ changes are nearly identical.
 
 - [x] [Step 1: Fix refine/SKILL.md](#step-1-fix-refineskillmd)
 - [x] [Step 2: Fix plan-init/SKILL.md and plan-execute/SKILL.md](#step-2-fix-plan-initskillmd-and-plan-executeskillmd)
-- [ ] [Step 3: Fix fix-issue/SKILL.md](#step-3-fix-fix-issueskillmd)
+- [x] [Step 3: Fix fix-issue/SKILL.md](#step-3-fix-fix-issueskillmd)
 - [ ] [Step 4: Fix fix-pr/SKILL.md](#step-4-fix-fix-prskillmd)
 - [ ] [Step 5: Fix fix/SKILL.md and create-pr/SKILL.md](#step-5-fix-fixskillmd-and-create-prskillmd)
 
