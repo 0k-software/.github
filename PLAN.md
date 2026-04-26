@@ -64,40 +64,51 @@ Remove `-s` and all trailing suppression; pipe each to `| jq .`.
 
 ## Step 2: Fix plan-init/SKILL.md and plan-execute/SKILL.md
 
-### plan-init/SKILL.md — three blocks
+### plan-init/SKILL.md — two blocks
 
 **`in progress` block (Step 1 of the skill)**: sed fix + remove suppression +
-`| jq .`
+`| jq .` + warn-and-continue prose after the block. This block runs at the
+start of the skill and cannot share variables with anything in Step 5.
 
-- warn-and-continue prose after the block.
-
-**`to review` block (Step 5 of the skill)**: sed fix on the `owner_repo` line;
-remove suppression from both the DELETE and POST curls; pipe each to `| jq .`.
-
-**Copilot review block (Step 5 of the skill)**: This block also parses the git
-remote to locate the open PR and request a Copilot review:
+**Merged Step 5 block**: The current skill has two separate bash blocks in Step
+5 — one for the label swap and one for the Copilot review — that both define
+`remote_url`, `owner_repo`, `TOKEN`, and related variables. Merge them into a
+single block that defines each variable once:
 
 ```bash
-remote_url=$(git remote get-url origin)
-remote_url=${remote_url%.git}
-owner_repo=$(echo "$remote_url" | sed 's|.*github\.com[/:]||')   # ← fix this
+TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
+remote_url=$(git remote get-url origin | sed 's|\.git$||')
+owner_repo=$(echo "$remote_url" | sed 's|.*[:/]\([^/]*/[^/]*\)$|\1|')
 owner=${owner_repo%/*}
 repo=${owner_repo#*/}
 branch=$(git branch --show-current)
-PR_NUMBER=$(curl -s \
+
+# Swap lifecycle labels
+curl -X DELETE \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/vnd.github+json" \
+  "https://api.github.com/repos/$owner_repo/issues/{issue-number}/labels/in%20progress" | jq .
+curl -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/vnd.github+json" \
+  "https://api.github.com/repos/$owner_repo/issues/{issue-number}/labels" \
+  -d '{"labels":["to review"]}' | jq .
+
+# Request Copilot review
+PR_NUMBER=$(curl \
   -H "Authorization: Bearer $TOKEN" \
   "https://api.github.com/repos/$owner/$repo/pulls?head=$owner:$branch&state=open" \
   | jq -r '.[0].number')
-curl -s -X POST \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  "https://api.github.com/repos/$owner/$repo/pulls/$PR_NUMBER/requested_reviewers" \
-  -d '{"reviewers": ["copilot"]}' | jq '.requested_reviewers[].login'
+if [ -n "$PR_NUMBER" ]; then
+  curl -X POST \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    "https://api.github.com/repos/$owner/$repo/pulls/$PR_NUMBER/requested_reviewers" \
+    -d '{"reviewers": ["copilot"]}' | jq '.requested_reviewers[].login'
+else
+  echo "Warning: no open PR found for this branch — skipping Copilot review request"
+fi
 ```
-
-Changes: apply the sed fix; remove `-s` from both curls; keep the existing
-`| jq ...` pipes. Add prose after the block: "If `PR_NUMBER` is empty (PR not
-found yet), skip the Copilot review request and warn the user."
 
 ### plan-execute/SKILL.md — two blocks
 
