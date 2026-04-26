@@ -41,12 +41,14 @@ suppression.
 # Before
 owner_repo=$(echo "$remote_url" | sed 's|.*github\.com[/:]||')
 # After
-owner_repo=$(echo "$remote_url" | sed 's|.*[:/]\([^/]*/[^/]*\)$|\1|')
+owner_repo=$(echo "$remote_url" | sed 's|\.git$||; s|.*[:/]\([^/]*/[^/]*\)$|\1|')
 ```
 
-This extracts the last two `/`-separated path segments, which is always
-`owner/repo` regardless of URL format — real GitHub HTTPS, SSH `git@`, or local
-proxy.
+The first substitution strips any trailing `.git` suffix (defensive — the
+surrounding code already does `remote_url=${remote_url%.git}`, but baking it in
+makes the sed self-contained). The second extracts the last two `/`-separated
+path segments, which is always `owner/repo` regardless of URL format — real
+GitHub HTTPS, SSH `git@`, or local proxy.
 
 **`in progress` block**: Remove `-s` from the curl flags; remove
 `> /dev/null 2>&1 || true` from the end; pipe to `| jq .` to surface the API
