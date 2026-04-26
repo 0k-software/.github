@@ -22,14 +22,17 @@ Run every remaining step in PLAN.md, one after another, until none are left.
    ```bash
    remote_url=$(git remote get-url origin)
    remote_url=${remote_url%.git}
-   owner_repo=$(echo "$remote_url" | sed 's|.*github\.com[/:]||')
+   owner_repo=$(echo "$remote_url" | sed 's|\.git$||; s|.*[:/]\([^/]*/[^/]*\)$|\1|')
    TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
-   curl -s -X POST \
+   curl -X POST \
      -H "Authorization: Bearer $TOKEN" \
      -H "Accept: application/vnd.github+json" \
      "https://api.github.com/repos/$owner_repo/issues/{issue-number}/labels" \
-     -d '{"labels":["in progress"]}' > /dev/null 2>&1 || true
+     -d '{"labels":["in progress"]}' | jq .
    ```
+
+   If the label call fails, warn the user and continue — label management is
+   non-blocking.
 
    Then read PLAN.md and collect **all** unchecked (`- [ ]`) steps.
 
@@ -67,14 +70,16 @@ remain).
 6. Remove `in progress` and apply `to review`:
 
    ```bash
-   curl -s -X DELETE \
+   curl -X DELETE \
      -H "Authorization: Bearer $TOKEN" \
      -H "Accept: application/vnd.github+json" \
-     "https://api.github.com/repos/$owner_repo/issues/{issue-number}/labels/in%20progress" \
-     > /dev/null 2>&1 || true
-   curl -s -X POST \
+     "https://api.github.com/repos/$owner_repo/issues/{issue-number}/labels/in%20progress" | jq .
+   curl -X POST \
      -H "Authorization: Bearer $TOKEN" \
      -H "Accept: application/vnd.github+json" \
      "https://api.github.com/repos/$owner_repo/issues/{issue-number}/labels" \
-     -d '{"labels":["to review"]}' > /dev/null 2>&1 || true
+     -d '{"labels":["to review"]}' | jq .
    ```
+
+   If either label call fails, warn the user and continue — label management is
+   non-blocking.

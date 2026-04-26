@@ -24,14 +24,17 @@ comments to write the plan. Apply the `in progress` label:
 ```bash
 remote_url=$(git remote get-url origin)
 remote_url=${remote_url%.git}
-owner_repo=$(echo "$remote_url" | sed 's|.*github\.com[/:]||')
+owner_repo=$(echo "$remote_url" | sed 's|\.git$||; s|.*[:/]\([^/]*/[^/]*\)$|\1|')
 TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
-curl -s -X POST \
+curl -X POST \
   -H "Authorization: Bearer $TOKEN" \
   -H "Accept: application/vnd.github+json" \
   "https://api.github.com/repos/$owner_repo/issues/{issue-number}/labels" \
-  -d '{"labels":["in progress"]}' > /dev/null 2>&1 || true
+  -d '{"labels":["in progress"]}' | jq .
 ```
+
+If the label call fails, warn the user and continue — label management is
+non-blocking.
 
 ## Step 2 — Set up the branch
 
@@ -126,42 +129,42 @@ above), or the user chose B:
 1. Run `/0k:commit ! plan: {issue title}` to commit PLAN.md.
 2. Invoke `/0k:create-pr draft {issue-number}` to push the branch and open a
    draft PR linking to the issue.
-3. Remove `in progress` and apply `to review`:
-
-   ```bash
-   remote_url=$(git remote get-url origin)
-   remote_url=${remote_url%.git}
-   owner_repo=$(echo "$remote_url" | sed 's|.*github\.com[/:]||')
-   TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
-   curl -s -X DELETE \
-     -H "Authorization: Bearer $TOKEN" \
-     -H "Accept: application/vnd.github+json" \
-     "https://api.github.com/repos/$owner_repo/issues/{issue-number}/labels/in%20progress" \
-     > /dev/null 2>&1 || true
-   curl -s -X POST \
-     -H "Authorization: Bearer $TOKEN" \
-     -H "Accept: application/vnd.github+json" \
-     "https://api.github.com/repos/$owner_repo/issues/{issue-number}/labels" \
-     -d '{"labels":["to review"]}' > /dev/null 2>&1 || true
-   ```
-
-4. Request a Copilot review via the GitHub REST API:
+3. Swap lifecycle labels and request a Copilot review:
 
    ```bash
    TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
-   remote_url=$(git remote get-url origin)
-   remote_url=${remote_url%.git}
-   owner_repo=$(echo "$remote_url" | sed 's|.*github\.com[/:]||')
+   remote_url=$(git remote get-url origin | sed 's|\.git$||')
+   owner_repo=$(echo "$remote_url" | sed 's|.*[:/]\([^/]*/[^/]*\)$|\1|')
    owner=${owner_repo%/*}
    repo=${owner_repo#*/}
    branch=$(git branch --show-current)
-   PR_NUMBER=$(curl -s \
+
+   # Swap lifecycle labels
+   curl -X DELETE \
+     -H "Authorization: Bearer $TOKEN" \
+     -H "Accept: application/vnd.github+json" \
+     "https://api.github.com/repos/$owner_repo/issues/{issue-number}/labels/in%20progress" | jq .
+   curl -X POST \
+     -H "Authorization: Bearer $TOKEN" \
+     -H "Accept: application/vnd.github+json" \
+     "https://api.github.com/repos/$owner_repo/issues/{issue-number}/labels" \
+     -d '{"labels":["to review"]}' | jq .
+
+   # Request Copilot review
+   PR_NUMBER=$(curl \
      -H "Authorization: Bearer $TOKEN" \
      "https://api.github.com/repos/$owner/$repo/pulls?head=$owner:$branch&state=open" \
      | jq -r '.[0].number')
-   curl -s -X POST \
-     -H "Authorization: Bearer $TOKEN" \
-     -H "Content-Type: application/json" \
-     "https://api.github.com/repos/$owner/$repo/pulls/$PR_NUMBER/requested_reviewers" \
-     -d '{"reviewers": ["copilot"]}' | jq '.requested_reviewers[].login'
+   if [ -n "$PR_NUMBER" ]; then
+     curl -X POST \
+       -H "Authorization: Bearer $TOKEN" \
+       -H "Content-Type: application/json" \
+       "https://api.github.com/repos/$owner/$repo/pulls/$PR_NUMBER/requested_reviewers" \
+       -d '{"reviewers": ["copilot"]}' | jq '.requested_reviewers[].login'
+   else
+     echo "Warning: no open PR found for this branch — skipping Copilot review request"
+   fi
    ```
+
+   If either label call fails, warn the user and continue — label management is
+   non-blocking.
