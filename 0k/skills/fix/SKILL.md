@@ -23,12 +23,13 @@ Address all **unresolved** feedback on a pull request or GitHub issue.
   remote_url=${remote_url%.git}
   owner_repo=$(echo "$remote_url" | sed 's|\.git$||; s|.*[:/]\([^/]*/[^/]*\)$|\1|')
   curl -H "Authorization: Bearer $TOKEN" \
-    "https://api.github.com/repos/$owner_repo/pulls/$ARGUMENTS" | jq '.number'
+    "https://api.github.com/repos/$owner_repo/pulls/$ARGUMENTS" \
+    | jq '{number: .number, message: .message}'
   ```
 
   If `.number` is non-null → read `0k/skills/fix-pr/SKILL.md` and follow it. If
-  null or error body → report it and ask the user to specify whether the
-  argument is a PR or an issue number.
+  `.number` is null, report the `message` from the response and ask the user to
+  specify whether the argument is a PR or an issue number.
 
 - If the argument is **empty**:
   1. Find the open PR for the current branch:

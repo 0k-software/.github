@@ -155,15 +155,18 @@ above), or the user chose B:
      -H "Authorization: Bearer $TOKEN" \
      "https://api.github.com/repos/$owner/$repo/pulls?head=$owner:$branch&state=open" \
      | jq -r '.[0].number')
-   if [ -n "$PR_NUMBER" ]; then
-     curl -X POST \
-       -H "Authorization: Bearer $TOKEN" \
-       -H "Content-Type: application/json" \
-       "https://api.github.com/repos/$owner/$repo/pulls/$PR_NUMBER/requested_reviewers" \
-       -d '{"reviewers": ["copilot"]}' | jq '.requested_reviewers[].login'
-   else
-     echo "Warning: no open PR found for this branch — skipping Copilot review request"
-   fi
+   case "$PR_NUMBER" in
+     ''|null|*[!0-9]*)
+       echo "Warning: no open PR found for this branch — skipping Copilot review request"
+       ;;
+     *)
+       curl -X POST \
+         -H "Authorization: Bearer $TOKEN" \
+         -H "Content-Type: application/json" \
+         "https://api.github.com/repos/$owner/$repo/pulls/$PR_NUMBER/requested_reviewers" \
+         -d '{"reviewers": ["copilot"]}' | jq '.requested_reviewers[].login'
+       ;;
+   esac
    ```
 
    If either label call fails, warn the user and continue — label management is
