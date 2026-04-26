@@ -21,6 +21,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Changed
 
+- `/0k:create-issue` now emits `### {label}` headings to match GitHub's native
+  Issue Forms output.
 - Distribution switched to the standard Claude Code plugin mechanism. Projects
   declare the marketplace and enable the plugin via `extraKnownMarketplaces`
   and `enabledPlugins` in their `.claude/settings.json`. Claude Code handles
