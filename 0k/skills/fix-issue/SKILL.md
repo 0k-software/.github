@@ -8,9 +8,14 @@ argument-hint: "{ issue number or URL }"
 
 Address all **unresolved** feedback on a GitHub issue.
 
-`$ARGUMENTS` is an issue number or issue URL. Derive `{owner}/{repo}` from the
-current working directory's git remote. If `$ARGUMENTS` is a full URL, extract
-the owner/repo/number from it instead.
+`$ARGUMENTS` is an issue number or issue URL. If `$ARGUMENTS` is a full URL,
+extract `owner`, `repo`, and number from it directly. Otherwise, derive
+`{owner}/{repo}` from the git remote:
+
+```bash
+remote_url=$(git remote get-url origin | sed 's|\.git$||')
+owner_repo=$(echo "$remote_url" | sed 's|.*[:/]\([^/]*/[^/]*\)$|\1|')
+```
 
 ## B1 — Fetch the issue
 
@@ -55,14 +60,17 @@ Apply `in progress` to the issue:
 ```bash
 remote_url=$(git remote get-url origin)
 remote_url=${remote_url%.git}
-owner_repo=$(echo "$remote_url" | sed 's|.*github\.com[/:]||')
+owner_repo=$(echo "$remote_url" | sed 's|\.git$||; s|.*[:/]\([^/]*/[^/]*\)$|\1|')
 TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
-curl -s -X POST \
+curl -X POST \
   -H "Authorization: Bearer $TOKEN" \
   -H "Accept: application/vnd.github+json" \
   "https://api.github.com/repos/$owner_repo/issues/{issue-number}/labels" \
-  -d '{"labels":["in progress"]}' > /dev/null 2>&1 || true
+  -d '{"labels":["in progress"]}' | jq .
 ```
+
+If the label call fails, warn the user and continue — label management is
+non-blocking.
 
 ## B2 — Analyse feedback
 
@@ -140,19 +148,21 @@ Remove `in progress` and apply `to review`:
 ```bash
 remote_url=$(git remote get-url origin)
 remote_url=${remote_url%.git}
-owner_repo=$(echo "$remote_url" | sed 's|.*github\.com[/:]||')
+owner_repo=$(echo "$remote_url" | sed 's|\.git$||; s|.*[:/]\([^/]*/[^/]*\)$|\1|')
 TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
-curl -s -X DELETE \
+curl -X DELETE \
   -H "Authorization: Bearer $TOKEN" \
   -H "Accept: application/vnd.github+json" \
-  "https://api.github.com/repos/$owner_repo/issues/{issue-number}/labels/in%20progress" \
-  > /dev/null 2>&1 || true
-curl -s -X POST \
+  "https://api.github.com/repos/$owner_repo/issues/{issue-number}/labels/in%20progress" | jq .
+curl -X POST \
   -H "Authorization: Bearer $TOKEN" \
   -H "Accept: application/vnd.github+json" \
   "https://api.github.com/repos/$owner_repo/issues/{issue-number}/labels" \
-  -d '{"labels":["to review"]}' > /dev/null 2>&1 || true
+  -d '{"labels":["to review"]}' | jq .
 ```
+
+If either label call fails, warn the user and continue — label management is
+non-blocking.
 
 ## B6 — Report
 
