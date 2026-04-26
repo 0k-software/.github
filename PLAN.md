@@ -22,7 +22,7 @@ Two targeted text changes across two files:
 ## Steps
 
 - [x] [Step 1: Change `## {label}` to `### {label}` in `create-issue/SKILL.md`](#step-1-change--label-to--label-in-create-issueskillmd)
-- [ ] [Step 2: Add CHANGELOG entry](#step-2-add-changelog-entry)
+- [x] [Step 2: Add CHANGELOG entry](#step-2-add-changelog-entry)
 
 ---
 
