@@ -47,6 +47,13 @@ You are helping the user create a GitHub pull request from the current branch.
    the current branch:
 
    ```bash
+   TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
+   remote_url=$(git remote get-url origin)
+   remote_url=${remote_url%.git}
+   owner_repo=$(echo "$remote_url" | sed 's|\.git$||; s|.*[:/]\([^/]*/[^/]*\)$|\1|')
+   owner=${owner_repo%/*}
+   repo=${owner_repo#*/}
+   branch=$(git branch --show-current)
    curl \
      -H "Authorization: Bearer $TOKEN" \
      "https://api.github.com/repos/$owner/$repo/pulls?head=$owner:$branch&state=open" \
@@ -73,6 +80,13 @@ You are helping the user create a GitHub pull request from the current branch.
 8. **Create the PR** via the GitHub REST API:
 
    ```bash
+   TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
+   remote_url=$(git remote get-url origin)
+   remote_url=${remote_url%.git}
+   owner_repo=$(echo "$remote_url" | sed 's|\.git$||; s|.*[:/]\([^/]*/[^/]*\)$|\1|')
+   owner=${owner_repo%/*}
+   repo=${owner_repo#*/}
+   branch=$(git branch --show-current)
    base=$(git rev-parse --abbrev-ref origin/HEAD | sed 's|origin/||')
    jq -n \
      --arg title "{title}" \

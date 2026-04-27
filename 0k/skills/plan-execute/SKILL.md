@@ -70,6 +70,10 @@ remain).
 6. Remove `in progress` and apply `to review`:
 
    ```bash
+   remote_url=$(git remote get-url origin)
+   remote_url=${remote_url%.git}
+   owner_repo=$(echo "$remote_url" | sed 's|\.git$||; s|.*[:/]\([^/]*/[^/]*\)$|\1|')
+   TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
    curl -X DELETE \
      -H "Authorization: Bearer $TOKEN" \
      -H "Accept: application/vnd.github+json" \
