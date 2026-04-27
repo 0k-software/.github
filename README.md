@@ -132,22 +132,22 @@ auditable in one place.
 
 Permissions:
 
-| Scope                    | Access       | Used by                                  |
-| ------------------------ | ------------ | ---------------------------------------- |
-| Organization projects    | Read & write | Issue-hygiene project membership (#114)  |
-| Issues                   | Read & write | Issue-hygiene labels and comments (#114) |
-| Contents                 | Read & write | Cross-repo file creation/update (#61)    |
-| Pull requests            | Read & write | Opening PRs across repos (#61)           |
-| Metadata                 | Read         | Required baseline                        |
+| Scope                 | Access       | Used by                                  |
+| --------------------- | ------------ | ---------------------------------------- |
+| Organization projects | Read & write | Issue-hygiene project membership (#114)  |
+| Issues                | Read & write | Issue-hygiene labels and comments (#114) |
+| Contents              | Read & write | Cross-repo file creation/update (#61)    |
+| Pull requests         | Read & write | Opening PRs across repos (#61)           |
+| Metadata              | Read         | Required baseline                        |
 
 Workflows authenticate by generating a short-lived installation token via
 [`actions/create-github-app-token`][create-app-token], using two org-level
 secrets:
 
-| Secret              | Value                                   |
-| ------------------- | --------------------------------------- |
-| `OK_APP_ID`         | The numeric App ID from the app's settings page |
-| `OK_APP_PRIVATE_KEY`| The full contents of the generated `.pem` private key file |
+| Secret               | Value                                                      |
+| -------------------- | ---------------------------------------------------------- |
+| `OK_APP_ID`          | The numeric App ID from the app's settings page            |
+| `OK_APP_PRIVATE_KEY` | The full contents of the generated `.pem` private key file |
 
 [create-app-token]: https://github.com/actions/create-github-app-token
 
