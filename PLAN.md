@@ -21,7 +21,7 @@ closes only after both the README is merged and the org-admin steps are done.
 
 ## Steps
 
-- [ ] [Step 1: Add Org Infrastructure section to README.md](#step-1-add-org-infrastructure-section-to-readmemd)
+- [x] [Step 1: Add Org Infrastructure section to README.md](#step-1-add-org-infrastructure-section-to-readmemd)
 
 ---
 

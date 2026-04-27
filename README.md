@@ -119,6 +119,49 @@ The version is read automatically from `plugin.json`. This creates and pushes
 the git tag and publishes a GitHub release. Claude Code picks up the new
 version on its next plugin update check.
 
+## Org Infrastructure
+
+Shared infrastructure used by all org-wide automations in `0k-software`.
+
+### 0K App
+
+`0K App` is a single GitHub App that all org automation workflows use for
+cross-repo authentication, replacing the pattern of narrow per-feature bots.
+One credential pair covers every automation — permissions are explicit and
+auditable in one place.
+
+Permissions:
+
+| Scope                    | Access       | Used by                                  |
+| ------------------------ | ------------ | ---------------------------------------- |
+| Organization projects    | Read & write | Issue-hygiene project membership (#114)  |
+| Issues                   | Read & write | Issue-hygiene labels and comments (#114) |
+| Contents                 | Read & write | Cross-repo file creation/update (#61)    |
+| Pull requests            | Read & write | Opening PRs across repos (#61)           |
+| Metadata                 | Read         | Required baseline                        |
+
+Workflows authenticate by generating a short-lived installation token via
+[`actions/create-github-app-token`][create-app-token], using two org-level
+secrets:
+
+| Secret              | Value                                   |
+| ------------------- | --------------------------------------- |
+| `OK_APP_ID`         | The numeric App ID from the app's settings page |
+| `OK_APP_PRIVATE_KEY`| The full contents of the generated `.pem` private key file |
+
+[create-app-token]: https://github.com/actions/create-github-app-token
+
+### .github-private
+
+`0k-software/.github-private` is a private repository that hosts workflows for
+org-wide automations. Keeping workflows private means their logs are only
+visible to org members with repository access — public `.github` workflow logs
+would expose private repository names to anyone who can view the repo.
+
+**Convention:** any workflow that touches or lists private repositories belongs
+in `.github-private`, not in this public `.github` repo. Examples: the Copilot
+instructions sync (#61) and the issue-hygiene action (#114).
+
 ## Git Hooks
 
 Project hooks live in `.git-hooks/` and are not installed automatically by Git.
