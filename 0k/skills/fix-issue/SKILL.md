@@ -32,6 +32,7 @@ owner_repo=$(echo "$remote_url" | sed 's|.*[:/]\([^/]*/[^/]*\)$|\1|')
 2. Fetch **all** comments on the issue:
 
    ```bash
+   TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
    curl -s \
      -H "Authorization: Bearer $TOKEN" \
      "https://api.github.com/repos/{owner}/{repo}/issues/{number}/comments?per_page=100" \
@@ -41,6 +42,7 @@ owner_repo=$(echo "$remote_url" | sed 's|.*[:/]\([^/]*/[^/]*\)$|\1|')
    For each comment, fetch its reactions to check for the 👀 (`eyes`) marker:
 
    ```bash
+   TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
    viewer="$(curl -s -H "Authorization: Bearer $TOKEN" \
      https://api.github.com/user | jq -r '.login')"
    curl -s \
@@ -100,6 +102,7 @@ If any description or title changes were identified:
    the GitHub REST API:
 
    ```bash
+   TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
    jq -n \
      --arg title "{new title}" \
      --rawfile body /tmp/issue-body.md \
@@ -123,6 +126,7 @@ that addresses all feedback points, referencing each commenter by `@username`.
 Append the AI attribution footer (see below).
 
 ```bash
+TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
 curl -s -X POST \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
@@ -136,6 +140,7 @@ After posting the reply, react with 👀 (`eyes`) to every comment that was
 addressed in this run:
 
 ```bash
+TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
 curl -s -X POST \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \

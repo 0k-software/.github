@@ -277,6 +277,7 @@ what to implement).
    any comment in the thread may have been marked in a previous run:
 
    ```bash
+   TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
    viewer="$(curl -s -H "Authorization: Bearer $TOKEN" \
      https://api.github.com/user | jq -r '.login')"
    already_marked=false
@@ -346,6 +347,7 @@ For every question thread:
 3. Post the reply in the thread:
 
    ```bash
+   TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
    curl -s -X POST \
      -H "Authorization: Bearer $TOKEN" \
      -H "Content-Type: application/json" \
@@ -398,6 +400,7 @@ For each group (now that the commit SHA is known), reply to **every** comment
 in the thread on GitHub:
 
 ```bash
+TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
 curl -s -X POST \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
@@ -488,6 +491,7 @@ For each addressed thread, iterate over every comment `databaseId` and mark
 each one individually — do not skip any:
 
 ```bash
+TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
 for databaseId in {all databaseIds from this thread's comments}; do
   curl -s -X POST \
     -H "Authorization: Bearer $TOKEN" \
