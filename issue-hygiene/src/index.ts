@@ -48,6 +48,7 @@ async function run(): Promise<void> {
     for (const issue of issues) {
       const stats = await processIssue(
         client,
+        org,
         repo,
         issue,
         allProjects,
