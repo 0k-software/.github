@@ -120,12 +120,10 @@ export async function queryRepoIssues(
   client: GraphqlClient,
   owner: string,
   repo: string,
-  since?: string,
-): Promise<{ issues: RepoIssue[]; totalOpen: number }> {
+): Promise<RepoIssue[]> {
   const issues: RepoIssue[] = [];
   let cursor: string | null = null;
   let hasNextPage = true;
-  let totalOpen = 0;
 
   while (hasNextPage) {
     const data = await withRetry(() =>
@@ -135,12 +133,11 @@ export async function queryRepoIssues(
             nodes: RepoIssue[];
             pageInfo: { hasNextPage: boolean; endCursor: string | null };
           };
-          allOpen: { totalCount: number };
         };
       }>(
-        `query($owner: String!, $repo: String!, $cursor: String, $since: DateTime) {
+        `query($owner: String!, $repo: String!, $cursor: String) {
           repository(owner: $owner, name: $repo) {
-            issues(first: 100, states: OPEN, after: $cursor, filterBy: { since: $since }) {
+            issues(first: 100, states: OPEN, after: $cursor) {
               nodes {
                 id
                 number
@@ -153,18 +150,16 @@ export async function queryRepoIssues(
               }
               pageInfo { hasNextPage endCursor }
             }
-            allOpen: issues(states: OPEN) { totalCount }
           }
         }`,
-        { owner, repo, cursor, since: since ?? null },
+        { owner, repo, cursor },
       ),
     );
 
     issues.push(...data.repository.issues.nodes);
     hasNextPage = data.repository.issues.pageInfo.hasNextPage;
     cursor = data.repository.issues.pageInfo.endCursor;
-    totalOpen = data.repository.allOpen.totalCount;
   }
 
-  return { issues, totalOpen };
+  return issues;
 }
