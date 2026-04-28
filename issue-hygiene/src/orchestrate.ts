@@ -157,6 +157,8 @@ export async function processIssue(
 
   if (hasViolations) {
     safeLog(ref, "check:multi-project", { count: violations.length });
+  } else if (autoFixCount === 0) {
+    safeLog(ref, "check:ok");
   }
 
   return {

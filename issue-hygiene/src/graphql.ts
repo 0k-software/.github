@@ -120,6 +120,7 @@ export async function queryRepoIssues(
   client: GraphqlClient,
   owner: string,
   repo: string,
+  since?: string,
 ): Promise<RepoIssue[]> {
   const issues: RepoIssue[] = [];
   let cursor: string | null = null;
@@ -135,9 +136,9 @@ export async function queryRepoIssues(
           };
         };
       }>(
-        `query($owner: String!, $repo: String!, $cursor: String) {
+        `query($owner: String!, $repo: String!, $cursor: String, $since: DateTime) {
           repository(owner: $owner, name: $repo) {
-            issues(first: 100, states: OPEN, after: $cursor) {
+            issues(first: 100, states: OPEN, after: $cursor, filterBy: { since: $since }) {
               nodes {
                 id
                 number
@@ -152,7 +153,7 @@ export async function queryRepoIssues(
             }
           }
         }`,
-        { owner, repo, cursor },
+        { owner, repo, cursor, since: since ?? null },
       ),
     );
 

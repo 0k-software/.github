@@ -1,4 +1,8 @@
+import * as cache from "@actions/cache";
 import * as core from "@actions/core";
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
 import { graphql as graphqlFn } from "@octokit/graphql";
 import { queryOrgProjects, queryRepoIssues, queryRepoLabels } from "./graphql.js";
 import type { GraphqlClient } from "./graphql.js";
@@ -7,6 +11,7 @@ import { processIssue } from "./orchestrate.js";
 async function run(): Promise<void> {
   core.info("issue-hygiene: starting");
 
+  const runStartedAt = new Date().toISOString();
   const token = core.getInput("token", { required: true });
   const client: GraphqlClient = {
     graphql: graphqlFn.defaults({
@@ -15,6 +20,24 @@ async function run(): Promise<void> {
   };
 
   const org = "0k-software";
+  const runId = process.env["GITHUB_RUN_ID"] ?? Date.now().toString();
+  const cacheDir = process.env["RUNNER_TEMP"] ?? os.tmpdir();
+  const cachePath = path.join(cacheDir, "issue-hygiene-last-run.json");
+  const cacheKey = `issue-hygiene-${org}-${runId}`;
+  const cacheRestoreKey = `issue-hygiene-${org}-`;
+
+  let lastRunAt: string | undefined;
+  try {
+    const hit = await cache.restoreCache([cachePath], cacheKey, [cacheRestoreKey]);
+    if (hit) {
+      const data = JSON.parse(fs.readFileSync(cachePath, "utf-8")) as { lastRunAt?: string };
+      lastRunAt = data.lastRunAt;
+      core.info(`Cache restored: skipping issues not updated since ${lastRunAt}`);
+    }
+  } catch (err) {
+    core.warning(`Failed to restore cache: ${String(err)}`);
+  }
+
   const { projectsByRepo, allProjects } = await queryOrgProjects(client, org);
 
   const repos = Array.from(projectsByRepo.keys());
@@ -36,7 +59,7 @@ async function run(): Promise<void> {
     let labelIds: Map<string, string>;
     try {
       [issues, labelIds] = await Promise.all([
-        queryRepoIssues(client, org, repo),
+        queryRepoIssues(client, org, repo, lastRunAt),
         queryRepoLabels(client, org, repo),
       ]);
     } catch (err) {
@@ -75,6 +98,13 @@ async function run(): Promise<void> {
       ["Soft failures", String(totalSoftFailed)],
     ])
     .write();
+
+  try {
+    fs.writeFileSync(cachePath, JSON.stringify({ lastRunAt: runStartedAt }));
+    await cache.saveCache([cachePath], cacheKey);
+  } catch (err) {
+    core.warning(`Failed to save cache: ${String(err)}`);
+  }
 
   if (totalSoftFailed > 0) {
     core.setFailed(`${totalSoftFailed} soft failure(s) — check warnings above.`);
