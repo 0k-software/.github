@@ -7,7 +7,7 @@ import {
   BOT_MARKER,
 } from "./comment-lifecycle.js";
 import { computeLabelActions } from "./label-lifecycle.js";
-import { safeLog } from "./safe-log.js";
+import { safeLog, issueUrl } from "./safe-log.js";
 import type { IssueRef } from "./safe-log.js";
 
 export type IssueStats = {
@@ -28,8 +28,7 @@ export async function processIssue(
   repoTriageProject: OrgProject | null,
   labelIds: Map<string, string>,
 ): Promise<IssueStats> {
-  const ref: IssueRef = { repo: owner, number: issue.number };
-  const issueUrl = `https://github.com/${org}/${owner}/issues/${issue.number}`;
+  const ref: IssueRef = { org, repo: owner, number: issue.number };
   let softFailed = false;
   let autoFixCount = 0;
 
@@ -54,7 +53,7 @@ export async function processIssue(
         autoFixCount++;
       } catch (err) {
         safeLog(ref, "warn:auto-fix-remove-project-failed");
-        core.warning(`${issueUrl} — Failed to remove from project: ${String(err)}`);
+        core.warning(`${issueUrl(ref)} — Failed to remove from project: ${String(err)}`);
         softFailed = true;
       }
     }
@@ -97,7 +96,7 @@ export async function processIssue(
         );
         safeLog(ref, "action:comment-minimized");
       } catch (err) {
-        core.warning(`${issueUrl} — Failed to minimize comment: ${String(err)}`);
+        core.warning(`${issueUrl(ref)} — Failed to minimize comment: ${String(err)}`);
         softFailed = true;
       }
     } else if (action.kind === "create") {
@@ -113,7 +112,7 @@ export async function processIssue(
         );
         safeLog(ref, "action:comment-posted");
       } catch (err) {
-        core.warning(`${issueUrl} — Failed to post comment: ${String(err)}`);
+        core.warning(`${issueUrl(ref)} — Failed to post comment: ${String(err)}`);
         softFailed = true;
       }
     }
@@ -126,7 +125,7 @@ export async function processIssue(
   for (const action of labelActions) {
     const labelId = labelIds.get(action.label);
     if (labelId == null) {
-      core.warning(`${issueUrl} — Label "${action.label}" not found in repo — skipping.`);
+      core.warning(`${issueUrl(ref)} — Label "${action.label}" not found in repo — skipping.`);
       continue;
     }
     try {
@@ -151,7 +150,7 @@ export async function processIssue(
       }
       safeLog(ref, "action:label-applied", { add: action.kind === "add" });
     } catch (err) {
-      core.warning(`${issueUrl} — Failed to update label "${action.label}": ${String(err)}`);
+      core.warning(`${issueUrl(ref)} — Failed to update label "${action.label}": ${String(err)}`);
       softFailed = true;
     }
   }

@@ -1,6 +1,10 @@
 import * as core from "@actions/core";
 
-export type IssueRef = { repo: string; number: number };
+export type IssueRef = { org: string; repo: string; number: number };
+
+export function issueUrl(ref: IssueRef): string {
+  return `https://github.com/${ref.org}/${ref.repo}/issues/${ref.number}`;
+}
 
 export type LogEvent =
   | "check:type-missing"
@@ -26,6 +30,6 @@ export function safeLog(
   detail?: SafeDetail,
 ): void {
   core.info(
-    `${ref.repo}#${ref.number} ${event}${detail ? " " + JSON.stringify(detail) : ""}`,
+    `${issueUrl(ref)} ${event}${detail ? " " + JSON.stringify(detail) : ""}`,
   );
 }

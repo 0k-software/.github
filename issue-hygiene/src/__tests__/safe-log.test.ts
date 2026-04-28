@@ -10,23 +10,25 @@ describe("safeLog", () => {
     vi.clearAllMocks();
   });
 
-  it("formats output as repo#number event", () => {
-    const ref: IssueRef = { repo: "my-repo", number: 42 };
+  it("formats output as issue URL + event", () => {
+    const ref: IssueRef = { org: "my-org", repo: "my-repo", number: 42 };
     safeLog(ref, "check:no-project");
-    expect(core.info).toHaveBeenCalledWith("my-repo#42 check:no-project");
+    expect(core.info).toHaveBeenCalledWith(
+      "https://github.com/my-org/my-repo/issues/42 check:no-project",
+    );
   });
 
   it("appends JSON-serialised detail when provided", () => {
-    const ref: IssueRef = { repo: "acme", number: 7 };
+    const ref: IssueRef = { org: "acme-org", repo: "acme", number: 7 };
     const detail: SafeDetail = { count: 3, fixed: true };
     safeLog(ref, "check:multi-project", detail);
     expect(core.info).toHaveBeenCalledWith(
-      'acme#7 check:multi-project {"count":3,"fixed":true}',
+      'https://github.com/acme-org/acme/issues/7 check:multi-project {"count":3,"fixed":true}',
     );
   });
 
   it("omits detail section when detail is undefined", () => {
-    const ref: IssueRef = { repo: "repo", number: 1 };
+    const ref: IssueRef = { org: "org", repo: "repo", number: 1 };
     safeLog(ref, "action:label-applied");
     const call = vi.mocked(core.info).mock.calls[0][0];
     expect(call).not.toContain("{");
