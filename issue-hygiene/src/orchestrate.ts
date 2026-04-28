@@ -95,7 +95,7 @@ export async function processIssue(
         );
         safeLog(ref, "action:comment-minimized");
       } catch (err) {
-        core.warning(`Failed to minimize comment: ${String(err)}`);
+        core.warning(`${ref.repo}#${ref.number}: Failed to minimize comment: ${String(err)}`);
         softFailed = true;
       }
     } else if (action.kind === "create") {
@@ -111,7 +111,7 @@ export async function processIssue(
         );
         safeLog(ref, "action:comment-posted");
       } catch (err) {
-        core.warning(`Failed to post comment: ${String(err)}`);
+        core.warning(`${ref.repo}#${ref.number}: Failed to post comment: ${String(err)}`);
         softFailed = true;
       }
     }
@@ -124,7 +124,7 @@ export async function processIssue(
   for (const action of labelActions) {
     const labelId = labelIds.get(action.label);
     if (labelId == null) {
-      core.warning(`Label "${action.label}" not found in repo — skipping.`);
+      core.warning(`${ref.repo}#${ref.number}: Label "${action.label}" not found in repo — skipping.`);
       continue;
     }
     try {
@@ -149,7 +149,7 @@ export async function processIssue(
       }
       safeLog(ref, "action:label-applied", { add: action.kind === "add" });
     } catch (err) {
-      core.warning(`Failed to update label: ${String(err)}`);
+      core.warning(`${ref.repo}#${ref.number}: Failed to update label "${action.label}": ${String(err)}`);
       softFailed = true;
     }
   }
