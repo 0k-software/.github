@@ -6,14 +6,19 @@ import {
 } from "../comment-lifecycle.js";
 import type { BotComment } from "../comment-lifecycle.js";
 
-const visible = (id: string): BotComment => ({
+const violation = (id: string): BotComment => ({
   id,
-  body: `${BOT_MARKER}\n\nsome content`,
+  body: `${BOT_MARKER}\n\n**Please fix:**\n- Missing assignee`,
+  minimizedReason: null,
+});
+const clean = (id: string): BotComment => ({
+  id,
+  body: `${BOT_MARKER}\n\nAll previously flagged issues have been resolved. This issue is now **clean**.`,
   minimizedReason: null,
 });
 const minimized = (id: string): BotComment => ({
   id,
-  body: `${BOT_MARKER}\n\nsome content`,
+  body: `${BOT_MARKER}\n\n**Please fix:**\n- Missing assignee`,
   minimizedReason: "OUTDATED",
 });
 
@@ -22,8 +27,8 @@ const minimized = (id: string): BotComment => ({
 describe("computeCommentActions", () => {
   it("violations present: minimizes visible as OUTDATED and creates new comment", () => {
     const actions = computeCommentActions(true, false, [
-      visible("c1"),
-      visible("c2"),
+      violation("c1"),
+      violation("c2"),
     ]);
     expect(actions).toContainEqual({
       kind: "minimize",
@@ -39,7 +44,7 @@ describe("computeCommentActions", () => {
   });
 
   it("auto-fixes only (no violations): still minimizes visible and creates new comment", () => {
-    const actions = computeCommentActions(false, true, [visible("c1")]);
+    const actions = computeCommentActions(false, true, [violation("c1")]);
     expect(actions).toContainEqual({
       kind: "minimize",
       id: "c1",
@@ -53,19 +58,34 @@ describe("computeCommentActions", () => {
     expect(actions).toHaveLength(0);
   });
 
-  it("no violations, no auto-fixes, visible bot comments: no-op (never minimize without a new comment)", () => {
+  it("no violations, no auto-fixes, visible violation comments: minimizes as RESOLVED and creates clean comment", () => {
     const actions = computeCommentActions(false, false, [
-      visible("c1"),
-      visible("c2"),
+      violation("c1"),
+      violation("c2"),
     ]);
-    expect(actions).toHaveLength(0);
+    expect(actions).toContainEqual({
+      kind: "minimize",
+      id: "c1",
+      reason: "RESOLVED",
+    });
+    expect(actions).toContainEqual({
+      kind: "minimize",
+      id: "c2",
+      reason: "RESOLVED",
+    });
+    expect(actions.some((a) => a.kind === "create")).toBe(true);
   });
 
-  it("no violations, no auto-fixes, all already minimized: no-op", () => {
+  it("no violations, no auto-fixes, only already-minimized comments: no-op", () => {
     const actions = computeCommentActions(false, false, [
       minimized("c1"),
       minimized("c2"),
     ]);
+    expect(actions).toHaveLength(0);
+  });
+
+  it("no violations, no auto-fixes, visible clean comment: no-op (avoids re-triggering)", () => {
+    const actions = computeCommentActions(false, false, [clean("c1")]);
     expect(actions).toHaveLength(0);
   });
 });
@@ -94,9 +114,11 @@ describe("buildCommentBody", () => {
     expect(body).toContain("**Auto-fixed in this run:**");
   });
 
-  it("always includes bot marker and footer", () => {
+  it("returns clean message when both arrays are empty", () => {
     const body = buildCommentBody([], []);
     expect(body).toContain(BOT_MARKER);
+    expect(body).toContain("All previously flagged issues have been resolved");
+    expect(body).toContain("**clean**");
     expect(body).toContain("_Issue hygiene bot_");
   });
 });
