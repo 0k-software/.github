@@ -54,15 +54,16 @@ async function run(): Promise<void> {
   let totalAutoFixes = 0;
   let totalSoftFailed = 0;
   let totalIssues = 0;
+  let totalSkipped = 0;
 
   for (const repo of repos) {
     const triageProjects = projectsByRepo.get(repo) ?? [];
     const triageProject = triageProjects[0] ?? null;
 
-    let issues: Awaited<ReturnType<typeof queryRepoIssues>>;
+    let issuesResult: Awaited<ReturnType<typeof queryRepoIssues>>;
     let labelIds: Map<string, string>;
     try {
-      [issues, labelIds] = await Promise.all([
+      [issuesResult, labelIds] = await Promise.all([
         queryRepoIssues(client, org, repo, lastRunAt),
         queryRepoLabels(client, org, repo),
       ]);
@@ -70,6 +71,11 @@ async function run(): Promise<void> {
       core.warning(`Failed to fetch data for ${repo}: ${String(err)}`);
       totalSoftFailed++;
       continue;
+    }
+
+    const { issues, totalOpen } = issuesResult;
+    if (lastRunAt != null) {
+      totalSkipped += Math.max(0, totalOpen - issues.length);
     }
 
     for (const issue of issues) {
@@ -97,6 +103,7 @@ async function run(): Promise<void> {
         { data: "Count", header: true },
       ],
       ["Issues processed", String(totalIssues)],
+      ["Issues skipped (unchanged)", String(totalSkipped)],
       ["Violations found", String(totalViolations)],
       ["Auto-fixes applied", String(totalAutoFixes)],
       ["Soft failures", String(totalSoftFailed)],

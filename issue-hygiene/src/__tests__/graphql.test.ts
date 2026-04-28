@@ -144,11 +144,13 @@ describe("queryRepoIssues", () => {
           ],
           pageInfo: { hasNextPage: false, endCursor: null },
         },
+        allOpen: { totalCount: 3 },
       },
     };
     const client = makeClient(fixture);
-    const issues = await queryRepoIssues(client, "0k-software", "my-repo");
+    const { issues, totalOpen } = await queryRepoIssues(client, "0k-software", "my-repo");
     expect(issues).toHaveLength(1);
+    expect(totalOpen).toBe(3);
     const issue = issues[0];
     expect(issue.id).toBe("I_issue5");
     expect(issue.number).toBe(5);
