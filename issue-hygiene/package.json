@@ -8,6 +8,7 @@
     "lint": "eslint src"
   },
   "dependencies": {
+    "@actions/cache": "^4.0.3",
     "@actions/core": "^1.11.1",
     "@octokit/graphql": "^8.2.1"
   },

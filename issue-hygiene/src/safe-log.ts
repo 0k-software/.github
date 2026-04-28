@@ -13,6 +13,7 @@ export type LogEvent =
   | "check:heading-missing"
   | "check:priority-missing"
   | "check:no-assignee"
+  | "check:ok"
   | "auto-fix:heading-inserted"
   | "auto-fix:triage-added"
   | "auto-fix:triage-removed"
