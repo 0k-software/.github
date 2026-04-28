@@ -66,7 +66,6 @@ export async function processIssue(
   const violations = ruleResult.violations;
 
   const hasViolations = violations.length > 0;
-  const hasAutoFixes = appliedFixes.length > 0;
 
   // Step 5: compute and apply comment actions
   const existingBotComments = issue.comments.nodes
@@ -77,11 +76,8 @@ export async function processIssue(
       minimizedReason: c.minimizedReason,
     }));
 
-  const commentActions = computeCommentActions(
-    hasViolations,
-    hasAutoFixes,
-    existingBotComments,
-  );
+  const proposedBody = buildCommentBody(violations, appliedFixes);
+  const commentActions = computeCommentActions(proposedBody, existingBotComments);
 
   for (const action of commentActions) {
     if (action.kind === "minimize") {
@@ -101,14 +97,13 @@ export async function processIssue(
       }
     } else if (action.kind === "create") {
       try {
-        const body = buildCommentBody(violations, appliedFixes);
         await client.graphql(
           `mutation($issueId: ID!, $body: String!) {
             addComment(input: { subjectId: $issueId, body: $body }) {
               commentEdge { node { id } }
             }
           }`,
-          { issueId: issue.id, body },
+          { issueId: issue.id, body: proposedBody },
         );
         safeLog(ref, "action:comment-posted");
       } catch (err) {
