@@ -55,6 +55,12 @@ describe("computeCommentActions", () => {
     expect(actions.some((a) => a.kind === "create")).toBe(true);
   });
 
+  it("auto-fixes always produce a new comment even when violations are unchanged", () => {
+    // same violation state, but auto-fixes happened → must post
+    const actions = computeCommentActions(autoFixBody, [visible(autoFixBody)], true);
+    expect(actions.some((a) => a.kind === "create")).toBe(true);
+  });
+
   it("already-minimized comments are ignored in state comparison", () => {
     const actions = computeCommentActions(violationBody, [minimized(violationBody)]);
     // minimized comment shouldn't count as "already current"

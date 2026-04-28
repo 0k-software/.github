@@ -77,7 +77,7 @@ export async function processIssue(
     }));
 
   const proposedBody = buildCommentBody(violations, appliedFixes);
-  const commentActions = computeCommentActions(proposedBody, existingBotComments);
+  const commentActions = computeCommentActions(proposedBody, existingBotComments, appliedFixes.length > 0);
 
   for (const action of commentActions) {
     if (action.kind === "minimize") {

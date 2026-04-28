@@ -37,12 +37,15 @@ export type CommentAction =
 export function computeCommentActions(
   proposedBody: string,
   existingBotComments: BotComment[],
+  hasAutoFixes = false,
 ): CommentAction[] {
   const proposedMeta = parseMeta(proposedBody);
   const visibleComments = existingBotComments.filter((c) => c.minimizedReason === null);
 
-  // No change — a visible comment already carries the same state
+  // Auto-fixes always produce a new comment so the run's actions are visible.
+  // Otherwise skip if a visible comment already carries the same violation state.
   if (
+    !hasAutoFixes &&
     proposedMeta !== null &&
     visibleComments.some((c) => {
       const m = parseMeta(c.body);
