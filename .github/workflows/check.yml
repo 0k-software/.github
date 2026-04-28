@@ -13,7 +13,8 @@ permissions:
   pull-requests: write
 
 jobs:
-  Check:
+  check:
+    name: Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
