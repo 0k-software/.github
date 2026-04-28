@@ -90,8 +90,7 @@ describe("buildCommentBody", () => {
   it("returns clean message when both arrays are empty", () => {
     const body = buildCommentBody([], []);
     expect(body).toContain(BOT_MARKER);
-    expect(body).toContain("All previously flagged issues have been resolved");
-    expect(body).toContain("**clean**");
+    expect(body).toContain("Issue hygiene checks passed");
     expect(body).toContain("_Issue hygiene bot_");
   });
 

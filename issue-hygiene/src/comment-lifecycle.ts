@@ -79,7 +79,7 @@ export function buildCommentBody(
   const meta = `${META_PREFIX}${JSON.stringify({ violations, autoFixes })}${META_SUFFIX}`;
 
   if (violations.length === 0 && autoFixes.length === 0) {
-    return `${BOT_MARKER}\n${meta}\n\nAll previously flagged issues have been resolved. This issue is now **clean**.\n\n---\n_Issue hygiene bot_`;
+    return `${BOT_MARKER}\n${meta}\n\nIssue hygiene checks passed — no issues found.\n\n---\n_Issue hygiene bot_`;
   }
 
   const sections: string[] = [];
