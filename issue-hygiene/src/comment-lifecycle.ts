@@ -1,7 +1,28 @@
 export const BOT_MARKER = "<!-- issue-hygiene-bot -->";
 
-// Matches the "**Please fix:**" section header written by buildCommentBody
+const META_PREFIX = "<!-- issue-hygiene-meta: ";
+const META_SUFFIX = " -->";
 const VIOLATIONS_MARKER = "**Please fix:**";
+
+type CommentMeta = { violations: string[]; autoFixes: string[] };
+
+function parseMeta(body: string): CommentMeta | null {
+  const start = body.indexOf(META_PREFIX);
+  if (start === -1) return null;
+  const jsonStart = start + META_PREFIX.length;
+  const end = body.indexOf(META_SUFFIX, jsonStart);
+  if (end === -1) return null;
+  try {
+    return JSON.parse(body.slice(jsonStart, end)) as CommentMeta;
+  } catch {
+    return null;
+  }
+}
+
+function metaEquals(a: CommentMeta, b: CommentMeta): boolean {
+  const sig = (arr: string[]) => JSON.stringify(arr.slice().sort());
+  return sig(a.violations) === sig(b.violations) && sig(a.autoFixes) === sig(b.autoFixes);
+}
 
 export type BotComment = {
   id: string;
@@ -14,51 +35,51 @@ export type CommentAction =
   | { kind: "create" };
 
 export function computeCommentActions(
-  hasViolations: boolean,
-  hasAutoFixes: boolean,
+  proposedBody: string,
   existingBotComments: BotComment[],
 ): CommentAction[] {
-  const visibleComments = existingBotComments.filter(
-    (c) => c.minimizedReason === null,
-  );
+  const proposedMeta = parseMeta(proposedBody);
+  const visibleComments = existingBotComments.filter((c) => c.minimizedReason === null);
 
-  if (hasViolations || hasAutoFixes) {
-    const actions: CommentAction[] = visibleComments.map((c) => ({
-      kind: "minimize" as const,
-      id: c.id,
-      reason: "OUTDATED" as const,
-    }));
-    actions.push({ kind: "create" });
-    return actions;
-  }
-
-  // No violations and no auto-fixes — resolve any open violation comments.
-  // We only look at comments that contain the violations section marker so that
-  // a previously-posted "clean" comment doesn't re-trigger this on the next run.
-  const violationComments = visibleComments.filter((c) =>
-    c.body.includes(VIOLATIONS_MARKER),
-  );
-
-  if (violationComments.length === 0) {
+  // No change — a visible comment already carries the same state
+  if (
+    proposedMeta !== null &&
+    visibleComments.some((c) => {
+      const m = parseMeta(c.body);
+      return m !== null && metaEquals(m, proposedMeta);
+    })
+  ) {
     return [];
   }
 
-  return [
-    ...violationComments.map((c) => ({
+  const goingClean =
+    proposedMeta !== null &&
+    proposedMeta.violations.length === 0 &&
+    proposedMeta.autoFixes.length === 0;
+
+  const actions: CommentAction[] = visibleComments.map((c) => {
+    const prevMeta = parseMeta(c.body);
+    const prevHadViolations =
+      prevMeta != null ? prevMeta.violations.length > 0 : c.body.includes(VIOLATIONS_MARKER);
+    return {
       kind: "minimize" as const,
       id: c.id,
-      reason: "RESOLVED" as const,
-    })),
-    { kind: "create" as const },
-  ];
+      reason: goingClean && prevHadViolations ? ("RESOLVED" as const) : ("OUTDATED" as const),
+    };
+  });
+
+  actions.push({ kind: "create" as const });
+  return actions;
 }
 
 export function buildCommentBody(
   violations: string[],
-  autoFixDescriptions: string[],
+  autoFixes: string[],
 ): string {
-  if (violations.length === 0 && autoFixDescriptions.length === 0) {
-    return `${BOT_MARKER}\n\nAll previously flagged issues have been resolved. This issue is now **clean**.\n\n---\n_Issue hygiene bot_`;
+  const meta = `${META_PREFIX}${JSON.stringify({ violations, autoFixes })}${META_SUFFIX}`;
+
+  if (violations.length === 0 && autoFixes.length === 0) {
+    return `${BOT_MARKER}\n${meta}\n\nAll previously flagged issues have been resolved. This issue is now **clean**.\n\n---\n_Issue hygiene bot_`;
   }
 
   const sections: string[] = [];
@@ -69,12 +90,11 @@ export function buildCommentBody(
     );
   }
 
-  if (autoFixDescriptions.length > 0) {
+  if (autoFixes.length > 0) {
     sections.push(
-      `**Auto-fixed in this run:**\n${autoFixDescriptions.map((d) => `- ${d}`).join("\n")}`,
+      `**Auto-fixed in this run:**\n${autoFixes.map((d) => `- ${d}`).join("\n")}`,
     );
   }
 
-  const body = sections.join("\n\n");
-  return `${BOT_MARKER}\n\n${body}\n\n---\n_Issue hygiene bot_`;
+  return `${BOT_MARKER}\n${meta}\n\n${sections.join("\n\n")}\n\n---\n_Issue hygiene bot_`;
 }
