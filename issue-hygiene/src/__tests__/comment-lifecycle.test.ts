@@ -44,10 +44,9 @@ describe("computeCommentActions", () => {
     expect(actions.some((a) => a.kind === "create")).toBe(true);
   });
 
-  it("transitioning to clean from auto-fix comment: minimizes as OUTDATED (no violations to resolve)", () => {
+  it("clean run after auto-fix comment: no-op (auto-fix comment stays, violations unchanged at zero)", () => {
     const actions = computeCommentActions(cleanBody, [visible(autoFixBody)]);
-    expect(actions).toContainEqual({ kind: "minimize", id: "c1", reason: "OUTDATED" });
-    expect(actions.some((a) => a.kind === "create")).toBe(true);
+    expect(actions).toHaveLength(0);
   });
 
   it("violations appear after clean comment: minimizes clean as OUTDATED and creates violation", () => {
@@ -90,14 +89,20 @@ describe("buildCommentBody", () => {
   it("returns clean message when both arrays are empty", () => {
     const body = buildCommentBody([], []);
     expect(body).toContain(BOT_MARKER);
-    expect(body).toContain("Issue hygiene checks passed");
+    expect(body).toContain("No issues found");
+    expect(body).toContain("marked as **clean**");
     expect(body).toContain("_Issue hygiene bot_");
   });
 
-  it("embeds machine-readable metadata as HTML comment", () => {
+  it("auto-fix-only comment also mentions clean label", () => {
+    const body = buildCommentBody([], ["Removed from Triage"]);
+    expect(body).toContain("marked as **clean**");
+  });
+
+  it("embeds metadata with violations only (no autoFixes)", () => {
     const body = buildCommentBody(["Missing assignee"], ["Removed from Triage"]);
     expect(body).toContain("<!-- issue-hygiene-meta:");
     expect(body).toContain('"violations":["Missing assignee"]');
-    expect(body).toContain('"autoFixes":["Removed from Triage"]');
+    expect(body).not.toContain('"autoFixes"');
   });
 });

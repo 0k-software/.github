@@ -4,7 +4,7 @@ const META_PREFIX = "<!-- issue-hygiene-meta: ";
 const META_SUFFIX = " -->";
 const VIOLATIONS_MARKER = "**Please fix:**";
 
-type CommentMeta = { violations: string[]; autoFixes: string[] };
+type CommentMeta = { violations: string[] };
 
 function parseMeta(body: string): CommentMeta | null {
   const start = body.indexOf(META_PREFIX);
@@ -21,7 +21,7 @@ function parseMeta(body: string): CommentMeta | null {
 
 function metaEquals(a: CommentMeta, b: CommentMeta): boolean {
   const sig = (arr: string[]) => JSON.stringify(arr.slice().sort());
-  return sig(a.violations) === sig(b.violations) && sig(a.autoFixes) === sig(b.autoFixes);
+  return sig(a.violations) === sig(b.violations);
 }
 
 export type BotComment = {
@@ -52,10 +52,7 @@ export function computeCommentActions(
     return [];
   }
 
-  const goingClean =
-    proposedMeta !== null &&
-    proposedMeta.violations.length === 0 &&
-    proposedMeta.autoFixes.length === 0;
+  const goingClean = proposedMeta !== null && proposedMeta.violations.length === 0;
 
   const actions: CommentAction[] = visibleComments.map((c) => {
     const prevMeta = parseMeta(c.body);
@@ -72,14 +69,16 @@ export function computeCommentActions(
   return actions;
 }
 
+const CLEAN_LINE = "Issue hygiene checks passed — this issue is marked as **clean**.";
+
 export function buildCommentBody(
   violations: string[],
   autoFixes: string[],
 ): string {
-  const meta = `${META_PREFIX}${JSON.stringify({ violations, autoFixes })}${META_SUFFIX}`;
+  const meta = `${META_PREFIX}${JSON.stringify({ violations })}${META_SUFFIX}`;
 
   if (violations.length === 0 && autoFixes.length === 0) {
-    return `${BOT_MARKER}\n${meta}\n\nIssue hygiene checks passed — no issues found.\n\n---\n_Issue hygiene bot_`;
+    return `${BOT_MARKER}\n${meta}\n\nNo issues found. ${CLEAN_LINE}\n\n---\n_Issue hygiene bot_`;
   }
 
   const sections: string[] = [];
@@ -94,6 +93,10 @@ export function buildCommentBody(
     sections.push(
       `**Auto-fixed in this run:**\n${autoFixes.map((d) => `- ${d}`).join("\n")}`,
     );
+  }
+
+  if (violations.length === 0) {
+    sections.push(CLEAN_LINE);
   }
 
   return `${BOT_MARKER}\n${meta}\n\n${sections.join("\n\n")}\n\n---\n_Issue hygiene bot_`;
