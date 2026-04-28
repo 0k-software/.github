@@ -7,7 +7,7 @@ export type BotComment = {
 };
 
 export type CommentAction =
-  | { kind: "minimize"; id: string; reason: "OUTDATED" | "RESOLVED" }
+  | { kind: "minimize"; id: string; reason: "OUTDATED" }
   | { kind: "create" };
 
 export function computeCommentActions(
@@ -15,29 +15,21 @@ export function computeCommentActions(
   hasAutoFixes: boolean,
   existingBotComments: BotComment[],
 ): CommentAction[] {
+  if (!hasViolations && !hasAutoFixes) {
+    return [];
+  }
+
   const visibleComments = existingBotComments.filter(
     (c) => c.minimizedReason === null,
   );
 
-  if (hasViolations || hasAutoFixes) {
-    const actions: CommentAction[] = visibleComments.map((c) => ({
-      kind: "minimize" as const,
-      id: c.id,
-      reason: "OUTDATED" as const,
-    }));
-    actions.push({ kind: "create" });
-    return actions;
-  }
-
-  if (visibleComments.length === 0) {
-    return [];
-  }
-
-  return visibleComments.map((c) => ({
+  const actions: CommentAction[] = visibleComments.map((c) => ({
     kind: "minimize" as const,
     id: c.id,
-    reason: "RESOLVED" as const,
+    reason: "OUTDATED" as const,
   }));
+  actions.push({ kind: "create" });
+  return actions;
 }
 
 export function buildCommentBody(

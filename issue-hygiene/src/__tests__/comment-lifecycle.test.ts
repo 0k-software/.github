@@ -53,22 +53,12 @@ describe("computeCommentActions", () => {
     expect(actions).toHaveLength(0);
   });
 
-  it("no violations, no auto-fixes, visible bot comments: minimizes as RESOLVED", () => {
+  it("no violations, no auto-fixes, visible bot comments: no-op (never minimize without a new comment)", () => {
     const actions = computeCommentActions(false, false, [
       visible("c1"),
       visible("c2"),
     ]);
-    expect(actions).toContainEqual({
-      kind: "minimize",
-      id: "c1",
-      reason: "RESOLVED",
-    });
-    expect(actions).toContainEqual({
-      kind: "minimize",
-      id: "c2",
-      reason: "RESOLVED",
-    });
-    expect(actions.some((a) => a.kind === "create")).toBe(false);
+    expect(actions).toHaveLength(0);
   });
 
   it("no violations, no auto-fixes, all already minimized: no-op", () => {
