@@ -43,7 +43,7 @@ export async function processIssue(
       try {
         await client.graphql(
           `mutation($projectId: ID!, $itemId: ID!) {
-            removeProjectV2ItemFromProject(input: { projectId: $projectId, itemId: $itemId }) {
+            deleteProjectV2Item(input: { projectId: $projectId, itemId: $itemId }) {
               deletedItemId
             }
           }`,
