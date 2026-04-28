@@ -27,15 +27,19 @@ async function run(): Promise<void> {
   const cacheRestoreKey = `issue-hygiene-${org}-`;
 
   let lastRunAt: string | undefined;
-  try {
-    const hit = await cache.restoreCache([cachePath], cacheKey, [cacheRestoreKey]);
-    if (hit) {
-      const data = JSON.parse(fs.readFileSync(cachePath, "utf-8")) as { lastRunAt?: string };
-      lastRunAt = data.lastRunAt;
-      core.info(`Cache restored: skipping issues not updated since ${lastRunAt}`);
+  if (!cache.isFeatureAvailable()) {
+    core.info("Cache service unavailable — processing all issues");
+  } else {
+    try {
+      const hit = await cache.restoreCache([cachePath], cacheKey, [cacheRestoreKey]);
+      if (hit) {
+        const data = JSON.parse(fs.readFileSync(cachePath, "utf-8")) as { lastRunAt?: string };
+        lastRunAt = data.lastRunAt;
+        core.info(`Cache restored: skipping issues not updated since ${lastRunAt}`);
+      }
+    } catch (err) {
+      core.warning(`Failed to restore cache: ${String(err)}`);
     }
-  } catch (err) {
-    core.warning(`Failed to restore cache: ${String(err)}`);
   }
 
   const { projectsByRepo, allProjects } = await queryOrgProjects(client, org);
@@ -99,11 +103,13 @@ async function run(): Promise<void> {
     ])
     .write();
 
-  try {
-    fs.writeFileSync(cachePath, JSON.stringify({ lastRunAt: runStartedAt }));
-    await cache.saveCache([cachePath], cacheKey);
-  } catch (err) {
-    core.warning(`Failed to save cache: ${String(err)}`);
+  if (cache.isFeatureAvailable()) {
+    try {
+      fs.writeFileSync(cachePath, JSON.stringify({ lastRunAt: runStartedAt }));
+      await cache.saveCache([cachePath], cacheKey);
+    } catch (err) {
+      core.warning(`Failed to save cache: ${String(err)}`);
+    }
   }
 
   if (totalSoftFailed > 0) {
