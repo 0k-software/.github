@@ -19,8 +19,8 @@ Two kinds of artifact live here:
 
 The org's Claude Code skills used to live here as the `0k` plugin; they have
 moved to [`0k-software/kata`](https://github.com/0k-software/kata). A snapshot
-of the released plugin is vendored at `.claude/plugins/kata/` — keep it in
-sync with the upstream `.claude/plugins/kata/` directory of that repo.
+of the released plugin is vendored at `.claude/plugins/kata/` — keep it in sync
+with the upstream `.claude/plugins/kata/` directory of that repo.
 
 ## Issue Template System
 
