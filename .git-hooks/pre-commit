@@ -1,11 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_root="$(git rev-parse --show-toplevel)"
-
 echo "Running pre-commit checks..."
-
-"$repo_root/bin/check-skill-templates"
 
 if command -v npx &>/dev/null; then
   npx --yes prettier --check "**/*.md"

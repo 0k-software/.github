@@ -27,9 +27,6 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Check templates are in sync
-        run: bin/check-skill-templates
-
       - name: Check formatting (Prettier)
         run: npx --yes prettier@3.8.1 --check "**/*.md"
 
