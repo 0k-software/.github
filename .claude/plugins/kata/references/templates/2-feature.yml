@@ -1,0 +1,60 @@
+name: ✨ Feature
+description: A new idea, request, or functionality
+type: "Feature"
+body:
+  - type: markdown
+    attributes:
+      value: Propose a new feature to improve the product.
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      value: _Why do we need this feature? What problem does it solve?_
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      value: _What's the proposed solution? Describe how it should work._
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      value: |
+        _Alternative approaches considered during design, with tradeoffs._
+
+        **{Decision point}:**
+        - Option A: ...
+        - Option B: ...
+        - ✅ Chosen: Option A — because ...
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      value: _Who will benefit from this? How does it make things better?_
+  - type: textarea
+    id: pre_flight
+    attributes:
+      label: Pre-flight checklist
+      value: |
+        _Work through each of these items before implementation. Skip with
+        intent — if an item doesn't apply, note why in here._
+
+        - [ ] **Boundary & context** — belongs in an existing context, or a
+              new one created following the _How to add a new Phoenix context_
+              steps in `CLAUDE.md`
+        - [ ] **Database migration** — new tables/columns generated with
+              `mix ecto.gen.migration` using `binary_id` keys
+        - [ ] **Authentication** — correct router scope chosen
+              (`:require_authenticated_user`, `:require_kingdom`, or public)
+        - [ ] **Authorisation** — does this affect existing actions or
+              introduce new ones? Who can perform them?
+        - [ ] **Admin pages** — Backpex config updated in `/admin` with any
+              new resources or fields added to existing resources
+        - [ ] **Feature flag** — rolls out gradually behind a
+              `KingdoneCore.FeatureFlags` flag enabled via `/dev/flags`; or
+              noted in the PR description why a flag is not needed
+        - [ ] **Background jobs** — deferred/retried work uses an Oban worker
+        - [ ] **Tests** — LiveView integration tests with `PhoenixTest`;
+              context unit tests; both flag states covered if feature-flagged
+        - [ ] **IEx helpers** — `.iex.exs` updated for any new schemas
+        - [ ] **CLAUDE.md** — new patterns or conventions documented
