@@ -1,0 +1,39 @@
+name: 🧱 Enhancement
+description: Improvements, refactors, DevX changes, or non-critical performance boosts
+type: "Enhancement"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Suggest improvements that make development smoother or the product better without changing core functionality.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      value: _What’s the improvement you’re suggesting?_
+  - type: textarea
+    id: rationale
+    attributes:
+      label: Rationale
+      value: _Why is this improvement worth doing? What pain does it reduce?_
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      value: _What's the proposed solution? Describe how it should work._
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      value: |
+        _Alternative approaches considered during design, with tradeoffs._
+
+        **{Decision point}:**
+        - Option A: ...
+        - Option B: ...
+        - ✅ Chosen: Option A — because ...
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope / Impact
+      value: _Does this affect users, developers, performance, or maintainability?_

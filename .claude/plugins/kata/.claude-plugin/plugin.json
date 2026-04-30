@@ -1,0 +1,9 @@
+{
+  "name": "kata",
+  "description": "0k-software org skills — commit, rebase, issue management, branch workflows, and more",
+  "version": "1.0.0",
+  "author": { "name": "0k-software" },
+  "license": "MIT",
+  "homepage": "https://github.com/0k-software/kata",
+  "repository": "https://github.com/0k-software/kata"
+}

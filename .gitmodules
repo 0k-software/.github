@@ -1,3 +1,0 @@
-[submodule ".claude/plugins/kata"]
-	path = .claude/plugins/kata
-	url = https://github.com/0k-software/kata.git

@@ -18,9 +18,9 @@ Two kinds of artifact live here:
   `uses: 0k-software/.github/<action-name>@<tag>`.
 
 The org's Claude Code skills used to live here as the `0k` plugin; they have
-moved to [`0k-software/kata`](https://github.com/0k-software/kata) and are
-checked out as a git submodule at `.claude/plugins/kata`. Run
-`git submodule update --init` after cloning to populate it.
+moved to [`0k-software/kata`](https://github.com/0k-software/kata). A snapshot
+of the released plugin is vendored at `.claude/plugins/kata/` — keep it in
+sync with the upstream `.claude/plugins/kata/` directory of that repo.
 
 ## Issue Template System
 
@@ -53,14 +53,11 @@ The templates are tailored for an **Elixir/Phoenix** stack:
 After cloning, run:
 
 ```
-git submodule update --init
 make setup
 ```
 
-`git submodule update --init` populates `.claude/plugins/kata` so the org's
-Claude Code skills are available locally. `make setup` copies the project hooks
-from `.git-hooks/` into `.git/hooks/` (pre-commit verifies Markdown
-formatting).
+`make setup` copies the project hooks from `.git-hooks/` into `.git/hooks/`
+(pre-commit verifies Markdown formatting).
 
 ## Editing Guidelines
 
