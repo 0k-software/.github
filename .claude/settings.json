@@ -1,1 +1,5 @@
-{}
+{
+  "enabledPlugins": {
+    "kata@0k-plugins": true
+  }
+}
