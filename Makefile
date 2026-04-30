@@ -5,7 +5,7 @@ GIT_HOOKS_DST := $(GIT_DIR)/hooks
 HOOK_FILES := $(wildcard $(GIT_HOOKS_SRC)/*)
 
 .PHONY: all
-all: setup install-plugin
+all: setup
 
 .PHONY: setup
 setup:
@@ -17,56 +17,3 @@ setup:
 		echo "Installed hook: $$name"; \
 	done
 	@echo "Git hooks installed to $(GIT_HOOKS_DST)/"
-
-ISSUE_TEMPLATE_SRC := .github/ISSUE_TEMPLATE
-SKILL_TEMPLATES_DST := 0k/references/templates
-PLUGIN_NAME := 0k
-DEV_PLUGIN_NAME := 0k-dev
-DEV_MARKETPLACE_NAME := 0k-software-dev
-DEV_MARKETPLACE_DIR := dev
-
-TEMPLATE_FILES := $(wildcard $(ISSUE_TEMPLATE_SRC)/[0-9]*.yml)
-
-.PHONY: sync-skill-templates
-sync-skill-templates:
-	@mkdir -p $(SKILL_TEMPLATES_DST)
-	@rm -f $(SKILL_TEMPLATES_DST)/*.yml
-	@cp $(TEMPLATE_FILES) $(SKILL_TEMPLATES_DST)/
-	@echo "Synced $(words $(TEMPLATE_FILES)) templates to $(SKILL_TEMPLATES_DST)/"
-
-# Installs from the local working copy under a separate `0k-dev@0k-software-dev`
-# identity so it never clobbers a developer's published `0k@0k-software` install.
-# End users get the published plugin via .claude/settings.json (extraKnownMarketplaces).
-.PHONY: install-plugin
-install-plugin: sync-skill-templates
-	@claude plugin marketplace add "$(CURDIR)/$(DEV_MARKETPLACE_DIR)" 2>/dev/null \
-		|| claude plugin marketplace update $(DEV_MARKETPLACE_NAME)
-	@claude plugin install $(DEV_PLUGIN_NAME) 2>/dev/null \
-		|| claude plugin update $(DEV_PLUGIN_NAME)
-	@echo "Plugin $(DEV_PLUGIN_NAME) installed from local working copy"
-
-PLUGIN_VERSION := $(shell jq -r '.version' $(PLUGIN_NAME)/.claude-plugin/plugin.json 2>/dev/null)
-
-.PHONY: uninstall-plugin
-uninstall-plugin:
-	@claude plugin uninstall $(DEV_PLUGIN_NAME) 2>/dev/null || true
-	@claude plugin marketplace remove $(DEV_MARKETPLACE_NAME) 2>/dev/null || true
-	@echo "Plugin $(DEV_PLUGIN_NAME) uninstalled"
-
-.PHONY: release
-release:
-	@test -n "$(PLUGIN_VERSION)" || { echo "error: could not read version from $(PLUGIN_NAME)/.claude-plugin/plugin.json"; exit 1; }
-	@git diff --quiet && git diff --cached --quiet \
-		|| { echo "error: working tree is dirty — commit all changes first"; exit 1; }
-	@git tag -a "v$(PLUGIN_VERSION)" -m "v$(PLUGIN_VERSION)" 2>/dev/null \
-		|| { echo "error: tag v$(PLUGIN_VERSION) already exists"; exit 1; }
-	@git push origin "v$(PLUGIN_VERSION)"
-	@gh release create "v$(PLUGIN_VERSION)" \
-		--title "v$(PLUGIN_VERSION)" \
-		--generate-notes
-	@echo "Released v$(PLUGIN_VERSION)"
-
-# Backwards-compatible aliases
-.PHONY: install-skills uninstall-skills
-install-skills: install-plugin
-uninstall-skills: uninstall-plugin

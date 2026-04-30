@@ -1,13 +1,1 @@
-{
-  "extraKnownMarketplaces": {
-    "0k-software": {
-      "source": {
-        "source": "github",
-        "repo": "0k-software/.github"
-      }
-    }
-  },
-  "enabledPlugins": {
-    "0k@0k-software": true
-  }
-}
+{}

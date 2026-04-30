@@ -9,14 +9,18 @@ This is a [`.github` community health repository][gh-community-health] — its
 contents apply as defaults across all repositories in the GitHub
 account/organization that don't define their own.
 
-Three kinds of artifact live here:
+Two kinds of artifact live here:
 
 - GitHub Issue Templates under `.github/ISSUE_TEMPLATE/`.
-- The `0k` Claude Code plugin under `0k/`.
 - Shared **composite GitHub Actions**, one per top-level subdirectory (e.g.
   `hide-addressed-reviews/`). Each action directory contains its own
   `action.yml` and `README.md` and is consumed as
   `uses: 0k-software/.github/<action-name>@<tag>`.
+
+The org's Claude Code skills used to live here as the `0k` plugin; they have
+moved to [`0k-software/kata`](https://github.com/0k-software/kata) and are
+checked out as a git submodule at `.claude/plugins/kata`. Run
+`git submodule update --init` after cloning to populate it.
 
 ## Issue Template System
 
@@ -49,50 +53,14 @@ The templates are tailored for an **Elixir/Phoenix** stack:
 After cloning, run:
 
 ```
+git submodule update --init
 make setup
 ```
 
-This copies the project hooks from `.git-hooks/` into `.git/hooks/` (pre-commit
-checks that skill template copies stay in sync with the source issue
-templates).
-
-## Plugin
-
-The `0k` Claude Code plugin lives in `0k/`. It contains all org-shared skills.
-For local development, install from the working copy:
-
-```
-make install-plugin
-```
-
-Local installs go through a separate `dev/.claude-plugin/marketplace.json` that
-registers the plugin as `0k-dev@0k-software-dev`, so they don't clobber a
-developer's published `0k@0k-software` install.
-
-### Making the plugin available in other 0k-software projects
-
-Add this to the project's `.claude/settings.json` to declare the marketplace
-and auto-enable the plugin — the standard Claude Code mechanism, no scripts or
-hooks required:
-
-```json
-{
-  "extraKnownMarketplaces": {
-    "0k-software": {
-      "source": {
-        "source": "github",
-        "repo": "0k-software/.github"
-      }
-    }
-  },
-  "enabledPlugins": {
-    "0k@0k-software": true
-  }
-}
-```
-
-Claude Code installs the plugin from the latest GitHub release on session start
-and keeps it up to date automatically.
+`git submodule update --init` populates `.claude/plugins/kata` so the org's
+Claude Code skills are available locally. `make setup` copies the project hooks
+from `.git-hooks/` into `.git/hooks/` (pre-commit verifies Markdown
+formatting).
 
 ## Editing Guidelines
 
@@ -114,7 +82,7 @@ Two labels track the AI work lifecycle across issues and PRs:
 
 **Lifecycle:** `in progress` → `to review` → human clears `to review`
 
-Skills manage these labels automatically:
+The kata plugin's skills manage these labels automatically:
 
 - Add `in progress` when a skill starts working on an issue or PR.
 - Swap to `to review` when the skill hands off (end of `refine`, `plan-init`,
