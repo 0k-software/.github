@@ -125,10 +125,15 @@ runs:
             return 0
           fi
 
-          # Drift: clone, write, commit, push
+          # Drift: clone, write, commit, push.
+          # Auth lives in an http.extraheader passed via `git -c` so the
+          # token never appears in the remote URL — git logs the URL on
+          # transport errors, which would otherwise leak the token.
           rm -rf "$repo_dir"
-          local auth_url="https://x-access-token:${GH_TOKEN}@github.com/${repo}.git"
-          if ! git clone --depth 1 "$auth_url" "$repo_dir" 2>&1 | tail -5; then
+          local auth_header="Authorization: Bearer ${GH_TOKEN}"
+          if ! git -c "http.https://github.com/.extraheader=${auth_header}" \
+              clone --depth 1 "https://github.com/${repo}.git" "$repo_dir" \
+              2>&1 | tail -5; then
             ERRORS+=("$repo: clone failed")
             STATUS[$repo]="error (clone)"
             return 1
@@ -156,7 +161,8 @@ runs:
               printf '.github/copilot-instructions.md.\n'
             } > "$msg_file"
             git commit -F "$msg_file"
-            git push --force-with-lease origin "$BRANCH_NAME"
+            git -c "http.https://github.com/.extraheader=${auth_header}" \
+              push --force-with-lease origin "$BRANCH_NAME"
           ) || {
             ERRORS+=("$repo: commit/push failed")
             STATUS[$repo]="error (push)"
