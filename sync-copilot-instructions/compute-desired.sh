@@ -39,10 +39,38 @@ print_canonical() {
   awk '{ print }' "$CANONICAL"
 }
 
+# Wrap canonical with bare markers — used by the no-markers prepend so the
+# repo's existing content stays the source of structural truth.
 emit_wrapped() {
   printf '%s\n' "$BEGIN_MARK"
   print_canonical
   printf '%s\n' "$END_MARK"
+}
+
+# Wrap canonical with the full deployed scaffolding — the H1 with a
+# sync-source disclaimer above the markers, the canonical body inside, and
+# a "Repo-specific instructions" H2 for repos to extend below. Used only
+# when creating a target file from scratch.
+emit_scaffolded() {
+  cat <<'PREFIX'
+# GitHub Copilot instructions
+
+This file's "Org-wide instructions" section is automatically synced from
+[`copilot-instructions.md`](https://github.com/0k-software/.github/blob/main/copilot-instructions.md)
+in `0k-software/.github`. Any changes inside the
+`<!-- 0k:org-instructions:begin -->` / `<!-- 0k:org-instructions:end -->`
+markers will be overwritten on the next sync run — edit the canonical
+source instead.
+
+PREFIX
+  emit_wrapped
+  cat <<'SUFFIX'
+
+## Repo-specific instructions
+
+This section is owned by this repo. Anything written here is preserved
+across syncs.
+SUFFIX
 }
 
 existing_is_present=1
@@ -51,7 +79,7 @@ if [ "$EXISTING" = "/dev/null" ] || [ ! -e "$EXISTING" ] || [ ! -s "$EXISTING" ]
 fi
 
 if [ "$existing_is_present" -eq 0 ]; then
-  emit_wrapped
+  emit_scaffolded
   exit 0
 fi
 

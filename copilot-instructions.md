@@ -1,9 +1,6 @@
-# GitHub Copilot instructions
+## Org-wide instructions
 
-These are organization-wide GitHub Copilot instructions for repositories in the
-`0k-software` organization.
-
-## Draft PRs containing only `PLAN.md`
+### Draft PRs containing only `PLAN.md`
 
 Some draft PRs intentionally contain only a `PLAN.md` file and no other
 changes. This is expected, not incomplete.
@@ -13,7 +10,7 @@ issue. It is committed on purpose so reviewers can react to the plan before any
 implementation work happens. Do not flag the PR as incomplete or suggest
 removing the file.
 
-## Reviewing `PLAN.md`
+### Reviewing `PLAN.md`
 
 Review `PLAN.md` as a plan, not as code. Useful feedback answers:
 
@@ -21,7 +18,7 @@ Review `PLAN.md` as a plan, not as code. Useful feedback answers:
 - Are the steps coherent, complete, and in a sensible order?
 - Are there missing edge cases, risks, or assumptions worth flagging?
 
-## What not to flag on `PLAN.md`
+### What not to flag on `PLAN.md`
 
 Skip code-review heuristics on `PLAN.md` — they don't apply to a planning
 document. In particular, do not flag formatting nits, linting concerns, or

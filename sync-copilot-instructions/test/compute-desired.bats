@@ -15,7 +15,7 @@ assert_matches() {
   [ "$actual" = "$expected" ]
 }
 
-@test "missing existing (404 via /dev/null): markers wrap canonical" {
+@test "missing existing (404 via /dev/null): full deployed scaffolding wraps canonical" {
   assert_matches "missing" "/dev/null"
 }
 
