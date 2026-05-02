@@ -38,10 +38,11 @@ per action, each containing an `action.yml` and a `README.md`). Consumers pin
 to the moving major tag, e.g.
 `uses: 0k-software/.github/hide-addressed-reviews@v1`.
 
-| Action                                                         | `uses:` path                                 | Purpose                                                              |
-| -------------------------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------- |
-| [`hide-addressed-reviews`](./hide-addressed-reviews/README.md) | `0k-software/.github/hide-addressed-reviews` | Minimize LGTM-style bot reviews and resolve the threads they opened. |
-| [`check-pr-size`](./check-pr-size/README.md)                   | `0k-software/.github/check-pr-size`          | Enforce a configurable PR size limit with a status review.           |
+| Action                                                               | `uses:` path                                    | Purpose                                                                        |
+| -------------------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------ |
+| [`hide-addressed-reviews`](./hide-addressed-reviews/README.md)       | `0k-software/.github/hide-addressed-reviews`    | Minimize LGTM-style bot reviews and resolve the threads they opened.           |
+| [`check-pr-size`](./check-pr-size/README.md)                         | `0k-software/.github/check-pr-size`             | Enforce a configurable PR size limit with a status review.                     |
+| [`sync-copilot-instructions`](./sync-copilot-instructions/README.md) | `0k-software/.github/sync-copilot-instructions` | Sync the org-wide canonical Copilot instructions into every repo's `.github/`. |
 
 See each action's own `README.md` for inputs, permissions, and examples.
 

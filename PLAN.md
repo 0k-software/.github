@@ -48,7 +48,7 @@ same end-to-end path every other org repo will use.
 - [x] [Step 2: Add `extract-org-section.sh` helper with bats tests and CI workflow](#step-2-add-extract-org-sectionsh-helper-with-bats-tests-and-ci-workflow)
 - [x] [Step 3: Add `compute-desired.sh` helper with bats tests](#step-3-add-compute-desiredsh-helper-with-bats-tests)
 - [x] [Step 4: Add `sync-copilot-instructions/action.yml` composite action](#step-4-add-sync-copilot-instructionsactionyml-composite-action)
-- [ ] [Step 5: Document the action and update root `README.md`](#step-5-document-the-action-and-update-root-readmemd)
+- [x] [Step 5: Document the action and update root `README.md`](#step-5-document-the-action-and-update-root-readmemd)
 
 ---
 
