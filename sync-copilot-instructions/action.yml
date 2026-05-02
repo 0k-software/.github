@@ -108,15 +108,36 @@ runs:
             return 0
           fi
 
-          if gh api "repos/${repo}/contents/.github/copilot-instructions.md" \
-              --jq '.content' 2>/dev/null | base64 -d > "$existing"; then
-            existing_present=1
-            if grep -q '0k:org-instructions:begin' "$existing"; then
-              had_markers=1
-            fi
-          else
-            : > "$existing"
-          fi
+          # Distinguish 404 (treat as missing → sync) from any other failure
+          # (auth, 5xx, rate limit) so transient errors don't masquerade as
+          # "missing" and cause the action to overwrite a repo's existing
+          # copilot-instructions.md with just the canonical block.
+          local fetch_body="${WORKDIR}/fetch-${repo//\//__}.json"
+          local fetch_status
+          fetch_status=$(curl -sS \
+            -o "$fetch_body" \
+            -w '%{http_code}' \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${repo}/contents/.github/copilot-instructions.md" \
+            || echo "000")
+          case "$fetch_status" in
+            200)
+              jq -r '.content' "$fetch_body" | base64 -d > "$existing"
+              existing_present=1
+              if grep -q '0k:org-instructions:begin' "$existing"; then
+                had_markers=1
+              fi
+              ;;
+            404)
+              : > "$existing"
+              ;;
+            *)
+              ERRORS+=("$repo: HTTP ${fetch_status} fetching .github/copilot-instructions.md")
+              STATUS[$repo]="error (fetch)"
+              return 1
+              ;;
+          esac
 
           "$COMPUTE" "$CANONICAL_FILE" "$existing" > "$desired"
 
