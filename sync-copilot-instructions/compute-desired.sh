@@ -55,7 +55,14 @@ if [ "$existing_is_present" -eq 0 ]; then
   exit 0
 fi
 
+begin_line=""
+end_line=""
 if grep -q '0k:org-instructions:begin' "$EXISTING"; then
+  begin_line=$(grep -nE '^[[:space:]]*<!--[[:space:]]*0k:org-instructions:begin[[:space:]]*-->[[:space:]]*$' "$EXISTING" | head -1 | cut -d: -f1 || true)
+  end_line=$(grep -nE '^[[:space:]]*<!--[[:space:]]*0k:org-instructions:end[[:space:]]*-->[[:space:]]*$' "$EXISTING" | head -1 | cut -d: -f1 || true)
+fi
+
+if [ -n "${begin_line:-}" ] && [ -n "${end_line:-}" ] && [ "$begin_line" -lt "$end_line" ]; then
   awk -v canonical="$CANONICAL" '
     BEGIN { inside = 0; replaced = 0 }
     /^[[:space:]]*<!--[[:space:]]*0k:org-instructions:begin[[:space:]]*-->[[:space:]]*$/ {
@@ -84,6 +91,8 @@ if grep -q '0k:org-instructions:begin' "$EXISTING"; then
     }
   ' "$EXISTING"
 else
+  # No markers, or markers are unbalanced/out of order — fall back to the
+  # no-markers prepend so we never silently drop trailing content.
   emit_wrapped
   printf '\n'
   awk '{ print }' "$EXISTING"

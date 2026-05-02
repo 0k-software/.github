@@ -38,6 +38,14 @@ assert_matches() {
   assert_matches "content-above-and-below" "${FIXTURES}/content-above-and-below.existing.md"
 }
 
+@test "existing has begin marker without end: falls back to no-markers prepend (no truncation)" {
+  assert_matches "unclosed-begin" "${FIXTURES}/unclosed-begin.existing.md"
+}
+
+@test "existing has end marker without preceding begin: falls back to no-markers prepend" {
+  assert_matches "end-without-begin" "${FIXTURES}/end-without-begin.existing.md"
+}
+
 @test "missing canonical file: exits 2" {
   run "$SCRIPT" "${FIXTURES}/does-not-exist.md" "/dev/null"
   [ "$status" -eq 2 ]
