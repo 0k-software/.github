@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# Print the DESIRED contents of a target repo's .github/copilot-instructions.md
+# given the CANONICAL body and the EXISTING file (possibly /dev/null for 404).
+#
+# Usage: compute-desired.sh <canonical> <existing>
+#
+# Behaviour:
+#   - EXISTING missing/empty/-/dev/null -> markers wrapping CANONICAL.
+#   - EXISTING present, no markers      -> markers + CANONICAL prepended above
+#                                          EXISTING (a blank line separates).
+#   - EXISTING present with markers     -> EXISTING with the marker-section
+#                                          body replaced by CANONICAL. When the
+#                                          existing body already equals CANONICAL,
+#                                          the output is byte-identical to
+#                                          EXISTING (caller compares to detect
+#                                          drift).
+#
+# This script does NOT compare DESIRED to EXISTING — the caller does that.
+
+set -euo pipefail
+
+if [ "$#" -ne 2 ]; then
+  echo "usage: $0 <canonical> <existing>" >&2
+  exit 2
+fi
+
+CANONICAL="$1"
+EXISTING="$2"
+
+if [ ! -r "$CANONICAL" ]; then
+  echo "compute-desired: cannot read canonical '$CANONICAL'" >&2
+  exit 2
+fi
+
+BEGIN_MARK='<!-- 0k:org-instructions:begin -->'
+END_MARK='<!-- 0k:org-instructions:end -->'
+
+print_canonical() {
+  awk '{ print }' "$CANONICAL"
+}
+
+emit_wrapped() {
+  printf '%s\n' "$BEGIN_MARK"
+  print_canonical
+  printf '%s\n' "$END_MARK"
+}
+
+existing_is_present=1
+if [ "$EXISTING" = "/dev/null" ] || [ ! -e "$EXISTING" ] || [ ! -s "$EXISTING" ]; then
+  existing_is_present=0
+fi
+
+if [ "$existing_is_present" -eq 0 ]; then
+  emit_wrapped
+  exit 0
+fi
+
+if grep -q '0k:org-instructions:begin' "$EXISTING"; then
+  awk -v canonical="$CANONICAL" '
+    BEGIN { inside = 0; replaced = 0 }
+    /^[[:space:]]*<!--[[:space:]]*0k:org-instructions:begin[[:space:]]*-->[[:space:]]*$/ {
+      if (replaced == 0) {
+        print
+        while ((getline cline < canonical) > 0) print cline
+        close(canonical)
+        inside = 1
+        replaced = 1
+        next
+      }
+      print
+      next
+    }
+    /^[[:space:]]*<!--[[:space:]]*0k:org-instructions:end[[:space:]]*-->[[:space:]]*$/ {
+      if (inside == 1) {
+        inside = 0
+        print
+        next
+      }
+      print
+      next
+    }
+    {
+      if (inside == 0) print
+    }
+  ' "$EXISTING"
+else
+  emit_wrapped
+  printf '\n'
+  awk '{ print }' "$EXISTING"
+fi
