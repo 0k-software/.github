@@ -63,8 +63,7 @@ PREFIX
 
 ## Repo-specific instructions
 
-This section is owned by this repo. Anything written here is preserved
-across syncs.
+**Insert here instructions specific to this repo**
 SUFFIX
 }
 
