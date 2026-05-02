@@ -39,7 +39,6 @@ to the moving major tag, e.g.
 | -------------------------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------- |
 | [`hide-addressed-reviews`](./hide-addressed-reviews/README.md) | `0k-software/.github/hide-addressed-reviews` | Minimize LGTM-style bot reviews and resolve the threads they opened. |
 | [`check-pr-size`](./check-pr-size/README.md)                   | `0k-software/.github/check-pr-size`          | Enforce a configurable PR size limit with a status review.           |
-| [`sync-kata-plugin`](./sync-kata-plugin/README.md)             | `0k-software/.github/sync-kata-plugin`       | Vendor the latest released kata plugin into a target repo via PR.    |
 
 See each action's own `README.md` for inputs, permissions, and examples.
 
