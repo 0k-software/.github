@@ -1,5 +1,12 @@
 ## Org-wide instructions
 
+This section is automatically synced from
+[`copilot-instructions.md`](https://github.com/0k-software/.github/blob/main/copilot-instructions.md)
+in `0k-software/.github`. Any changes between the
+`<!-- 0k:org-instructions:begin -->` / `<!-- 0k:org-instructions:end -->`
+markers will be overwritten on the next sync run — edit the canonical source
+instead.
+
 ### Draft PRs containing only `PLAN.md`
 
 Some draft PRs intentionally contain only a `PLAN.md` file and no other

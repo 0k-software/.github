@@ -47,20 +47,15 @@ emit_wrapped() {
   printf '%s\n' "$END_MARK"
 }
 
-# Wrap canonical with the full deployed scaffolding — the H1 with a
-# sync-source disclaimer above the markers, the canonical body inside, and
-# a "Repo-specific instructions" H2 for repos to extend below. Used only
-# when creating a target file from scratch.
+# Wrap canonical with the full deployed scaffolding — a brief H1 intro,
+# the org-wide markers wrapping the canonical body, and a "Repo-specific
+# instructions" H2 below for repos to extend. Used only when creating a
+# target file from scratch.
 emit_scaffolded() {
   cat <<'PREFIX'
 # GitHub Copilot instructions
 
-This file's "Org-wide instructions" section is automatically synced from
-[`copilot-instructions.md`](https://github.com/0k-software/.github/blob/main/copilot-instructions.md)
-in `0k-software/.github`. Any changes inside the
-`<!-- 0k:org-instructions:begin -->` / `<!-- 0k:org-instructions:end -->`
-markers will be overwritten on the next sync run — edit the canonical
-source instead.
+Guidance for GitHub Copilot when working in this repository.
 
 PREFIX
   emit_wrapped
