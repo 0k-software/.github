@@ -8,11 +8,7 @@ It contains two main things: **GitHub Issue Templates** and **shared Composite
 Actions**.
 
 The org's Claude Code skills now live in a separate repository,
-[`0k-software/kata`](https://github.com/0k-software/kata). A snapshot of the
-released plugin is vendored under `.claude/plugins/kata/` so the skills are
-available immediately after a plain clone (and on web sessions where
-marketplaces aren't fetched). The `sync-kata-plugin` action below keeps that
-snapshot in sync with kata's latest release.
+[`0k-software/kata`](https://github.com/0k-software/kata).
 
 ## Issue Templates
 

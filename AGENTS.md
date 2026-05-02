@@ -18,9 +18,7 @@ Two kinds of artifact live here:
   `uses: 0k-software/.github/<action-name>@<tag>`.
 
 The org's Claude Code skills used to live here as the `0k` plugin; they have
-moved to [`0k-software/kata`](https://github.com/0k-software/kata). A snapshot
-of the released plugin is vendored at `.claude/plugins/kata/` — keep it in sync
-with the upstream `.claude/plugins/kata/` directory of that repo.
+moved to [`0k-software/kata`](https://github.com/0k-software/kata).
 
 ## Issue Template System
 
