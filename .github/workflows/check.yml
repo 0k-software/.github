@@ -30,6 +30,12 @@ jobs:
       - name: Check formatting (Prettier)
         run: npx --yes prettier@3.8.1 --check "**/*.md"
 
+      - name: Install bats
+        run: sudo apt-get update && sudo apt-get install -y bats
+
+      - name: Run bats suite
+        run: bats sync-copilot-instructions/test/
+
       - name: Hide addressed reviews
         if: github.event_name == 'pull_request'
         uses: ./hide-addressed-reviews

@@ -103,7 +103,7 @@ The action is composed of two pure shell helpers under
   file paths, print the DESIRED contents of the target file.
 
 Both are unit-tested with `bats` over fixtures under [`test/`](./test/) and
-exercised by the `Test` workflow on every push and pull request.
+exercised by the `Check` workflow on every push and pull request.
 
 ## Versioning & releases
 
