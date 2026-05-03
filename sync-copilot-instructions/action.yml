@@ -149,9 +149,15 @@ runs:
           # Drift: clone, write, commit, push.
           # Auth lives in an http.extraheader passed via `git -c` so the
           # token never appears in the remote URL — git logs the URL on
-          # transport errors, which would otherwise leak the token.
+          # transport errors, which would otherwise leak the token. We use
+          # `AUTHORIZATION: basic <base64(x-access-token:TOKEN)>` because
+          # GitHub's git-over-HTTPS endpoint expects Basic auth (the same
+          # pattern actions/checkout uses); Bearer is rejected and the
+          # clone fails with "Authentication failed".
           rm -rf "$repo_dir"
-          local auth_header="Authorization: Bearer ${GH_TOKEN}"
+          local b64_token
+          b64_token=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w 0)
+          local auth_header="AUTHORIZATION: basic ${b64_token}"
           if ! git -c "http.https://github.com/.extraheader=${auth_header}" \
               clone --depth 1 "https://github.com/${repo}.git" "$repo_dir" \
               2>&1 | tail -5; then
