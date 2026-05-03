@@ -1,0 +1,264 @@
+name: Sync Copilot instructions
+description: >
+  Sync the org-wide canonical copilot-instructions.md (in 0k-software/.github)
+  into target repos' .github/copilot-instructions.md, between HTML-comment
+  markers. Open or refresh a PR per target on a stable branch when content
+  drifts. Per-repo errors are recorded and iteration continues; the run exits
+  non-zero at the end if any repo errored.
+
+branding:
+  icon: refresh-cw
+  color: blue
+
+inputs:
+  github-token:
+    description: >
+      Token used for all API calls. For org-wide iteration, callers must pass
+      an App installation token with `contents: write`, `pull-requests: write`,
+      `metadata: read` on each target plus access to
+      `/installation/repositories`. The default suits single-repo invocations
+      against the calling repo only.
+    required: false
+    default: ${{ github.token }}
+  target-repo:
+    description: >
+      `owner/repo`; if set, syncs only that one. Empty means iterate every repo
+      the token can reach via `/installation/repositories`.
+    required: false
+    default: ""
+  canonical-ref:
+    description: >
+      Ref of `0k-software/.github` to read the canonical file from. Allows
+      pinning to a release tag.
+    required: false
+    default: "main"
+  branch-name:
+    description: >
+      Stable branch name used in target repos. Force-pushed on every drift
+      update so a single PR per repo is refreshed in place.
+    required: false
+    default: "chore/sync-copilot-instructions"
+
+runs:
+  using: composite
+  steps:
+    - name: Sync Copilot instructions across repos
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        TARGET_REPO: ${{ inputs.target-repo }}
+        CANONICAL_REF: ${{ inputs.canonical-ref }}
+        BRANCH_NAME: ${{ inputs.branch-name }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        set -euo pipefail
+
+        EXTRACT="${ACTION_PATH}/extract-org-section.sh"
+        COMPUTE="${ACTION_PATH}/compute-desired.sh"
+        chmod +x "$EXTRACT" "$COMPUTE"
+
+        WORKDIR="$(mktemp -d)"
+        CANONICAL_FILE="${WORKDIR}/canonical.md"
+        ERRORS=()
+        declare -A STATUS
+
+        echo "::group::Fetch canonical content from 0k-software/.github@${CANONICAL_REF}"
+        if ! gh api \
+            "repos/0k-software/.github/contents/copilot-instructions.md?ref=${CANONICAL_REF}" \
+            --jq '.content' \
+          | base64 -d > "$CANONICAL_FILE"; then
+          echo "::error::Cannot read canonical file at 0k-software/.github@${CANONICAL_REF}"
+          exit 1
+        fi
+        echo "Canonical bytes: $(wc -c < "$CANONICAL_FILE")"
+        echo "::endgroup::"
+
+        # Resolve target list
+        TARGETS_FILE="${WORKDIR}/targets.txt"
+        : > "$TARGETS_FILE"
+        if [ -n "$TARGET_REPO" ]; then
+          echo "::group::Single target: ${TARGET_REPO}"
+          if ! gh api "repos/${TARGET_REPO}" --jq '.full_name' >> "$TARGETS_FILE"; then
+            echo "::error::target-repo '${TARGET_REPO}' is unreachable"
+            exit 1
+          fi
+          echo "::endgroup::"
+        else
+          echo "::group::List repos via /installation/repositories"
+          if ! gh api --paginate '/installation/repositories?per_page=100' \
+              --jq '.repositories[] | select(.archived == false) | .full_name' \
+              >> "$TARGETS_FILE"; then
+            echo "::error::Cannot list repositories from /installation/repositories"
+            exit 1
+          fi
+          echo "Targets: $(wc -l < "$TARGETS_FILE")"
+          echo "::endgroup::"
+        fi
+
+        sync_one() {
+          local repo="$1"
+          local repo_dir="${WORKDIR}/repos/${repo//\//__}"
+          local existing="${WORKDIR}/existing-${repo//\//__}.md"
+          local desired="${WORKDIR}/desired-${repo//\//__}.md"
+          local existing_present=0
+          local had_markers=0
+
+          if gh api "repos/${repo}" --jq '.archived' 2>/dev/null | grep -q '^true$'; then
+            STATUS[$repo]="skipped (archived)"
+            return 0
+          fi
+
+          # Distinguish 404 (treat as missing → sync) from any other failure
+          # (auth, 5xx, rate limit) so transient errors don't masquerade as
+          # "missing" and cause the action to overwrite a repo's existing
+          # copilot-instructions.md with just the canonical block.
+          local fetch_body="${WORKDIR}/fetch-${repo//\//__}.json"
+          local fetch_status
+          fetch_status=$(curl -sS \
+            -o "$fetch_body" \
+            -w '%{http_code}' \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${repo}/contents/.github/copilot-instructions.md" \
+            || echo "000")
+          case "$fetch_status" in
+            200)
+              jq -r '.content' "$fetch_body" | base64 -d > "$existing"
+              existing_present=1
+              if grep -q '0k:org-instructions:begin' "$existing"; then
+                had_markers=1
+              fi
+              ;;
+            404)
+              : > "$existing"
+              ;;
+            *)
+              ERRORS+=("$repo: HTTP ${fetch_status} fetching .github/copilot-instructions.md")
+              STATUS[$repo]="error (fetch)"
+              return 1
+              ;;
+          esac
+
+          "$COMPUTE" "$CANONICAL_FILE" "$existing" > "$desired"
+
+          if [ "$existing_present" -eq 1 ] && cmp -s "$existing" "$desired"; then
+            STATUS[$repo]="in-sync"
+            return 0
+          fi
+
+          # Drift: clone, write, commit, push.
+          # Auth lives in an http.extraheader passed via `git -c` so the
+          # token never appears in the remote URL — git logs the URL on
+          # transport errors, which would otherwise leak the token. We use
+          # `AUTHORIZATION: basic <base64(x-access-token:TOKEN)>` because
+          # GitHub's git-over-HTTPS endpoint expects Basic auth (the same
+          # pattern actions/checkout uses); Bearer is rejected and the
+          # clone fails with "Authentication failed".
+          rm -rf "$repo_dir"
+          local b64_token
+          b64_token=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w 0)
+          local auth_header="AUTHORIZATION: basic ${b64_token}"
+          if ! git -c "http.https://github.com/.extraheader=${auth_header}" \
+              clone --depth 1 "https://github.com/${repo}.git" "$repo_dir" \
+              2>&1 | tail -5; then
+            ERRORS+=("$repo: clone failed")
+            STATUS[$repo]="error (clone)"
+            return 1
+          fi
+
+          (
+            cd "$repo_dir"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git config user.name "github-actions[bot]"
+            git checkout -B "$BRANCH_NAME"
+            mkdir -p .github
+            cp "$desired" .github/copilot-instructions.md
+            git add .github/copilot-instructions.md
+            if git diff --cached --quiet; then
+              # No diff after copy (rare: clone happened to be on stale state)
+              return 0
+            fi
+            local msg_file
+            msg_file="$(mktemp)"
+            {
+              printf 'chore: sync Copilot instructions\n\n'
+              printf 'Automated update from 0k-software/.github@%s.\n\n' "$CANONICAL_REF"
+              printf 'Generated by sync-copilot-instructions; the canonical content lives\n'
+              printf 'between the <!-- 0k:org-instructions:begin --> markers in\n'
+              printf '.github/copilot-instructions.md.\n'
+            } > "$msg_file"
+            git commit -F "$msg_file"
+            git -c "http.https://github.com/.extraheader=${auth_header}" \
+              push --force-with-lease origin "$BRANCH_NAME"
+          ) || {
+            ERRORS+=("$repo: commit/push failed")
+            STATUS[$repo]="error (push)"
+            return 1
+          }
+
+          # Open or refresh PR
+          local owner="${repo%/*}"
+          local existing_pr
+          existing_pr=$(gh api \
+            "repos/${repo}/pulls?head=${owner}:${BRANCH_NAME}&state=open" \
+            --jq '.[0].number // empty' 2>/dev/null || true)
+
+          local label
+          if [ "$existing_present" -eq 0 ]; then
+            label="created"
+          elif [ "$had_markers" -eq 0 ]; then
+            label="markers-added"
+          else
+            label="drift"
+          fi
+
+          if [ -n "$existing_pr" ]; then
+            STATUS[$repo]="pr-updated"
+          else
+            if gh api -X POST "repos/${repo}/pulls" \
+                -f title="chore: sync Copilot instructions" \
+                -f head="$BRANCH_NAME" \
+                -f base="$(gh api "repos/${repo}" --jq '.default_branch')" \
+                -f body="Automated sync of \`.github/copilot-instructions.md\` from [the canonical source](https://github.com/0k-software/.github/blob/${CANONICAL_REF}/copilot-instructions.md). See [\`sync-copilot-instructions\`](https://github.com/0k-software/.github/tree/main/sync-copilot-instructions) for details." \
+                >/dev/null; then
+              STATUS[$repo]="pr-opened (${label})"
+            else
+              ERRORS+=("$repo: open PR failed")
+              STATUS[$repo]="error (open-pr)"
+              return 1
+            fi
+          fi
+        }
+
+        # Iterate targets, recording per-repo errors but continuing
+        while IFS= read -r repo; do
+          [ -z "$repo" ] && continue
+          echo "::group::Sync ${repo}"
+          sync_one "$repo" || true
+          echo "Status: ${STATUS[$repo]:-error (unknown)}"
+          echo "::endgroup::"
+        done < "$TARGETS_FILE"
+
+        echo "::group::Summary"
+        in_sync=0; pr_opened=0; pr_updated=0; skipped=0; errored=0
+        while IFS= read -r repo; do
+          [ -z "$repo" ] && continue
+          s="${STATUS[$repo]:-error (unknown)}"
+          printf '%-50s %s\n' "$repo" "$s"
+          case "$s" in
+            in-sync) in_sync=$((in_sync+1)) ;;
+            pr-opened*) pr_opened=$((pr_opened+1)) ;;
+            pr-updated) pr_updated=$((pr_updated+1)) ;;
+            skipped*) skipped=$((skipped+1)) ;;
+            error*) errored=$((errored+1)) ;;
+          esac
+        done < "$TARGETS_FILE"
+        echo "::endgroup::"
+
+        total=$(wc -l < "$TARGETS_FILE")
+        echo "Synced ${total} repos: ${in_sync} in-sync, $((pr_opened+pr_updated)) pr changes (${pr_opened} opened, ${pr_updated} updated), ${skipped} skipped, ${errored} errors"
+
+        if [ "${#ERRORS[@]}" -gt 0 ]; then
+          printf 'Error: %s\n' "${ERRORS[@]}"
+          exit 1
+        fi
